@@ -19,6 +19,14 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "truffle": "^5.0.31"
+    "bignumber.js": "^9.0.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^3.0.0",
+    "truffle": "^5.0.31",
+    "ethereum-waffle": "^2.0.15",
+    "ethers": "^4.0.33"
+  },
+  "dependencies": {
   }
 }
