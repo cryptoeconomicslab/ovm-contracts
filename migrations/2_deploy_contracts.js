@@ -1,7 +1,7 @@
+const Utils = artifacts.require('Utils.sol')
 const UniversalDecisionContract = artifacts.require('UniversalDecisionContract')
 const TestPredicate = artifacts.require('TestPredicate')
 const CommitmentContract = artifacts.require('CommitmentContract')
-const Utils = artifacts.require('Utils.sol')
 
 module.exports = function(deployer) {
   deployer

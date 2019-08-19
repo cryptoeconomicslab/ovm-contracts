@@ -10,7 +10,7 @@ library Utils {
 
     function isEmptyClaim(types.ClaimStatus memory _claimStatus) public pure returns (bool) {
         return _claimStatus.property.predicate == address(0x0)
-            && keccak256(_claimStatus.property.input) == bytes32("")
+            && keccak256(_claimStatus.property.input) == keccak256(bytes(""))
             && _claimStatus.decidedAfter == 0
             && _claimStatus.numProvenContradictions == 0;
     }

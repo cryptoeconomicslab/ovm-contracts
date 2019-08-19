@@ -1,42 +1,42 @@
 /* contract imports */
 const chai = require('chai');
-import {createMockProvider, deployContract, getWallets, solidity} from 'ethereum-waffle';
+const {createMockProvider, deployContract, getWallets, solidity, link} = require('ethereum-waffle');
 const UniversalDecisionContract = require('../build/UniversalDecisionContract');
+const Utils = require('../build/Utils');
+const TestPredicate = require('../build/TestPredicate');
 
 chai.use(solidity);
-const {expect} = chai;
+const {expect, assert} = chai;
 
 describe('UniversalDecisionContract', () => {
   let provider = createMockProvider();
   const wallets = getWallets(provider);
   let wallet = wallets[0];
-  let token;
-  let adjudicationContract;
+  let decisionContract;
+  let utils;
+  let testPredicate;
   
   beforeEach(async () => {
-    token = await deployContract(wallet, UniversalDecisionContract, [wallet.address, 1000]);
-    adjudicationContract = await deployContract(wallet, Adjudicator)
+    utils = await deployContract(wallet, Utils, []);
+    link(UniversalDecisionContract, 'contracts/Utils.sol:Utils', utils.address);
+    decisionContract = await deployContract(wallet, UniversalDecisionContract);
+    testPredicate = await deployContract(wallet, TestPredicate);
   });
 
   describe('claimProperty', () => {
     it('adds a claim', async () => {
-      const _claim = {
-          predicate: '0x5a8cDc465fba0f4dC27aB2b6DA321AfeBbE5a0Aa'
-          input: '0x01'
-      }
+      const property = {
+        predicate: testPredicate.address,
+        input: '0x01'
+      };
 
-      // claim a property
-      await adjudicationContract.claimProperty(_claim);
+      await decisionContract.claimProperty(property);
+      const claimId = await decisionContract.getPropertyId(property);
+      const claim = await decisionContract.getClaim(claimId);
 
-      //check that the property was stored 
-      const claimId = await adjudicationContract.Utils.getPropertyId(_claim);
-      const claim = await adjudicationContract.Utils.getClaim(claimId);
-
-      /* function getClaim(bytes32 claimId) public view returns (types.Claim memory) {
-        return claims[claimId];
-      */
-
-      claim.decidedAfter.toNumber.should.not.equal(0)
+      // check newly stored property is equal to the claimed property
+      assert.equal(claim.predicate, property.predicate);
+      assert.equal(claim.input, property.input);
     });
   });
 });

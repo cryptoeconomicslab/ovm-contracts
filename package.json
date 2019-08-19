@@ -8,10 +8,7 @@
     "contracts": "contracts"
   },
   "scripts": {
-    "build": "truffle compile",
-    "develop": "truffle develop",
-    "clean": "rm -rf build",
-    "test": "npm run build && truffle test"
+    "test": "waffle && mocha"
   },
   "author": {
     "name": "Crypteconomics Lab",
@@ -19,14 +16,9 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "bignumber.js": "^9.0.0",
     "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
-    "chai-bignumber": "^3.0.0",
-    "truffle": "^5.0.31",
     "ethereum-waffle": "^2.0.15",
-    "ethers": "^4.0.33"
-  },
-  "dependencies": {
+    "ethers": "^4.0.33",
+    "mocha": "^6.2.0"
   }
 }

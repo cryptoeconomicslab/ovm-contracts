@@ -24,6 +24,14 @@ contract UniversalDecisionContract {
     return claims[Utils.getPropertyId(_property)].decidedAfter < block.number;
   }  
 
+  function getClaim(bytes32 claimId) public view returns (types.Property memory) {
+    return claims[claimId].property;
+  }
+
+  function getPropertyId(types.Property memory _property) public view returns (bytes32) {
+    return Utils.getPropertyId(_property);
+  }
+
   function claimProperty(types.Property memory _claim) public {
     // get the id of this property
     bytes32 claimedPropertyId = Utils.getPropertyId(_claim);
