@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-/* internal imports */
+/* internal contract imports */
 import "./Utils.sol";
 import {DataTypes as types} from "./DataTypes.sol";
 

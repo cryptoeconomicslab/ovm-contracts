@@ -1,18 +1,44 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+contract DataTypes {
+  struct Property {
+    address predicate;
+    bytes input;
+  }
+}
+
+contract UniversalDecisionContract {
+    function decideProperty(DataTypes.Property memory, bool) public {}
+}
+
 contract TestPredicate {
-    struct TestPredicateInput {
-        uint value;
-    }
+  address udcAddress;
 
-    event ValueDecided(bool decision, uint value);
+  constructor(address _udcAddress) public {
+    udcAddress = _udcAddress;
+  }
 
-    function decideTrue(TestPredicateInput memory _input) public {
-        emit ValueDecided(true, _input.value);
-    }
+  struct TestPredicateInput {
+    uint value;
+  }
 
-    function decideFalse(TestPredicateInput memory _input) public {
-        emit ValueDecided(false, _input.value);
-    }
+  event ValueDecided(bool decision, uint value);
+
+  function createPropertyFromInput(TestPredicateInput memory _input) public returns (DataTypes.Property memory) {
+    DataTypes.Property memory property = DataTypes.Property({predicate:address(this), input:abi.encode(_input)});
+    return property;
+  }
+
+  function decideTrue(TestPredicateInput memory _input) public {
+    DataTypes.Property memory property = createPropertyFromInput(_input);
+
+    UniversalDecisionContract(udcAddress).decideProperty(property, true);
+
+    emit ValueDecided(true, _input.value);
+  }
+
+  function decideFalse(TestPredicateInput memory _input) public {
+    emit ValueDecided(false, _input.value);
+  }
 }

@@ -10,17 +10,20 @@ const {expect, assert} = chai;
 
 describe('UniversalDecisionContract', () => {
   let provider = createMockProvider();
-  const wallets = getWallets(provider);
+  let wallets = getWallets(provider);
   let wallet = wallets[0];
   let decisionContract;
   let utils;
   let testPredicate;
-  
-  beforeEach(async () => {
+
+  before(async () => {
     utils = await deployContract(wallet, Utils, []);
     link(UniversalDecisionContract, 'contracts/Utils.sol:Utils', utils.address);
+  });
+
+  beforeEach(async () => {
     decisionContract = await deployContract(wallet, UniversalDecisionContract);
-    testPredicate = await deployContract(wallet, TestPredicate);
+    testPredicate = await deployContract(wallet, TestPredicate, [decisionContract.address]);
   });
 
   describe('claimProperty', () => {
@@ -33,10 +36,31 @@ describe('UniversalDecisionContract', () => {
       await decisionContract.claimProperty(property);
       const claimId = await decisionContract.getPropertyId(property);
       const claim = await decisionContract.getClaim(claimId);
-
+      console.log(claim)
       // check newly stored property is equal to the claimed property
       assert.equal(claim.predicate, property.predicate);
       assert.equal(claim.input, property.input);
+    });
+    // it('fails to add a claim, which has already been claimed', async () => {
+    //   const alreadyClaimedId  //requireで落ちる
+    // });
+  });
+
+  describe('decideProperty', () => {
+    it('approve a claim when decision is true', async () => {
+      const testPredicateInput = {
+        value: 1
+      };
+      const res = await testPredicate.decideTrue(testPredicateInput);
+      console.log(res)
+      const property = await testPredicate.createPropertyFromInput(testPredicateInput);
+      await testPredicate.decideTrue(testPredicateInput);
+      const decidedPropertyId = await decisionContract.getPropertyId(property);
+      const blockNumber = await web3.eth.getBlockNumber()
+
+      //check newly decided property is equal to the claimed property
+      assert.equal(claims[decidedPropertyId].decidedAfter, block.number - 1);
+
     });
   });
 });
