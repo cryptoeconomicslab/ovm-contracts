@@ -25,7 +25,7 @@ contract TestPredicate {
 
   event ValueDecided(bool decision, uint value);
 
-  function createPropertyFromInput(TestPredicateInput memory _input) public returns (DataTypes.Property memory) {
+  function createPropertyFromInput(TestPredicateInput memory _input) public view returns (DataTypes.Property memory) {
     DataTypes.Property memory property = DataTypes.Property({predicate:address(this), input:abi.encode(_input)});
     return property;
   }
@@ -39,6 +39,10 @@ contract TestPredicate {
   }
 
   function decideFalse(TestPredicateInput memory _input) public {
+    DataTypes.Property memory property = createPropertyFromInput(_input);
+
+    UniversalDecisionContract(udcAddress).decideProperty(property, false);
+
     emit ValueDecided(false, _input.value);
   }
 }

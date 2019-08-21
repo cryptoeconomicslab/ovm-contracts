@@ -4,8 +4,11 @@ const {createMockProvider, deployContract, getWallets, solidity, link} = require
 const UniversalDecisionContract = require('../build/UniversalDecisionContract');
 const Utils = require('../build/Utils');
 const TestPredicate = require('../build/TestPredicate');
+const ethers =require('ethers');
+
 
 chai.use(solidity);
+chai.use(require('chai-as-promised'));
 const {expect, assert} = chai;
 
 describe('UniversalDecisionContract', () => {
@@ -36,14 +39,21 @@ describe('UniversalDecisionContract', () => {
       await decisionContract.claimProperty(property);
       const claimId = await decisionContract.getPropertyId(property);
       const claim = await decisionContract.getClaim(claimId);
-      console.log(claim)
+
       // check newly stored property is equal to the claimed property
       assert.equal(claim.predicate, property.predicate);
       assert.equal(claim.input, property.input);
     });
-    // it('fails to add a claim, which has already been claimed', async () => {
-    //   const alreadyClaimedId  //requireで落ちる
-    // });
+    it('fails to add an already claimed property', async () => {
+      const property = {
+        predicate: testPredicate.address,
+        input: '0x01'
+      };
+      // claim a property
+      await decisionContract.claimProperty(property);
+      // check if the second call of the claimProperty function throws an error 
+      assert(expect(decisionContract.claimProperty(property)).to.eventually.be.rejected);
+    });
   });
 
   describe('decideProperty', () => {
@@ -51,16 +61,34 @@ describe('UniversalDecisionContract', () => {
       const testPredicateInput = {
         value: 1
       };
-      const res = await testPredicate.decideTrue(testPredicateInput);
-      console.log(res)
       const property = await testPredicate.createPropertyFromInput(testPredicateInput);
       await testPredicate.decideTrue(testPredicateInput);
       const decidedPropertyId = await decisionContract.getPropertyId(property);
-      const blockNumber = await web3.eth.getBlockNumber()
-
-      //check newly decided property is equal to the claimed property
-      assert.equal(claims[decidedPropertyId].decidedAfter, block.number - 1);
-
+      const blockNumber = await provider.getBlockNumber()
+      const decidedClaim = await decisionContract.claims(decidedPropertyId);
+      
+      //check the block number of newly decided property is equal to the claimed property's 
+      assert.equal(decidedClaim.decidedAfter, blockNumber - 1);
     });
+
+    it('deletes a claim when the decision is false', async () => {
+      const testPredicateInput = {
+        value: 1
+      };
+      const property = await testPredicate.createPropertyFromInput(testPredicateInput);
+      await testPredicate.decideFalse(testPredicateInput);
+      const falsifiedPropertyId = await decisionContract.getPropertyId(property);
+      const falsifiedClaim = await decisionContract.claims(falsifiedPropertyId);
+
+      // check the claimed property is deleted 
+      assert(isEmptyClaimStatus(falsifiedClaim));
+    })
   });
 });
+
+function isEmptyClaimStatus(_claimStatus) {
+  return ethers.utils.bigNumberify(_claimStatus.property.predicate).isZero()
+    && ethers.utils.arrayify(_claimStatus.property.input).length === 0
+    && _claimStatus.decidedAfter.isZero()
+    && _claimStatus.numProvenContradictions.isZero()
+}
