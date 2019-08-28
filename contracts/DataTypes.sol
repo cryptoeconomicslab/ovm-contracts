@@ -22,4 +22,33 @@ contract DataTypes {
     Property implication;
     bytes[] witness;
   }
+
+  struct CheckpointStatus {
+    uint256 challengeableUntil;
+    uint256 outstandingChallenges;
+  }
+
+  struct Challenge {
+    types.Checkpoint challengedCheckpoint;
+    types.Checkpoint challengingCheckpoint;
+  } 
+  struct StateObject {
+    address predicateAddress;
+    bytes data;
+  }
+
+  struct Range {
+    uint256 start;
+    uint256 end;
+  }
+  struct StateUpdate {
+    StateObject stateObject;
+    Range range;
+    uint256 plasmaBlockNumber;
+    address depositAddress;
+  }
+  struct Checkpoint {
+    StateUpdate stateUpdate;
+    Range subrange;
+    }
 }

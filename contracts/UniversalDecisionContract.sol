@@ -17,6 +17,7 @@ contract UniversalDecisionContract {
   enum RemainingClaimIndex { Property, CounterProperty }
 
   function isWhiteListedProperty(types.Property memory _property) private returns (bool) {
+    // Always return true until we know what to whitelist 
     return true;
     }
 
@@ -51,7 +52,7 @@ contract UniversalDecisionContract {
     require(msg.sender == _property.predicate);
     bytes32 decidedPropertyId = Utils.getPropertyId(_property);
 
-    // if the decision is true, automatically decide its claim now 
+    v// if the decision is true, automatically decide its claim now 
     if (_decision) {
         claims[decidedPropertyId].decidedAfter = block.number - 1;
     } else {
