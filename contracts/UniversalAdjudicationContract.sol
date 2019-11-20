@@ -15,6 +15,8 @@ contract UniversalAdjudicationContract {
     enum RemainingClaimIndex {Property, CounterProperty}
     Utils utils;
 
+    event AtomicPropositionDecided(bytes32 gameId, bool decision);
+
     constructor(address _utilsAddress) public {
         utils = Utils(_utilsAddress);
     }
@@ -101,6 +103,7 @@ contract UniversalAdjudicationContract {
         } else {
             game.decision = types.Decision.False;
         }
+        emit AtomicPropositionDecided(_gameId, _decision);
     }
 
     /**

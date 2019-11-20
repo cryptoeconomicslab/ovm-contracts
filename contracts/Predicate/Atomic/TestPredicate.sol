@@ -1,10 +1,10 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import {DataTypes as types} from "../DataTypes.sol";
-import "./AtomicPredicate.sol";
-import {UniversalAdjudicationContract} from "../UniversalAdjudicationContract.sol";
-import "../Utils.sol";
+import {DataTypes as types} from "../../DataTypes.sol";
+import "../AtomicPredicate.sol";
+import {UniversalAdjudicationContract} from "../../UniversalAdjudicationContract.sol";
+import "../../Utils.sol";
 
 contract TestPredicate is AtomicPredicate {
     address uacAddress;
