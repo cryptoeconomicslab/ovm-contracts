@@ -11,6 +11,7 @@ import * as Utils from '../../../build/Utils.json'
 import * as IsValidStateTransitionPredicate from '../../../build/IsValidStateTransitionPredicate.json'
 import * as MockTxPredicate from '../../../build/MockTxPredicate.json'
 import * as MockStateUpdatePredicate from '../../../build/MockStateUpdatePredicate.json'
+import * as IsContainedPredicate from '../../../build/IsContainedPredicate.json'
 import * as ethers from 'ethers'
 const abi = new ethers.utils.AbiCoder()
 
@@ -26,6 +27,7 @@ describe('IsValidStateTransition', () => {
   let adjudicationContract: ethers.Contract
   let txPredicate: ethers.Contract
   let stateUpdatePredicate: ethers.Contract
+  let isContainedPredicate: ethers.Contract
 
   beforeEach(async () => {
     const utils = await deployContract(wallet, Utils, [])
@@ -40,10 +42,19 @@ describe('IsValidStateTransition', () => {
       MockAdjudicationContract,
       [utils.address]
     )
+    isContainedPredicate = await deployContract(wallet, IsContainedPredicate, [
+      adjudicationContract.address,
+      utils.address
+    ])
     isValidStateTransitionPredicate = await deployContract(
       wallet,
       IsValidStateTransitionPredicate,
-      [adjudicationContract.address, utils.address, txPredicate.address]
+      [
+        adjudicationContract.address,
+        utils.address,
+        txPredicate.address,
+        isContainedPredicate.address
+      ]
     )
   })
 
