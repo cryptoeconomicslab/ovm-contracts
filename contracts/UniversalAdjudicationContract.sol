@@ -133,6 +133,10 @@ contract UniversalAdjudicationContract {
         return instantiatedGames[utils.getPropertyId(_property)].decision == types.Decision.True;
     }
 
+    function isDecidedById(bytes32 _propertyId) public view returns (bool) {
+        return instantiatedGames[_propertyId].decision == types.Decision.True;
+    }
+
     function getGame(bytes32 claimId) public view returns (types.ChallengeGame memory) {
         return instantiatedGames[claimId];
     }
