@@ -15,7 +15,5 @@ contract MockAdjudicationContract {
     function isDecided(types.Property memory _property) public returns (bool) {
         return !fail;
     }
-    function setPredicateDecision(bytes32 _gameId, bool _decision) public {
-        
-    }
+    function setPredicateDecision(bytes32 _gameId, bool _decision) public {}
 }

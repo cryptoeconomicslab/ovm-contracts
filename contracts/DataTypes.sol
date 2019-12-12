@@ -8,17 +8,13 @@ library DataTypes {
         bytes[] inputs;
     }
 
-    enum Decision {
-        Undecided,
-        True,
-        False
-    }
+    enum Decision {Undecided, True, False}
 
     struct ChallengeGame {
         Property property;
         bytes32[] challenges;
         Decision decision;
-        uint createdBlock;
+        uint256 createdBlock;
     }
 
     struct Range {

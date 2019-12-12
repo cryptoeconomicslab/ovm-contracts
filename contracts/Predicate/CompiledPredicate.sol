@@ -9,6 +9,10 @@ interface CompiledPredicate {
         bytes calldata _challengeInput,
         types.Property calldata _challenge
     ) external view returns (bool);
-    function decide(bytes[] calldata _inputs, bytes[] calldata _witness) external view returns (bool);
-    function decideTrue(bytes[] calldata _inputs, bytes[] calldata _witness) external;
+    function decide(bytes[] calldata _inputs, bytes[] calldata _witness)
+        external
+        view
+        returns (bool);
+    function decideTrue(bytes[] calldata _inputs, bytes[] calldata _witness)
+        external;
 }

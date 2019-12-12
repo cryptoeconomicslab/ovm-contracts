@@ -3,7 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import "./LogicalConnective.sol";
-import {UniversalAdjudicationContract} from "../UniversalAdjudicationContract.sol";
+import {
+    UniversalAdjudicationContract
+} from "../UniversalAdjudicationContract.sol";
 import "../Utils.sol";
 
 contract NotPredicate is LogicalConnective {
@@ -16,12 +18,16 @@ contract NotPredicate is LogicalConnective {
     }
 
     struct TestPredicateInput {
-        uint value;
+        uint256 value;
     }
 
     event ValueDecided(bool decision, types.Property innerProperty);
 
-    function createPropertyFromInput(bytes[] memory _input) public view returns (types.Property memory) {
+    function createPropertyFromInput(bytes[] memory _input)
+        public
+        view
+        returns (types.Property memory)
+    {
         types.Property memory property = types.Property({
             predicateAddress: address(this),
             inputs: _input
@@ -40,7 +46,7 @@ contract NotPredicate is LogicalConnective {
         // The valid challenge of not(p) is p and _inputs[0] is p here
         return keccak256(_inputs[0]) == keccak256(abi.encode(_challenge));
     }
-    
+
     /**
      * @dev Decides true
      */
@@ -52,7 +58,10 @@ contract NotPredicate is LogicalConnective {
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(innerProperty);
         types.Property memory property = createPropertyFromInput(inputs);
-        UniversalAdjudicationContract(uacAddress).setPredicateDecision(utils.getPropertyId(property), true);
+        UniversalAdjudicationContract(uacAddress).setPredicateDecision(
+            utils.getPropertyId(property),
+            true
+        );
 
         emit ValueDecided(true, innerProperty);
     }

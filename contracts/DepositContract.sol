@@ -7,7 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /* Internal Imports */
 import {DataTypes as types} from "./DataTypes.sol";
 import {CommitmentContract} from "./CommitmentContract.sol";
-import {UniversalAdjudicationContract} from "./UniversalAdjudicationContract.sol";
+import {
+    UniversalAdjudicationContract
+} from "./UniversalAdjudicationContract.sol";
 
 contract DepositContract {
     /* Events */
@@ -16,9 +18,7 @@ contract DepositContract {
         types.Checkpoint checkpoint
     );
 
-    event ExitFinalized(
-        bytes32 exitId
-    );
+    event ExitFinalized(bytes32 exitId);
 
     /* Public Variables and Mappings*/
     ERC20 public erc20;
@@ -28,8 +28,8 @@ contract DepositContract {
     address public stateUpdatePredicateContract;
 
     uint256 public totalDeposited;
-    mapping (uint256 => types.Range) public depositedRanges;
-    mapping (bytes32 => types.Checkpoint) public checkpoints;
+    mapping(uint256 => types.Range) public depositedRanges;
+    mapping(bytes32 => types.Checkpoint) public checkpoints;
 
     constructor(
         address _erc20,
@@ -40,7 +40,9 @@ contract DepositContract {
     ) public {
         erc20 = ERC20(_erc20);
         commitmentContract = CommitmentContract(_commitmentContract);
-        universalAdjudicationContract = UniversalAdjudicationContract(_universalAdjudicationContract);
+        universalAdjudicationContract = UniversalAdjudicationContract(
+            _universalAdjudicationContract
+        );
         stateUpdatePredicateContract = _stateUpdatePredicateContract;
     }
 
@@ -50,16 +52,20 @@ contract DepositContract {
      * @param _amount to deposit
      * @param _initialState The initial state of deposit
      */
-    function deposit(uint256 _amount, types.Property memory _initialState) public {
+    function deposit(uint256 _amount, types.Property memory _initialState)
+        public
+    {
         erc20.transferFrom(msg.sender, address(this), _amount);
-        types.Range memory depositRange = types.Range({start:totalDeposited, end:totalDeposited + _amount});
+        types.Range memory depositRange = types.Range({
+            start: totalDeposited,
+            end: totalDeposited + _amount
+        });
         bytes[] memory inputs = new bytes[](4);
         inputs[0] = abi.encode(address(this));
         inputs[1] = abi.encode(depositRange);
         inputs[2] = abi.encode(getLatestPlasmaBlockNumber() - 1);
         inputs[3] = abi.encode(_initialState);
-        types.Property memory stateUpdate = types.Property({
-            // Fixme: when StateUpdatePredicate is merged
+        types.Property memory stateUpdate = types.Property({ // Fixme: when StateUpdatePredicate is merged
             predicateAddress: stateUpdatePredicateContract,
             inputs: inputs
         });
@@ -85,11 +91,14 @@ contract DepositContract {
             newStart = oldStart;
         }
         uint256 newEnd = totalDeposited + _amount;
-        depositedRanges[newEnd] = types.Range({start:newStart, end:newEnd});
+        depositedRanges[newEnd] = types.Range({start: newStart, end: newEnd});
         totalDeposited += _amount;
     }
 
-    function removeDepositedRange(types.Range memory _range, uint256 _depositedRangeId) public {
+    function removeDepositedRange(
+        types.Range memory _range,
+        uint256 _depositedRangeId
+    ) public {
         require(
             isSubrange(_range, depositedRanges[_depositedRangeId]),
             "range must be of a depostied range (the one that has not been exited)"
@@ -101,12 +110,15 @@ contract DepositContract {
          * So, there are 2 patterns for each start and end of _range and encompasingRange.
          * There are nothing todo for _range.start is equal to encompasingRange.start.
          */
-         // Check start of range
+        // Check start of range
         if (_range.start != encompasingRange.start) {
-            types.Range memory leftSplitRange = types.Range({start:encompasingRange.start, end:_range.start});
+            types.Range memory leftSplitRange = types.Range({
+                start: encompasingRange.start,
+                end: _range.start
+            });
             depositedRanges[leftSplitRange.end] = leftSplitRange;
         }
-         // Check end of range
+        // Check end of range
         if (_range.end == encompasingRange.end) {
             /*
              * Deposited range Id is end value of the range, we must remove the range from depositedRanges
@@ -123,11 +135,22 @@ contract DepositContract {
      * @param _checkpointProperty A property which is instance of checkpoint predicate
      * its first input is range to create checkpoint and second input is property for stateObject.
      */
-    function finalizeCheckpoint(types.Property memory _checkpointProperty) public {
-        require(universalAdjudicationContract.isDecided(_checkpointProperty), "Checkpointing claim must be decided");
+    function finalizeCheckpoint(types.Property memory _checkpointProperty)
+        public
+    {
+        require(
+            universalAdjudicationContract.isDecided(_checkpointProperty),
+            "Checkpointing claim must be decided"
+        );
         // types.Checkpoint memory checkpoint = createCheckpoint(_checkpointProperty);
-        types.Range memory range = abi.decode(_checkpointProperty.inputs[0], (types.Range));
-        types.Property memory property = abi.decode(_checkpointProperty.inputs[1], (types.Property));
+        types.Range memory range = abi.decode(
+            _checkpointProperty.inputs[0],
+            (types.Range)
+        );
+        types.Property memory property = abi.decode(
+            _checkpointProperty.inputs[1],
+            (types.Property)
+        );
         types.Checkpoint memory checkpoint = types.Checkpoint({
             subrange: range,
             stateUpdate: property
@@ -145,13 +168,25 @@ contract DepositContract {
      * @param _depositedRangeId Id of deposited range
      * @dev spec is https://docs.plasma.group/projects/spec/en/latest/src/02-contracts/deposit-contract.html#finalizeexit
      */
-    function finalizeExit(types.Property memory _exitProperty, uint256 _depositedRangeId) public returns (types.Exit memory) {
+    function finalizeExit(
+        types.Property memory _exitProperty,
+        uint256 _depositedRangeId
+    ) public returns (types.Exit memory) {
         types.Exit memory exit = deserializeExit(_exitProperty);
         bytes32 exitId = getExitId(exit);
         // Check that we are authorized to finalize this exit
-        require(universalAdjudicationContract.isDecided(_exitProperty), "Exit must be decided after this block");
-        require(exit.stateUpdate.stateObject.predicateAddress == msg.sender, "finalizeExit must be called from StateObject contract");
-        require(exit.stateUpdate.depositAddress == address(this), "StateUpdate.depositAddress must be this contract address");
+        require(
+            universalAdjudicationContract.isDecided(_exitProperty),
+            "Exit must be decided after this block"
+        );
+        require(
+            exit.stateUpdate.stateObject.predicateAddress == msg.sender,
+            "finalizeExit must be called from StateObject contract"
+        );
+        require(
+            exit.stateUpdate.depositAddress == address(this),
+            "StateUpdate.depositAddress must be this contract address"
+        );
         // Remove the deposited range
         removeDepositedRange(exit.subrange, _depositedRangeId);
         //Transfer tokens to its predicate
@@ -166,7 +201,11 @@ contract DepositContract {
         return commitmentContract.currentBlock();
     }
 
-    function getCheckpointId(types.Checkpoint memory _checkpoint) private pure returns (bytes32) {
+    function getCheckpointId(types.Checkpoint memory _checkpoint)
+        private
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encode(_checkpoint));
     }
 
@@ -177,49 +216,87 @@ contract DepositContract {
     /**
      * @dev deserialize property to Checkpoint instance
      */
-    function createCheckpoint(types.Property memory _checkpoint) private pure returns (types.Checkpoint memory) {
-        types.Range memory range = abi.decode(_checkpoint.inputs[0], (types.Range));
-        types.Property memory stateUpdateProperty = abi.decode(_checkpoint.inputs[1], (types.Property));
-        return types.Checkpoint({
-            subrange: range,
-            stateUpdate: stateUpdateProperty
-        });
+    function createCheckpoint(types.Property memory _checkpoint)
+        private
+        pure
+        returns (types.Checkpoint memory)
+    {
+        types.Range memory range = abi.decode(
+            _checkpoint.inputs[0],
+            (types.Range)
+        );
+        types.Property memory stateUpdateProperty = abi.decode(
+            _checkpoint.inputs[1],
+            (types.Property)
+        );
+        return
+            types.Checkpoint({
+                subrange: range,
+                stateUpdate: stateUpdateProperty
+            });
     }
 
     /**
      * @dev deserialize property to Exit instance
      */
-    function deserializeExit(types.Property memory _exit) private pure returns (types.Exit memory) {
+    function deserializeExit(types.Property memory _exit)
+        private
+        pure
+        returns (types.Exit memory)
+    {
         types.Range memory range = abi.decode(_exit.inputs[0], (types.Range));
-        types.Property memory stateUpdateProperty = abi.decode(_exit.inputs[1], (types.Property));
-        return types.Exit({
-            stateUpdate: deserializeStateUpdate(stateUpdateProperty),
-            subrange: range
-        });
+        types.Property memory stateUpdateProperty = abi.decode(
+            _exit.inputs[1],
+            (types.Property)
+        );
+        return
+            types.Exit({
+                stateUpdate: deserializeStateUpdate(stateUpdateProperty),
+                subrange: range
+            });
     }
 
     /**
      * @dev deserialize property to StateUpdate instance
      */
-    function deserializeStateUpdate(types.Property memory _stateUpdate) private pure returns (types.StateUpdate memory) {
+    function deserializeStateUpdate(types.Property memory _stateUpdate)
+        private
+        pure
+        returns (types.StateUpdate memory)
+    {
         uint256 blockNumber = abi.decode(_stateUpdate.inputs[0], (uint256));
         address depositAddress = abi.decode(_stateUpdate.inputs[1], (address));
-        types.Range memory range = abi.decode(_stateUpdate.inputs[2], (types.Range));
-        types.Property memory stateObject = abi.decode(_stateUpdate.inputs[3], (types.Property));
-        return types.StateUpdate({
-            blockNumber: blockNumber,
-            depositAddress: depositAddress,
-            range: range,
-            stateObject: stateObject
-        });
+        types.Range memory range = abi.decode(
+            _stateUpdate.inputs[2],
+            (types.Range)
+        );
+        types.Property memory stateObject = abi.decode(
+            _stateUpdate.inputs[3],
+            (types.Property)
+        );
+        return
+            types.StateUpdate({
+                blockNumber: blockNumber,
+                depositAddress: depositAddress,
+                range: range,
+                stateObject: stateObject
+            });
     }
 
-
-    function getExitId(types.Property memory _exit) private pure returns (bytes32) {
+    function getExitId(types.Property memory _exit)
+        private
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encode(_exit));
     }
 
-    function isSubrange(types.Range memory _subrange, types.Range memory _surroundingRange) public pure returns (bool) {
-        return _subrange.start >= _surroundingRange.start && _subrange.end <= _surroundingRange.end;
+    function isSubrange(
+        types.Range memory _subrange,
+        types.Range memory _surroundingRange
+    ) public pure returns (bool) {
+        return
+            _subrange.start >= _surroundingRange.start &&
+            _subrange.end <= _surroundingRange.end;
     }
 }

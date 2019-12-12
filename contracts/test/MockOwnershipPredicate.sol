@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import { CompiledPredicate } from "../Predicate/CompiledPredicate.sol";
+import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 import "../DepositContract.sol";
 
 /**
@@ -20,13 +20,23 @@ contract MockOwnershipPredicate is CompiledPredicate {
     ) public view returns (bool) {
         return true;
     }
-    function decide(bytes[] memory _inputs, bytes[] memory _witness) public view returns (bool) {
+    function decide(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        view
+        returns (bool)
+    {
         return true;
     }
-    function decideTrue(bytes[] memory _inputs, bytes[] memory _witness) public {
-        
-    }
-    function finalizeExit(types.Property memory _exitProperty, uint256 _depositedRangeId) public {
-        DepositContract(depositContractAddress).finalizeExit(_exitProperty, _depositedRangeId);
+    function decideTrue(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+    {}
+    function finalizeExit(
+        types.Property memory _exitProperty,
+        uint256 _depositedRangeId
+    ) public {
+        DepositContract(depositContractAddress).finalizeExit(
+            _exitProperty,
+            _depositedRangeId
+        );
     }
 }

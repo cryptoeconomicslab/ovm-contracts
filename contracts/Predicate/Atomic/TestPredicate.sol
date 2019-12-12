@@ -3,7 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
 import "../AtomicPredicate.sol";
-import {UniversalAdjudicationContract} from "../../UniversalAdjudicationContract.sol";
+import {
+    UniversalAdjudicationContract
+} from "../../UniversalAdjudicationContract.sol";
 import "../../Utils.sol";
 
 contract TestPredicate is AtomicPredicate {
@@ -16,7 +18,7 @@ contract TestPredicate is AtomicPredicate {
     }
 
     struct TestPredicateInput {
-        uint value;
+        uint256 value;
     }
 
     event ValueDecided(bool decision, bytes[] inputs);
@@ -33,7 +35,10 @@ contract TestPredicate is AtomicPredicate {
             predicateAddress: address(this),
             inputs: _inputs
         });
-        UniversalAdjudicationContract(uacAddress).setPredicateDecision(utils.getPropertyId(property), true);
+        UniversalAdjudicationContract(uacAddress).setPredicateDecision(
+            utils.getPropertyId(property),
+            true
+        );
 
         emit ValueDecided(true, _inputs);
     }
@@ -45,7 +50,10 @@ contract TestPredicate is AtomicPredicate {
             predicateAddress: address(this),
             inputs: _inputs
         });
-        UniversalAdjudicationContract(uacAddress).setPredicateDecision(utils.getPropertyId(property), false);
+        UniversalAdjudicationContract(uacAddress).setPredicateDecision(
+            utils.getPropertyId(property),
+            false
+        );
 
         emit ValueDecided(false, _inputs);
     }

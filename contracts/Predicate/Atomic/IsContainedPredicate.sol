@@ -2,7 +2,9 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
-import {UniversalAdjudicationContract} from "../../UniversalAdjudicationContract.sol";
+import {
+    UniversalAdjudicationContract
+} from "../../UniversalAdjudicationContract.sol";
 import "../AtomicPredicate.sol";
 import "../../Utils.sol";
 
@@ -18,7 +20,10 @@ contract IsContainedPredicate is AtomicPredicate {
     function decide(bytes[] memory _inputs) public pure returns (bool) {
         types.Range memory range = abi.decode(_inputs[0], (types.Range));
         types.Range memory subrange = abi.decode(_inputs[1], (types.Range));
-        require(range.start <= subrange.start && subrange.end <= range.end, "range must contain subrange");
+        require(
+            range.start <= subrange.start && subrange.end <= range.end,
+            "range must contain subrange"
+        );
         return true;
     }
 
@@ -28,6 +33,9 @@ contract IsContainedPredicate is AtomicPredicate {
             predicateAddress: address(this),
             inputs: _inputs
         });
-        adjudicationContract.setPredicateDecision(utils.getPropertyId(property), true);
+        adjudicationContract.setPredicateDecision(
+            utils.getPropertyId(property),
+            true
+        );
     }
 }

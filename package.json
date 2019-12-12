@@ -8,6 +8,7 @@
     "contracts": "contracts"
   },
   "scripts": {
+    "prettier": "prettier --write contracts/**/*.sol contracts/*.sol",
     "test": "waffle waffle-config.json && mocha --require ts-node/register 'test/**/*.test.ts'"
   },
   "author": {
@@ -24,6 +25,8 @@
     "ethereum-waffle": "^2.1.0",
     "ethers": "^4.0.33",
     "mocha": "^6.2.0",
+    "prettier": "^1.19.1",
+    "prettier-plugin-solidity": "^1.0.0-alpha.34",
     "ts-node": "^8.5.0",
     "typescript": "^3.7.2",
     "wakkanay": "git+https://github.com/cryptoeconomicslab/wakkanay.git"
