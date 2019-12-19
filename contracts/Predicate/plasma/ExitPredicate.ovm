@@ -1,0 +1,4 @@
+def exit(su, inclusionProof) := 
+VerifyInclusion(su, su.0, su.1, inclusionProof, su.2)
+and !su()
+and Checkpoint(su)

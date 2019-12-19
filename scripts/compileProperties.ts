@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 
 compileAllSourceFiles(
-  path.join(__dirname, '../../../contracts/Predicate/generated')
+  path.join(__dirname, '../../../contracts/Predicate/plasma')
 )
 function compileAllSourceFiles(targetDir: string) {
   const files = fs.readdirSync(targetDir)

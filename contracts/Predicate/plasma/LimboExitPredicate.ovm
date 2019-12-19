@@ -1,0 +1,6 @@
+def LimboExit(prev_su, tx, su) :=
+  Exit(prev_su)
+  or (
+    prev_su()
+    and IsValidStateTransition(prev_su, tx, su)
+    and Exit(su))
