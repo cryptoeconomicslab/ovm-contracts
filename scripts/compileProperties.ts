@@ -1,4 +1,4 @@
-import { generateSolidityCode } from 'ovm-compiler'
+import { generateEVMByteCode } from 'ovm-compiler'
 import fs from 'fs'
 import path from 'path'
 
@@ -19,15 +19,9 @@ function compileAllSourceFiles(targetDir: string) {
   })
 }
 function compile(source: string, contractName: string) {
-  const output = generateSolidityCode(source, {
-    addressTable: {},
-    ovmPath: '../../'
-  })
+  const output = generateEVMByteCode(source)
   fs.writeFileSync(
-    path.join(
-      __dirname,
-      `../../../contracts/Predicate/generated/${contractName}.sol`
-    ),
+    path.join(__dirname, `../../../build/contracts/${contractName}.json`),
     output
   )
 }
