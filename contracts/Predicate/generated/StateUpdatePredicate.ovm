@@ -1,0 +1,4 @@
+def stateUpdate(token, range, block_number, so) :=
+with Tx(token, range, block_number) as tx {
+  so(tx)
+}
