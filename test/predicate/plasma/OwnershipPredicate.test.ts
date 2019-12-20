@@ -35,6 +35,7 @@ describe('OwnershipPredicate', () => {
   const verifyInclusionAddress = randomAddress()
   const isLessThanAddress = randomAddress()
   const isSameAmountAddress = randomAddress()
+  const ownershipPayout = randomAddress()
   const txAddress = randomAddress()
   let isValidSignatureAddress: string
 
@@ -66,8 +67,25 @@ describe('OwnershipPredicate', () => {
       isValidSignatureAddress,
       isContainedAddress,
       verifyInclusionAddress,
-      isSameAmountAddress
+      isSameAmountAddress,
+      ownershipPayout
     )
+  })
+
+  describe('setPredicateAddresses', () => {
+    it('throw exception to update', async () => {
+      await expect(
+        ownershipPredicate.setPredicateAddresses(
+          isLessThanAddress,
+          equalAddress,
+          isValidSignatureAddress,
+          isContainedAddress,
+          verifyInclusionAddress,
+          isSameAmountAddress,
+          ownershipPayout
+        )
+      ).to.be.revertedWith('isInitialized must be false')
+    })
   })
 
   describe('isValidChallenge', () => {

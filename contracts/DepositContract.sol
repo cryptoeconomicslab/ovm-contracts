@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 /* Internal Imports */
 import {DataTypes as types} from "./DataTypes.sol";
 import {CommitmentContract} from "./CommitmentContract.sol";
+import "./Predicate/CompiledPredicate.sol";
 import {
     UniversalAdjudicationContract
 } from "./UniversalAdjudicationContract.sol";
@@ -182,8 +183,16 @@ contract DepositContract {
     function finalizeExit(
         types.Property memory _exitProperty,
         uint256 _depositedRangeId
-    ) public {
+    ) public returns (types.Exit memory) {
         types.Exit memory exit = Deserializer.deserializeExit(_exitProperty);
+        // get payout contract address
+        address payout = CompiledPredicate(
+            exit
+                .stateUpdate
+                .stateObject
+                .predicateAddress
+        )
+            .payoutContractAddress();
         bytes32 exitId = getExitId(exit);
         // Check that we are authorized to finalize this exit
         require(
@@ -191,7 +200,7 @@ contract DepositContract {
             "Exit must be decided after this block"
         );
         require(
-            exit.stateUpdate.stateObject.predicateAddress == msg.sender,
+            payout == msg.sender,
             "finalizeExit must be called from StateObject contract"
         );
         require(
@@ -202,8 +211,9 @@ contract DepositContract {
         removeDepositedRange(exit.subrange, _depositedRangeId);
         //Transfer tokens to its predicate
         uint256 amount = exit.subrange.end - exit.subrange.start;
-        erc20.transfer(exit.stateUpdate.stateObject.predicateAddress, amount);
+        erc20.transfer(payout, amount);
         emit ExitFinalized(exitId);
+        return exit;
     }
 
     /* Helpers */
