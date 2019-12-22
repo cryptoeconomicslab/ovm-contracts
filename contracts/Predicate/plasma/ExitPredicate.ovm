@@ -1,4 +1,3 @@
 def exit(range, su, inclusionProof) := 
-VerifyInclusion(su, su.0, range, inclusionProof, su.2)
-and !su(range)
-and Checkpoint(range, su)
+!su(range)
+and Checkpoint(range, su, inclusionProof)
