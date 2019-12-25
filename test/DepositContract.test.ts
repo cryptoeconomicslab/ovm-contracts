@@ -8,7 +8,7 @@ import {
 } from 'ethereum-waffle'
 import * as Utils from '../build/contracts/Utils.json'
 import * as DepositContract from '../build/contracts/DepositContract.json'
-import * as PETH from '../build/contracts/PlasmaETH.json'
+import * as MockToken from '../build/contracts/MockToken.json'
 import * as MockCommitmentContract from '../build/contracts/MockCommitmentContract.json'
 import * as MockOwnershipPredicate from '../build/contracts/MockOwnershipPredicate.json'
 import * as TestPredicate from '../build/contracts/TestPredicate.json'
@@ -73,9 +73,9 @@ describe('DepositContract', () => {
       [mockAdjudicationContract.address, utils.address]
     )
 
-    // mockTokenContract = await deployContract(wallet, MockToken, [])
-    mockTokenContract = await deployContract(wallet, PETH, [])
-    await mockTokenContract.mint(wallet.address, 100)
+    mockTokenContract = await deployContract(wallet, MockToken, [])
+    // mockTokenContract = await deployContract(wallet, PETH, [])
+    // await mockTokenContract.mint(wallet.address, 100)
   })
 
   describe('deposit', () => {
