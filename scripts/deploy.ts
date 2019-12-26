@@ -15,6 +15,7 @@ import * as PlasmaETH from '../build/contracts/PlasmaETH.json'
 import * as MockStateUpdate from '../build/contracts/MockCompiledPredicate.json'
 import Provider = ethers.providers.Provider
 import fs from 'fs'
+import { InitilizationConfig } from './InitilizationConfig.js'
 
 if (
   !process.argv.length ||
@@ -51,7 +52,9 @@ const deployContract = async (
   return contract.deployed()
 }
 
-const deployContracts = async (wallet: ethers.Wallet): Promise<void> => {
+const deployContracts = async (
+  wallet: ethers.Wallet
+): Promise<InitilizationConfig> => {
   console.log('Deploying CommitmentContract')
   const operatorAddress = process.env.OPERATOR_ADDRESS
   if (operatorAddress === undefined) {
@@ -104,6 +107,17 @@ const deployContracts = async (wallet: ethers.Wallet): Promise<void> => {
   )
   await plasmaETH.setDepositContractAddress(depositContract.address)
   console.log('DepositContract Deployed')
+
+  return {
+    logicalConnectiveAddressTable: {},
+    atomicPredicateAddressTable: {},
+    deployedPredicateTable: [],
+    constantVariableTable: {},
+    commitmentContract: commitmentContract.address,
+    adjudicationContract: adjudicationContract.address,
+    payoutContracts: { DepositContract: depositContract.address },
+    PlasmaETH: plasmaETH.address
+  }
 }
 
 const deploy = async (): Promise<void> => {
@@ -132,8 +146,10 @@ const deploy = async (): Promise<void> => {
   const wallet = ethers.Wallet.fromMnemonic(deployMnemonic).connect(provider)
 
   console.log(`Deploying to network [${network || 'local'}] in 5 seconds!`)
-  setTimeout(() => {
-    deployContracts(wallet)
+  setTimeout(async () => {
+    const config = await deployContracts(wallet)
+    console.log('initialization config JSON file')
+    console.log(config)
   }, 5_000)
 }
 
