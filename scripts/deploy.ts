@@ -1,21 +1,34 @@
 /**
  * This deploy script was modified from https://github.com/plasma-group/pigi/blob/master/packages/unipig/src/contracts/deploy/deploy-rollup-chain.ts
  */
-import { ethers } from 'ethers'
+import { ethers, utils } from 'ethers'
 import { config } from 'dotenv'
 import { resolve } from 'path'
 import { link } from 'ethereum-waffle'
 
 import * as CommitmentContract from '../build/contracts/CommitmentContract.json'
 import * as Deserializer from '../build/contracts/Deserializer.json'
+import * as ECRecover from '../build/contracts/ECRecover.json'
 import * as UniversalAdjudicationContract from '../build/contracts/UniversalAdjudicationContract.json'
 import * as DepositContract from '../build/contracts/DepositContract.json'
 import * as Utils from '../build/contracts/Utils.json'
 import * as PlasmaETH from '../build/contracts/PlasmaETH.json'
-import * as MockStateUpdate from '../build/contracts/MockCompiledPredicate.json'
+import * as AndPredicate from '../build/contracts/AndPredicate.json'
+import * as NotPredicate from '../build/contracts/NotPredicate.json'
+import * as ForAllSuchThatQuantifier from '../build/contracts/ForAllSuchThatQuantifier.json'
+import * as IsValidSignaturePredicate from '../build/contracts/IsValidSignaturePredicate.json'
+import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.json'
+import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
+import * as MockTxPredicate from '../build/contracts/MockTxPredicate.json'
+import { randomAddress, encodeString } from '../test/helpers/utils'
+
 import Provider = ethers.providers.Provider
 import fs from 'fs'
-import { InitilizationConfig } from './InitilizationConfig.js'
+import path from 'path'
+import {
+  CompiledPredicate,
+  InitilizationConfig
+} from './InitilizationConfig.js'
 
 if (
   !process.argv.length ||
@@ -52,6 +65,190 @@ const deployContract = async (
   return contract.deployed()
 }
 
+const deployLogicalConnective = async (
+  wallet: ethers.Wallet,
+  uacAddress: string,
+  utilsAddress: string
+): Promise<{ [key: string]: string }> => {
+  const logicalConnectiveAddressTable: { [key: string]: string } = {}
+  console.log('Deploying NotPredicate')
+  const notPredicate = await deployContract(
+    NotPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
+  logicalConnectiveAddressTable['Not'] = notPredicate.address
+  console.log('NotPredicate Deployed')
+
+  console.log('Deploying AndPredicate')
+  const andPredicate = await deployContract(
+    AndPredicate,
+    wallet,
+    uacAddress,
+    notPredicate.address,
+    utilsAddress
+  )
+  logicalConnectiveAddressTable['And'] = andPredicate.address
+  console.log('AndPredicate Deployed')
+
+  console.log('Deploying ForAllSuchThatPredicate')
+  const forAllSuchThatQuantifier = await deployContract(
+    ForAllSuchThatQuantifier,
+    wallet,
+    uacAddress,
+    notPredicate.address,
+    andPredicate.address,
+    utilsAddress
+  )
+  logicalConnectiveAddressTable['ForAllSuchThat'] =
+    forAllSuchThatQuantifier.address
+  console.log('ForAllSuchThatPredicate Deployed')
+
+  return logicalConnectiveAddressTable
+}
+
+const deployAtomicPredicates = async (
+  wallet: ethers.Wallet,
+  uacAddress: string,
+  utilsAddress: string
+): Promise<{ [key: string]: string }> => {
+  const atomicPredicateAddressTable: { [key: string]: string } = {}
+
+  console.log('Deploying IsValidSignaturePredicate')
+  const isValidSignaturePredicate = await deployContract(
+    IsValidSignaturePredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
+  atomicPredicateAddressTable['IsValidSignature'] =
+    isValidSignaturePredicate.address
+  console.log('IsValidSignaturePredicate Deployed')
+
+  console.log('Deploying IsContainedPredicate')
+  const isContainedPredicate = await deployContract(
+    IsContainedPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
+  atomicPredicateAddressTable['IsContained'] = isContainedPredicate.address
+  console.log('IsContainedPredicate Deployed')
+
+  // TODO: deploy contracts
+  atomicPredicateAddressTable['IsLessThan'] = randomAddress()
+  atomicPredicateAddressTable['Equal'] = randomAddress()
+  atomicPredicateAddressTable['VerifyInclusion'] = randomAddress()
+  atomicPredicateAddressTable['IsSameAmount'] = randomAddress()
+
+  return atomicPredicateAddressTable
+}
+
+const deployPayoutContracts = async (
+  wallet: ethers.Wallet,
+  utilsAddress: string
+): Promise<{ [key: string]: string }> => {
+  const payoutContractAddressTable: { [key: string]: string } = {}
+
+  console.log('Deploying OwnershipPayout')
+  const ownershipPayout = await deployContract(
+    OwnershipPayout,
+    wallet,
+    utilsAddress
+  )
+  payoutContractAddressTable['OwnershipPayout'] = ownershipPayout.address
+  console.log('OwnershipPayout Deployed')
+
+  return payoutContractAddressTable
+}
+
+const deployOneCompiledPredicate = async (
+  name: string,
+  extraArgs: string[],
+  wallet: ethers.Wallet,
+  uacAddress: string,
+  utilsAddress: string,
+  payoutContractAddress: string,
+  logicalConnectives: { [key: string]: string },
+  atomicPredicates: { [key: string]: string }
+): Promise<CompiledPredicate> => {
+  console.log(`Deploying ${name}`)
+  const compiledPredicateJson = JSON.parse(
+    fs
+      .readFileSync(path.join(__dirname, `../../contracts/${name}.json`))
+      .toString()
+  )
+
+  const compiledPredicates = await deployContract(
+    compiledPredicateJson,
+    wallet,
+    uacAddress,
+    utilsAddress,
+    logicalConnectives['Not'],
+    logicalConnectives['And'],
+    logicalConnectives['ForAllSuchThat'],
+    ...extraArgs
+  )
+  await compiledPredicates.setPredicateAddresses(
+    atomicPredicates['IsLessThan'],
+    atomicPredicates['Equal'],
+    atomicPredicates['IsValidSignature'],
+    atomicPredicates['IsContained'],
+    atomicPredicates['VerifyInclusion'],
+    atomicPredicates['IsSameAmount'],
+    payoutContractAddress
+  )
+  const source = fs.readFileSync(
+    path.join(__dirname, `../../../contracts/Predicate/plasma/${name}.ovm`)
+  )
+  console.log(`${name} Deployed`)
+
+  return {
+    deployedAddress: compiledPredicates.address,
+    source: source.toString()
+  }
+}
+
+const deployCompiledPredicates = async (
+  wallet: ethers.Wallet,
+  uacAddress: string,
+  utilsAddress: string,
+  logicalConnectives: { [key: string]: string },
+  atomicPredicates: { [key: string]: string },
+  payoutContracts: { [key: string]: string }
+): Promise<{ [key: string]: CompiledPredicate }> => {
+  const deployedPredicateTable: { [key: string]: CompiledPredicate } = {}
+
+  const txPredicateContract = await deployContract(MockTxPredicate, wallet)
+
+  const stateUpdatePredicate = await deployOneCompiledPredicate(
+    'StateUpdatePredicate',
+    [txPredicateContract.address],
+    wallet,
+    uacAddress,
+    utilsAddress,
+    ethers.constants.AddressZero,
+    logicalConnectives,
+    atomicPredicates
+  )
+  deployedPredicateTable['StateUpdatePredicate'] = stateUpdatePredicate
+
+  const ownershipPredicate = await deployOneCompiledPredicate(
+    'OwnershipPredicate',
+    [utils.hexlify(utils.toUtf8Bytes('secp256k1'))],
+    wallet,
+    uacAddress,
+    utilsAddress,
+    payoutContracts['OwnershipPayout'],
+    logicalConnectives,
+    atomicPredicates
+  )
+  deployedPredicateTable['OwnershipPredicate'] = ownershipPredicate
+
+  return deployedPredicateTable
+}
+
 const deployContracts = async (
   wallet: ethers.Wallet
 ): Promise<InitilizationConfig> => {
@@ -75,6 +272,16 @@ const deployContracts = async (
   const deserializer = await deployContract(Deserializer, wallet)
   console.log('Deserializer Deployed')
 
+  console.log('Deploying ECRecover')
+  const ecrecover = await deployContract(ECRecover, wallet)
+  link(
+    IsValidSignaturePredicate,
+    'contracts/Library/ECRecover.sol:ECRecover',
+    ecrecover.address
+  )
+
+  console.log('ECRecover Deployed')
+
   console.log('Deploying UniversalAdjudicationContract')
   const adjudicationContract = await deployContract(
     UniversalAdjudicationContract,
@@ -83,13 +290,29 @@ const deployContracts = async (
   )
   console.log('UniversalAdjudicationContract Deployed')
 
+  const logicalConnectives = await deployLogicalConnective(
+    wallet,
+    adjudicationContract.address,
+    utils.address
+  )
+  const atomicPredicates = await deployAtomicPredicates(
+    wallet,
+    adjudicationContract.address,
+    utils.address
+  )
+  const payoutContracts = await deployPayoutContracts(wallet, utils.address)
+  const deployedPredicateTable = await deployCompiledPredicates(
+    wallet,
+    adjudicationContract.address,
+    utils.address,
+    logicalConnectives,
+    atomicPredicates,
+    payoutContracts
+  )
+
   console.log('Deploying PlasmaETH')
   const plasmaETH = await deployContract(PlasmaETH, wallet)
   console.log('PlasmaETH Deployed')
-
-  console.log('Deploying MockStateUpdate')
-  const mockStateUpdate = await deployContract(MockStateUpdate, wallet)
-  console.log('MockStateUpdate Deployed')
 
   console.log('Deploying DepositContract')
   link(
@@ -103,19 +326,24 @@ const deployContracts = async (
     plasmaETH.address,
     commitmentContract.address,
     adjudicationContract.address,
-    mockStateUpdate.address
+    deployedPredicateTable['StateUpdatePredicate'].deployedAddress
   )
   await plasmaETH.setDepositContractAddress(depositContract.address)
   console.log('DepositContract Deployed')
 
   return {
-    logicalConnectiveAddressTable: {},
-    atomicPredicateAddressTable: {},
-    deployedPredicateTable: [],
-    constantVariableTable: {},
+    logicalConnectiveAddressTable: logicalConnectives,
+    atomicPredicateAddressTable: atomicPredicates,
+    deployedPredicateTable: deployedPredicateTable,
+    constantVariableTable: {
+      secp256k1: encodeString('secp256k1')
+    },
     commitmentContract: commitmentContract.address,
     adjudicationContract: adjudicationContract.address,
-    payoutContracts: { DepositContract: depositContract.address },
+    payoutContracts: {
+      DepositContract: depositContract.address,
+      ...payoutContracts
+    },
     PlasmaETH: plasmaETH.address
   }
 }
