@@ -12,7 +12,6 @@ import * as IsValidStateTransitionPredicate from '../../../build/contracts/IsVal
 import * as MockCompiledPredicate from '../../../build/contracts/MockCompiledPredicate.json'
 import * as IsContainedPredicate from '../../../build/contracts/IsContainedPredicate.json'
 import * as ethers from 'ethers'
-const abi = new ethers.utils.AbiCoder()
 import { encodeProperty, encodeRange, encodeInteger } from '../../helpers/utils'
 
 chai.use(solidity)

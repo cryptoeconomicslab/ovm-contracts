@@ -17,7 +17,6 @@ import {
   encodeProperty,
   encodeString,
   encodeVariable,
-  prefix,
   OvmProperty
 } from './helpers/utils'
 import { FreeVariable } from 'wakkanay/dist/ovm/types'
@@ -131,6 +130,7 @@ describe('ForAllSuchThatQuantifier', () => {
       })
       const forAllSuchThatProperty = {
         predicateAddress: forAllSuchThatQuantifier.address,
+        // TODO: FreeVariable.from('n').toHexString()
         inputs: ['0x', encodeString('n'), encodeVariable('n')]
       }
       mockChallenge.isValidChallenge(

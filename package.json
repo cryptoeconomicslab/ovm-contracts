@@ -30,7 +30,7 @@
     "ethers": "^4.0.33",
     "husky": "^3.1.0",
     "mocha": "^6.2.0",
-    "ovm-compiler": "git+https://github.com/cryptoeconomicslab/ovm-compiler.git#v0.1.13",
+    "ovm-compiler": "github:cryptoeconomicslab/ovm-compiler#fix-encoding",
     "prettier": "^1.19.1",
     "prettier-plugin-solidity": "^1.0.0-alpha.34",
     "ts-node": "^8.5.0",

@@ -14,7 +14,10 @@ import * as ethers from 'ethers'
 import {
   encodeProperty,
   encodeString,
-  randomAddress
+  randomAddress,
+  encodeVariable,
+  encodeConstant,
+  encodeLabel
 } from '../../helpers/utils'
 
 chai.use(solidity)
@@ -54,8 +57,8 @@ describe('OwnershipPredicate', () => {
     isValidSignatureAddress = mockAtomicPredicate.address
     mockChallenge = await deployContract(wallet, MockChallenge, [])
     ownershipPredicate = await deployContract(wallet, OwnershipPredicate, [
-      utils.address,
       adjudicationContract.address,
+      utils.address,
       notAddress,
       andAddress,
       forAllSuchThatAddress,
@@ -93,7 +96,7 @@ describe('OwnershipPredicate', () => {
     it('return true', async () => {
       const ownershipProperty = {
         predicateAddress: ownershipPredicate.address,
-        inputs: [encodeString('OwnershipT'), wallet.address, transaction]
+        inputs: [encodeLabel('OwnershipT'), wallet.address, transaction]
       }
       const forAllSuchThatProperty = {
         predicateAddress: forAllSuchThatAddress,
@@ -107,9 +110,9 @@ describe('OwnershipPredicate', () => {
                 predicateAddress: isValidSignatureAddress,
                 inputs: [
                   transaction,
-                  encodeString('__VARIABLE__sig'),
+                  encodeVariable('sig'),
                   wallet.address,
-                  encodeString('secp256k1')
+                  encodeConstant('secp256k1')
                 ]
               })
             ]
@@ -128,7 +131,7 @@ describe('OwnershipPredicate', () => {
     it('throw exception with invalid challenge', async () => {
       const ownershipProperty = {
         predicateAddress: ownershipPredicate.address,
-        inputs: [encodeString('OwnershipT'), wallet.address, transaction]
+        inputs: [encodeLabel('OwnershipT'), wallet.address, transaction]
       }
       const forAllSuchThatProperty = {
         predicateAddress: forAllSuchThatAddress,
@@ -142,9 +145,9 @@ describe('OwnershipPredicate', () => {
                 predicateAddress: isValidSignatureAddress,
                 inputs: [
                   transaction,
-                  encodeString('__VARIABLE__sig'),
+                  encodeVariable('sig'),
                   wallets[1].address,
-                  encodeString('secp256k1')
+                  encodeConstant('secp256k1')
                 ]
               })
             ]
@@ -167,7 +170,7 @@ describe('OwnershipPredicate', () => {
     const signature = '0x001234567890'
     it('return true', async () => {
       const result = await ownershipPredicate.decide(
-        [encodeString('OwnershipT'), wallet.address, transaction],
+        [encodeLabel('OwnershipT'), wallet.address, transaction],
         [signature]
       )
       assert.isTrue(result)
@@ -176,7 +179,7 @@ describe('OwnershipPredicate', () => {
     it('throw exception with invalid signature', async () => {
       await expect(
         ownershipPredicate.decide(
-          [encodeString('OwnershipT'), wallet.address, encodeString('fail')],
+          [encodeLabel('OwnershipT'), wallet.address, encodeString('fail')],
           [signature]
         )
       ).to.be.reverted
