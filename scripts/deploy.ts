@@ -19,7 +19,7 @@ import * as ForAllSuchThatQuantifier from '../build/contracts/ForAllSuchThatQuan
 import * as IsValidSignaturePredicate from '../build/contracts/IsValidSignaturePredicate.json'
 import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.json'
 import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
-import * as MockTxPredicate from '../build/contracts/MockTxPredicate.json'
+import * as MockTxPredicate from '../build/contracts/MockCompiledPredicate.json'
 import { randomAddress, encodeString } from '../test/helpers/utils'
 
 import Provider = ethers.providers.Provider
