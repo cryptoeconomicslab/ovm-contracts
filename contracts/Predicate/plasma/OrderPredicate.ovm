@@ -1,0 +1,19 @@
+def order(maker, c_token, c_amount, min_block_number, max_block_number, tx) :=
+  Range(min_block_number, max_block_number).any(b ->
+    SU(b, c_token).any(c_su ->
+      Equal(c_su.3.address, $swapAddress)
+      and IsSameAmount(c_su.1, c_amount)
+      and (
+        Equal(c_su.3.0, maker)
+        and Equal(tx.3.address, $swapAddress)
+        and Equal(tx.3.0, c_su.3.1)
+        and Equal(tx.3.1, maker))
+      and (
+        Withdraw(c_su)
+        or Tx(c_su.0, c_su.1, c_su.2).any(tx ->
+          IsValidSignature(tx, maker)
+        )
+      )
+      and IsValidSignature(tx, c_su.3.1)
+    )
+  )

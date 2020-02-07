@@ -1,0 +1,48 @@
+@library
+@quantifier("signatures,KEY,${m}")
+def SignedBy(sig, m, signer) := IsValidSignature(m, signer, sig)
+
+@library
+@quantifier("-,CONCAT,${a}-${b}")
+def Concat(c, a, b) := IsConcatenatedWith(c, a, b)
+
+@library
+@quantifier("stored.${bucket},KEY,${key}")
+def Stored(value, bucket, key) := IsStored(bucket, key, value)
+
+@library
+@quantifier("-,HASH,${p}")
+def Hash(h, p) := IsValidHash(h, p)
+
+@library
+def Confsig(tx, root, owner) := Hash(tx).any(tx_hash ->
+  Concat(root, tx_hash).any(conf_tx ->
+    Hash(conf_tx).any(conf_tx_hash ->
+      SignedBy(conf_tx, new_owner).any()
+    )
+  )
+)
+
+@library
+@quantifier("proof.block${b}.range${token},RANGE,${range}")
+def IncludedAt(proof, leaf, token, range, root) :=
+  VerifyInclusion(leaf, token, range, proof, root)
+
+@library
+@quantifier("so.block${b}.range${token},RANGE,${range}")
+def SU(so, token, range, b) :=
+  Stored(token, b).any(root ->
+    IncludedAt(so, token, range, root).any()
+  )
+
+def swap(new_owner, prev_owner, c_token, c_range, block_number, tx) :=
+  SU(c_token, c_range, block_number).any(c_su ->
+    Equal(c_su.address, self.address)
+    and (
+      Equal(c_su.3.0, prev_owner)
+      and Equal(c_su.3.1, new_owner))
+    and Stored(c_su.0, c_su.2).any(root ->
+      IncludedAt(c_su, c_su.0, c_su.1, root).any()
+      and Confsig(tx, root, new_owner)
+    )
+  ) and SignedBy(tx, new_owner).any()
