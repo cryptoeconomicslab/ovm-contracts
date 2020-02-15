@@ -1,4 +1,9 @@
 @library
+@quantifier("root,KEY,${b}")
+def Root(root, contract, b) :=
+  IsStored(contract, b, root)
+
+@library
 @quantifier("proof.block${b}.range${token},RANGE,${range}")
-def IncludedAt(proof, leaf, token, range, b) :=
-  VerifyInclusion(leaf, token, range, proof, b)
+def IncludedAt(proof, leaf, token, range, b) :=  
+  Root(token, b).any(root -> VerifyInclusion(leaf, token, range, proof, root))
