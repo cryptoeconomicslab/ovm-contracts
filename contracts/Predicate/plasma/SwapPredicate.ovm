@@ -1,14 +1,13 @@
-@library
-@quantifier("signatures,KEY,${m}")
-def SignedBy(sig, m, signer) := IsValidSignature(m, signer, sig)
+from lib import SignedBy
+from lib import IncludedAt
 
 @library
 @quantifier("-,CONCAT,${a}-${b}")
 def Concat(c, a, b) := IsConcatenatedWith(c, a, b)
 
 @library
-@quantifier("stored.${bucket},KEY,${key}")
-def Stored(value, bucket, key) := IsStored(bucket, key, value)
+@quantifier("stored.${contract},KEY,${key}")
+def Stored(value, contract, key) := IsStored(contract, key, value)
 
 @library
 @quantifier("-,HASH,${p}")
@@ -24,16 +23,9 @@ def Confsig(tx, root, owner) := Hash(tx).any(tx_hash ->
 )
 
 @library
-@quantifier("proof.block${b}.range${token},RANGE,${range}")
-def IncludedAt(proof, leaf, token, range, root) :=
-  VerifyInclusion(leaf, token, range, proof, root)
-
-@library
 @quantifier("so.block${b}.range${token},RANGE,${range}")
 def SU(so, token, range, b) :=
-  Stored(token, b).any(root ->
-    IncludedAt(so, token, range, root).any()
-  )
+  IncludedAt(so, token, range, b).any()
 
 def swap(new_owner, prev_owner, c_token, c_range, block_number, tx) :=
   SU(c_token, c_range, block_number).any(c_su ->

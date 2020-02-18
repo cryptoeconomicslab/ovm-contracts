@@ -10,13 +10,13 @@ import {
 import "../../Utils.sol";
 import "../../DepositContract.sol";
 
-contract OrderPayout {
+contract SwapPayout {
     struct SwapStateObject {
-        address maker;
+        address newOwner;
+        address prevOwner;
         address cToken;
-        uint256 cAmount;
-        uint256 minBlockNumber;
-        uint256 maxBlockNumber;
+        types.Range cRange;
+        uint256 blockNumber;
     }
     struct DisputingSwap {
         address depositContractAddress;
@@ -30,11 +30,9 @@ contract OrderPayout {
     UniversalAdjudicationContract adjudicationContract;
     Utils utils;
 
-    constructor(address adjudicationContractAddress, address utilsAddress)
-        public
-    {
+    constructor(address adjudicationAddress, address utilsAddress) public {
         adjudicationContract = UniversalAdjudicationContract(
-            adjudicationContractAddress
+            adjudicationAddress
         );
         utils = Utils(utilsAddress);
     }
@@ -57,19 +55,17 @@ contract OrderPayout {
             _depositedRangeId
         );
         SwapStateObject memory swapStateObject = SwapStateObject({
-            maker: utils.bytesToAddress(exit.stateUpdate.stateObject.inputs[0]),
-            cToken: utils.bytesToAddress(
+            newOwner: utils.bytesToAddress(
+                exit.stateUpdate.stateObject.inputs[0]
+            ),
+            prevOwner: utils.bytesToAddress(
                 exit.stateUpdate.stateObject.inputs[1]
             ),
-            cAmount: abi.decode(
-                exit.stateUpdate.stateObject.inputs[2],
-                (uint256)
+            cToken: utils.bytesToAddress(
+                exit.stateUpdate.stateObject.inputs[2]
             ),
-            minBlockNumber: abi.decode(
-                exit.stateUpdate.stateObject.inputs[3],
-                (uint256)
-            ),
-            maxBlockNumber: abi.decode(
+            cRange: utils.bytesToRange(exit.stateUpdate.stateObject.inputs[3]),
+            blockNumber: abi.decode(
                 exit.stateUpdate.stateObject.inputs[4],
                 (uint256)
             )
@@ -88,33 +84,12 @@ contract OrderPayout {
         swaps[keccak256(abi.encode(swapStateObject))] = swap;
     }
 
-    function challenge(
-        bytes32 ordrId,
-        types.Property memory stateObject,
-        types.Property memory transaction
-    ) public {
-        bytes[] memory childInputs = new bytes[](6);
-        childInputs[0] = stateObject.inputs[0];
-        childInputs[1] = stateObject.inputs[1];
-        childInputs[2] = stateObject.inputs[2];
-        childInputs[3] = stateObject.inputs[3];
-        childInputs[4] = stateObject.inputs[4];
-        childInputs[5] = abi.encode(transaction);
-        types.Property memory stateObjectWithTx = types.Property({
-            predicateAddress: stateObject.predicateAddress,
-            inputs: childInputs
-        });
-        require(adjudicationContract.isDecided(stateObjectWithTx));
-        // transaction.inputs[3]
-        // move to swap payout contract
-    }
-
-    function withdraw(bytes32 ordrId) public {
-        DisputingSwap memory swap = swaps[ordrId];
+    function withdraw(bytes32 swapId) public {
+        DisputingSwap memory swap = swaps[swapId];
         require(swap.createdAt < block.number + 100);
         DepositContract depositContract = DepositContract(
             swap.depositContractAddress
         );
-        depositContract.erc20().transfer(swap.swap.maker, swap.amount);
+        depositContract.erc20().transfer(swap.swap.prevOwner, swap.amount);
     }
 }

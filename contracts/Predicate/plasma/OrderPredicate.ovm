@@ -1,6 +1,34 @@
+from lib import SignedBy
+from lib import IncludedAt
+
+@library
+@quantifier("range,NUMBER,${s}-${e}")
+def Range(n, s, e) := IsLessThan(s, n) and IsLessThan(n, e)
+
+@library
+@quantifier("stored.${contract},KEY,${key}")
+def Stored(value, contract, key) := IsStored(contract, key, value)
+
+@library
+@quantifier("so.block${b}.range${token},ITER,${zero}")
+def SU(so, token, b) :=
+  Stored(token, b).any()
+
+@library
+def IsValidTx(tx, token, range, block_number) :=
+  Equal(tx, $txAddress)
+  and Equal(tx.0, token)
+  and IsContained(range, tx.1)
+  and IsLessThan(block_number, tx.2)
+
+@library
+@quantifier("tx.block${b}.range${token},RANGE,${range}")
+def Tx(tx, token, range, b) :=
+  IsValidTx(tx, token, range, b)
+
 def order(maker, c_token, c_amount, min_block_number, max_block_number, tx) :=
   Range(min_block_number, max_block_number).any(b ->
-    SU(b, c_token).any(c_su ->
+    SU(c_token, b).any(c_su ->
       Equal(c_su.3.address, $swapAddress)
       and IsSameAmount(c_su.1, c_amount)
       and (
@@ -9,11 +37,11 @@ def order(maker, c_token, c_amount, min_block_number, max_block_number, tx) :=
         and Equal(tx.3.0, c_su.3.1)
         and Equal(tx.3.1, maker))
       and (
-        Withdraw(c_su)
-        or Tx(c_su.0, c_su.1, c_su.2).any(tx ->
-          IsValidSignature(tx, maker)
+        (FinalizeExit(c_su) and IncludedAt(tx.3, tx.0, tx.1, tx.2).any())
+        or Tx(c_su.0, c_su.1, c_su.2).any(c_tx ->
+          SignedBy(c_tx, maker).any()
         )
       )
-      and IsValidSignature(tx, c_su.3.1)
+      and SignedBy(tx, c_su.3.1).any()
     )
   )

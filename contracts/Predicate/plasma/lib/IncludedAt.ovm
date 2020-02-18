@@ -1,6 +1,10 @@
 @library
+@quantifier("stored.${contract},KEY,${key}")
+def Stored(value, contract, key) := IsStored(contract, key, value)
+
+@library
 @quantifier("proof.block${b}.range${token},RANGE,${range}")
 def IncludedAt(proof, leaf, token, range, b) :=
-  Stored(c_token, b).any(root ->
+  Stored(token, b).any(root ->
     VerifyInclusion(leaf, token, range, proof, root)
   )
