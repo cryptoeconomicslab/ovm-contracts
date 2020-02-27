@@ -1,0 +1,15 @@
+from lib import IncludedAt
+from lib import SignedBy
+
+@library
+@quantifier("so.block${b}.range${token},RANGE,${range}")
+def SU(so, token, range, b) :=
+  IncludedAt(so, token, range, b).any()
+
+def swap(new_owner, prev_owner, c_token, c_range, block_number, tx) := 
+  SU(block_number, c_token, c_range).any(c_so ->
+    Equal(c_so.address, self.address)
+    and Equal(c_so.0, prev_owner)
+    and Equal(c_so.1, new_owner)
+    and IncludedAt(c_so, c_su.0, c_su.1, c_su.2).any() and SignedBy(tx, new_owner).any()
+  )
