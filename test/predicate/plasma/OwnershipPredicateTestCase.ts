@@ -7,56 +7,58 @@ import {
   encodeVariable,
   encodeConstant
 } from '../../helpers/utils'
+import {
+  TestCaseSet,
+  TestContext
+} from '@cryptoeconomicslab/ovm-ethereum-generator/lib/helper'
 
-const transaction = '0x001234567890'
-const signature = '0x001234567890'
+const transaction = '0x000000000000000000000000000000000000000012'
+const signature = '0x00000000000000000000000000000000000000001234567890'
 
-export const createOwnershipTestCase = (
-  [notAddress, andAddress, forAllSuchThatAddress]: string[],
-  wallet: ethers.Wallet
-) => {
+export const createOwnershipTestCase = (wallet: ethers.Wallet): TestCaseSet => {
   return {
     name: 'OwnershipPredicate',
-    contract: OwnershipPredicate,
-    extraArgs: [encodeString('secp256k1')],
+    deploy: [
+      {
+        contract: OwnershipPredicate,
+        getExtraArgs: (context: TestContext) => [encodeString('secp256k1')]
+      }
+    ],
     validChallenges: [
       {
         name:
           'Valid challenge of OwnershipT(owner, tx) is Bytes().all(v0 -> !IsValidSignature(tx, v0, owner, secp256k1))',
-        getProperty: (
+        getTestData: (
           ownershipPredicate: ethers.Contract,
-          compiledPredicate: ethers.Contract
+          context: TestContext
         ) => {
           return {
-            predicateAddress: ownershipPredicate.address,
-            inputs: [encodeLabel('OwnershipT'), wallet.address, transaction]
-          }
-        },
-        getChallenge: (
-          ownershipPredicate: ethers.Contract,
-          mockAtomicPredicateAddress: string,
-          compiledPredicate: ethers.Contract
-        ) => {
-          return {
-            predicateAddress: forAllSuchThatAddress,
-            inputs: [
-              '0x',
-              encodeString('v0'),
-              encodeProperty({
-                predicateAddress: notAddress,
-                inputs: [
-                  encodeProperty({
-                    predicateAddress: mockAtomicPredicateAddress,
-                    inputs: [
-                      transaction,
-                      encodeVariable('v0'),
-                      wallet.address,
-                      encodeConstant('secp256k1')
-                    ]
-                  })
-                ]
-              })
-            ]
+            challengeInputs: [],
+            property: {
+              predicateAddress: ownershipPredicate.address,
+              inputs: [encodeLabel('OwnershipT'), wallet.address, transaction]
+            },
+            challenge: {
+              predicateAddress: context.forAllSuchThat,
+              inputs: [
+                '0x',
+                encodeString('v0'),
+                encodeProperty({
+                  predicateAddress: context.not,
+                  inputs: [
+                    encodeProperty({
+                      predicateAddress: context.mockAtomicPredicate,
+                      inputs: [
+                        transaction,
+                        encodeVariable('v0'),
+                        wallet.address,
+                        encodeConstant('secp256k1')
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }
           }
         }
       }
@@ -65,7 +67,10 @@ export const createOwnershipTestCase = (
     decideTrueTestCases: [
       {
         name: 'OwnershipT(owner, tx) should be true',
-        createParameters: (compiledPredicate: ethers.Contract) => {
+        getTestData: (
+          andTestPredicate: ethers.Contract,
+          context: TestContext
+        ) => {
           return {
             inputs: [encodeLabel('OwnershipT'), wallet.address, transaction],
             witnesses: [signature]
@@ -75,8 +80,11 @@ export const createOwnershipTestCase = (
     ],
     invalidDecideTestCases: [
       {
-        name: 'OwnershipT(owner) throw exception',
-        createParameters: (compiledPredicate: ethers.Contract) => {
+        name: 'OwnershipT(owner, tx) throw exception',
+        getTestData: (
+          andTestPredicate: ethers.Contract,
+          context: TestContext
+        ) => {
           return {
             inputs: [encodeLabel('OwnershipT'), wallet.address],
             witnesses: [signature]

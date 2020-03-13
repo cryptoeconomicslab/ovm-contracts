@@ -1,4 +1,6 @@
 @library
 @quantifier("proof.block${b}.range${token},RANGE,${range}")
 def IncludedAt(proof, leaf, token, range, b) :=
-  VerifyInclusion(leaf, token, range, proof, b)
+  Stored(c_token, b).any(root ->
+    VerifyInclusion(leaf, token, range, proof, root)
+  )
