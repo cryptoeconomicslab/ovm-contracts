@@ -7,6 +7,9 @@ import {DataTypes as types} from "./DataTypes.sol";
 import "./Predicate/AtomicPredicate.sol";
 import "./Predicate/LogicalConnective.sol";
 
+/**
+ * Adjudication Contract is the contract to archive dispute game defined by predicate logic.
+ */
 contract UniversalAdjudicationContract {
     uint256 DISPUTE_PERIOD = 7;
     mapping(bytes32 => types.ChallengeGame) public instantiatedGames;
@@ -48,6 +51,9 @@ contract UniversalAdjudicationContract {
         emit NewPropertyClaimed(gameId, _claim, block.number);
     }
 
+    /**
+     * @dev Sets the game decision true when its dispute period has already passed.
+     */
     function decideClaimToTrue(bytes32 _gameId) public {
         types.ChallengeGame storage game = instantiatedGames[_gameId];
         // check all _game.challenges should be false
@@ -69,6 +75,9 @@ contract UniversalAdjudicationContract {
         emit ClaimDecided(_gameId, true);
     }
 
+    /**
+     * @dev Sets the game decision false when its challenge has been evaluated to true.
+     */
     function decideClaimToFalse(bytes32 _gameId, bytes32 _challengingGameId)
         public
     {
@@ -96,6 +105,9 @@ contract UniversalAdjudicationContract {
         emit ClaimDecided(_gameId, false);
     }
 
+    /**
+     * @dev Removes a challenge when its decision has been evaluated to false.
+     */
     function removeChallenge(bytes32 _gameId, bytes32 _challengingGameId)
         public
     {
