@@ -367,7 +367,13 @@ const deployContracts = async (
   )
 
   console.log('Deploying PlasmaETH')
-  const plasmaETH = await deployContract(PlasmaETH, wallet)
+  const plasmaETH = await deployContract(
+    PlasmaETH,
+    wallet,
+    'PETH',
+    'PlasmaETH',
+    18 // decimals
+  )
   console.log('PlasmaETH Deployed')
 
   console.log('Deploying DepositContract')
