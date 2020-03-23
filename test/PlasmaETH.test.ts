@@ -38,7 +38,11 @@ describe('PlasmaETH', () => {
     } catch (e) {
       // link fail in second time.
     }
-    plasmaERC20Contract = await deployContract(wallet, PlasmaERC20, [])
+    plasmaERC20Contract = await deployContract(wallet, PlasmaERC20, [
+      'PETH',
+      'PlasmaETH',
+      18
+    ])
     mockDepositContract = await deployContract(wallet, MockDepositContract, [
       plasmaERC20Contract.address
     ])
