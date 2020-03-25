@@ -14,6 +14,10 @@ import {
 import "./Predicate/CompiledPredicate.sol";
 import "./Library/Deserializer.sol";
 
+/**
+ * @dev Deposit contracts are the smart contracts into which assets are custodying the money as it is transacted on Plasma.
+ *     It provides the API to finalize the rightful exit state of previously deposited assets.
+ */
 contract DepositContract {
     using SafeMath for uint256;
 

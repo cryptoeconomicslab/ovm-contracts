@@ -6,7 +6,9 @@ import "./Utils.sol";
 
 /**
  * @title CommitmentChain
- * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
+ * @dev Each plasma chain has one commitment contract.
+ *     Commitment contracts hold Merkle roots for the Plasma.
+ *     Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
 contract CommitmentContract {
     // Single operator address

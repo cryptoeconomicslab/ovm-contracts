@@ -8,7 +8,7 @@ import "./Predicate/AtomicPredicate.sol";
 import "./Predicate/LogicalConnective.sol";
 
 /**
- * Adjudication Contract is the contract to archive dispute game defined by predicate logic.
+ * @dev Adjudication Contract is the contract to archive dispute game defined by predicate logic.
  */
 contract UniversalAdjudicationContract {
     uint256 DISPUTE_PERIOD = 7;
