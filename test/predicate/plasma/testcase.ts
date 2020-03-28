@@ -2,9 +2,11 @@ import { ethers } from 'ethers'
 import { createOwnershipTestCase } from './OwnershipPredicateTestCase'
 import { createStateUpdateTestCase } from './StateUpdatePredicateTestCase'
 import { OvmProperty } from '../../helpers/utils'
+import { createSwapTestCase } from './SwapPredicateTestCase'
 
 interface ChallengeTestCase {
   name: string
+  challengeInput?: string
   getProperty: (
     ownershipPredicate: ethers.Contract,
     compiledPredicate: ethers.Contract
@@ -25,8 +27,13 @@ interface DecideTestCase {
 
 interface TestCase {
   name: string
-  contract: any
-  extraArgs: string[]
+  deploy: {
+    contract: any
+    getExtraArgs: (
+      mockAtomicPredicate: ethers.Contract,
+      deployed: ethers.Contract[]
+    ) => string[]
+  }[]
   validChallenges: ChallengeTestCase[]
   invalidChallenges: ChallengeTestCase[]
   decideTrueTestCases: DecideTestCase[]
@@ -38,5 +45,6 @@ export const createTestCases: (
   wallet: ethers.Wallet
 ) => TestCase[] = (logicalConnectives: string[], wallet: ethers.Wallet) => [
   createOwnershipTestCase(logicalConnectives, wallet),
-  createStateUpdateTestCase(logicalConnectives, wallet)
+  createStateUpdateTestCase(logicalConnectives, wallet),
+  createSwapTestCase(logicalConnectives, wallet)
 ]

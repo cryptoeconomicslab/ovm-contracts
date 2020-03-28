@@ -22,7 +22,7 @@ import * as IsValidSignaturePredicate from '../build/contracts/IsValidSignatureP
 import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.json'
 import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
 import { randomAddress, encodeString } from '../test/helpers/utils'
-import { compileJSON } from './compileProperties'
+import { compile } from '@cryptoeconomicslab/ovm-ethereum-generator'
 import Provider = ethers.providers.Provider
 import fs from 'fs'
 import path from 'path'
@@ -231,7 +231,7 @@ const deployOneCompiledPredicate = async (
     payoutContractAddress
   )
   await tx.wait()
-  const propertyData = compileJSON(
+  const propertyData = compile.compileJSON(
     path.join(__dirname, `../../../contracts/Predicate/plasma`),
     name
   )

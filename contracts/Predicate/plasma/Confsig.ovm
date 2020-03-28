@@ -1,0 +1,17 @@
+from lib import SignedBy
+from lib import IncludedAt
+
+@library
+@quantifier("-,CONCAT,${a}-${b}")
+def Concat(c, a, b) := IsConcatenatedWith(c, a, b)
+
+@library
+@quantifier("-,HASH,${p}")
+def Hash(h, p) := IsValidHash(h, p)
+
+def Confsig(tx, root, owner) := Hash(tx).any(tx_hash ->
+  Concat(root, tx_hash).any(conf_tx ->
+    SignedBy(conf_tx, new_owner).any()
+  )
+)
+

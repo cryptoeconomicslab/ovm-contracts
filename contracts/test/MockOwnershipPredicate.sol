@@ -25,6 +25,13 @@ contract MockOwnershipPredicate is CompiledPredicate {
     ) public view returns (bool) {
         return true;
     }
+    function getChild(bytes[] calldata inputs, bytes[] calldata challengeInput)
+        external
+        view
+        returns (types.Property memory)
+    {
+        require(false, "mock do not support getChild");
+    }
     function decide(bytes[] memory _inputs, bytes[] memory _witness)
         public
         view

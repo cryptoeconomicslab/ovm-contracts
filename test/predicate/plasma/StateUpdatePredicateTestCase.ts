@@ -9,6 +9,11 @@ import {
   encodeRange,
   encodeInteger
 } from '../../helpers/utils'
+import {
+  TestCaseSet,
+  TestContext,
+  encodeChildWitnesses
+} from '@cryptoeconomicslab/ovm-ethereum-generator/lib/helper'
 
 const txAddress = randomAddress()
 const token = ethers.constants.AddressZero
@@ -16,65 +21,65 @@ const range = encodeRange(0, 100)
 const blockNumber = encodeInteger(10)
 
 export const createStateUpdateTestCase = (
-  [notAddress, andAddress, forAllSuchThatAddress]: string[],
   wallet: ethers.Wallet
-) => {
+): TestCaseSet => {
   return {
     name: 'StateUpdatePredicate',
-    contract: StateUpdatePredicate,
-    extraArgs: [txAddress],
+    deploy: [
+      {
+        contract: StateUpdatePredicate,
+        getExtraArgs: (context: TestContext) => [txAddress]
+      }
+    ],
     validChallenges: [
       {
         name:
           'Valid challenge of StateUpdateT(token, range, b, so) is Bytes().all(tx -> !StateUpdateTA(tx, token, range, b, so))',
-        getProperty: (
+        getTestData: (
           stateUpdatePredicate: ethers.Contract,
-          compiledPredicate: ethers.Contract
+          context: TestContext
         ) => {
           return {
-            predicateAddress: stateUpdatePredicate.address,
-            inputs: [
-              encodeLabel('StateUpdateT'),
-              token,
-              range,
-              blockNumber,
-              encodeProperty({
-                predicateAddress: compiledPredicate.address,
-                inputs: ['0x01']
-              })
-            ]
-          }
-        },
-        getChallenge: (
-          stateUpdatePredicate: ethers.Contract,
-          mockAtomicPredicateAddress: string,
-          compiledPredicate: ethers.Contract
-        ) => {
-          return {
-            predicateAddress: forAllSuchThatAddress,
-            inputs: [
-              '0x',
-              encodeString('tx'),
-              encodeProperty({
-                predicateAddress: notAddress,
-                inputs: [
-                  encodeProperty({
-                    predicateAddress: stateUpdatePredicate.address,
-                    inputs: [
-                      encodeLabel('StateUpdateTA'),
-                      encodeVariable('tx'),
-                      token,
-                      range,
-                      blockNumber,
-                      encodeProperty({
-                        predicateAddress: compiledPredicate.address,
-                        inputs: ['0x01']
-                      })
-                    ]
-                  })
-                ]
-              })
-            ]
+            challengeInputs: [],
+            property: {
+              predicateAddress: stateUpdatePredicate.address,
+              inputs: [
+                encodeLabel('StateUpdateT'),
+                token,
+                range,
+                blockNumber,
+                encodeProperty({
+                  predicateAddress: context.mockCompiledPredicate,
+                  inputs: ['0x01']
+                })
+              ]
+            },
+            challenge: {
+              predicateAddress: context.forAllSuchThat,
+              inputs: [
+                '0x',
+                encodeString('tx'),
+                encodeProperty({
+                  predicateAddress: context.not,
+                  inputs: [
+                    encodeProperty({
+                      predicateAddress: stateUpdatePredicate.address,
+                      inputs: [
+                        encodeLabel('StateUpdateTA'),
+                        encodeVariable('tx'),
+                        token,
+                        range,
+                        blockNumber,
+                        encodeProperty({
+                          predicateAddress: context.mockCompiledPredicate,
+                          inputs: ['0x01']
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }
           }
         }
       }
@@ -82,54 +87,51 @@ export const createStateUpdateTestCase = (
     invalidChallenges: [
       {
         name: 'Invalid challenge of StateUpdateT(token, range, b, so)',
-        getProperty: (
+        getTestData: (
           stateUpdatePredicate: ethers.Contract,
-          compiledPredicate: ethers.Contract
+          context: TestContext
         ) => {
           return {
-            predicateAddress: stateUpdatePredicate.address,
-            inputs: [
-              encodeLabel('StateUpdateT'),
-              token,
-              range,
-              blockNumber,
-              encodeProperty({
-                predicateAddress: compiledPredicate.address,
-                inputs: ['0x01']
-              })
-            ]
-          }
-        },
-        getChallenge: (
-          stateUpdatePredicate: ethers.Contract,
-          mockAtomicPredicateAddress: string,
-          compiledPredicate: ethers.Contract
-        ) => {
-          return {
-            predicateAddress: forAllSuchThatAddress,
-            inputs: [
-              '0x',
-              encodeString('tx'),
-              encodeProperty({
-                predicateAddress: notAddress,
-                inputs: [
-                  encodeProperty({
-                    predicateAddress: stateUpdatePredicate.address,
-                    inputs: [
-                      encodeLabel('StateUpdateTA'),
-                      encodeVariable('tx'),
-                      token,
-                      range,
-                      blockNumber,
-                      encodeProperty({
-                        predicateAddress: compiledPredicate.address,
-                        inputs: ['0x02']
-                      })
-                    ]
-                  })
-                ]
-              })
-            ]
+            challengeInputs: [],
+            property: {
+              predicateAddress: stateUpdatePredicate.address,
+              inputs: [
+                encodeLabel('StateUpdateT'),
+                token,
+                range,
+                blockNumber,
+                encodeProperty({
+                  predicateAddress: context.mockCompiledPredicate,
+                  inputs: ['0x01']
+                })
+              ]
+            },
+            challenge: {
+              predicateAddress: context.forAllSuchThat,
+              inputs: [
+                '0x',
+                encodeString('tx'),
+                encodeProperty({
+                  predicateAddress: context.not,
+                  inputs: [
+                    encodeProperty({
+                      predicateAddress: stateUpdatePredicate.address,
+                      inputs: [
+                        encodeLabel('StateUpdateTA'),
+                        encodeVariable('tx'),
+                        token,
+                        range,
+                        blockNumber,
+                        encodeProperty({
+                          predicateAddress: context.mockCompiledPredicate,
+                          inputs: ['0x02']
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }
           }
         }
       }
@@ -137,9 +139,12 @@ export const createStateUpdateTestCase = (
     decideTrueTestCases: [
       {
         name: 'StateUpdateT(token, range, b, so) should be true',
-        createParameters: (compiledPredicate: ethers.Contract) => {
+        getTestData: (
+          stateUpdatePredicate: ethers.Contract,
+          context: TestContext
+        ) => {
           const stateObject = encodeProperty({
-            predicateAddress: compiledPredicate.address,
+            predicateAddress: context.mockCompiledPredicate,
             inputs: ['0x01']
           })
           const tx = encodeProperty({
@@ -154,7 +159,7 @@ export const createStateUpdateTestCase = (
               blockNumber,
               stateObject
             ],
-            witnesses: [tx, '0x00', '0x00', '0x00']
+            witnesses: [tx, encodeChildWitnesses([]), '0x00', '0x00']
           }
         }
       }

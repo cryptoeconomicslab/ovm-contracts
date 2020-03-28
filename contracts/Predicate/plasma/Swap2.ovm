@@ -1,0 +1,15 @@
+from lib import IncludedAt
+from lib import SignedBy
+
+@library
+@quantifier("stored.${contract},KEY,${key}")
+def Stored(value, contract, key) := IsStored(contract, key, value)
+
+def Swap2(c_so, new_owner, prev_owner, c_token, c_range, block_number, tx) :=
+  Equal(c_so.address, self.address)
+  and Equal(c_so.0, prev_owner)
+  and Equal(c_so.1, new_owner)
+  and Stored(c_token, block_number).any(root ->
+    IncludedAt(c_so, c_token, c_range, root).any()
+    and Confsig(tx, root, new_owner)
+  )

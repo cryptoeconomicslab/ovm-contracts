@@ -22,9 +22,9 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@cryptoeconomicslab/ovm-ethereum-generator": "^0.2.9",
+    "@cryptoeconomicslab/ovm-ethereum-generator": "^0.2.11",
     "@cryptoeconomicslab/ovm-parser": "^0.2.5",
-    "@cryptoeconomicslab/ovm-transpiler": "^0.2.9",
+    "@cryptoeconomicslab/ovm-transpiler": "^0.2.10",
     "@openzeppelin/contracts": "^2.3.0",
     "@types/chai": "^4.2.5",
     "@types/jest": "^24.0.23",
