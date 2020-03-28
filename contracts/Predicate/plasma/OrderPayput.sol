@@ -10,6 +10,11 @@ import {
 import "../../Utils.sol";
 import "../../DepositContract.sol";
 
+/**
+ * @title SwapPayout
+ * @dev SwapPayput is Plasma Payout Contract.
+ *     This contract resolve which use can withdraw asset from Order StateObject.
+ */
 contract OrderPayout {
     struct SwapStateObject {
         address maker;
@@ -41,7 +46,7 @@ contract OrderPayout {
 
     /**
     * finalizeExit
-    * @dev finalize exit and withdraw asset with ownership state.
+    * @dev finalize exit and withdraw order state from Deposit contract.
     */
     function finalizeExit(
         address depositContractAddress,
@@ -88,6 +93,9 @@ contract OrderPayout {
         swaps[keccak256(abi.encode(swapStateObject))] = swap;
     }
 
+    /**
+     * @dev Cancel extra dispute period with a correct transaction spending StateObject.
+     */
     function challenge(
         bytes32 ordrId,
         types.Property memory stateObject,
@@ -109,6 +117,9 @@ contract OrderPayout {
         // move to swap payout contract
     }
 
+    /**
+     * @dev withdraw asset after extra dispute period has passed.
+     */
     function withdraw(bytes32 ordrId) public {
         DisputingSwap memory swap = swaps[ordrId];
         require(swap.createdAt < block.number + 100);
