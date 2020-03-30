@@ -10,6 +10,10 @@ interface CompiledPredicate {
         bytes[] calldata _challengeInputs,
         types.Property calldata _challenge
     ) external view returns (bool);
+    function getChild(bytes[] calldata inputs, bytes[] calldata challengeInput)
+        external
+        view
+        returns (types.Property memory);
     function decide(bytes[] calldata _inputs, bytes[] calldata _witness)
         external
         view
