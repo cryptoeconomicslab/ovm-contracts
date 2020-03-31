@@ -4,12 +4,13 @@ pragma experimental ABIEncoderV2;
 import {DataTypes as types} from "../DataTypes.sol";
 import "./AtomicPredicate.sol";
 import "./LogicalConnective.sol";
+import "./DecidablePredicate.sol";
 import {
     UniversalAdjudicationContract
 } from "../UniversalAdjudicationContract.sol";
 import "../Utils.sol";
 
-contract ForAllSuchThatQuantifier is LogicalConnective {
+contract ForAllSuchThatQuantifier is LogicalConnective, DecidablePredicate {
     address uacAddress;
     address notPredicateAddress;
     address andPredicateAddress;
@@ -107,5 +108,12 @@ contract ForAllSuchThatQuantifier is LogicalConnective {
             }
         }
         return abi.encode(property);
+    }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        return false;
     }
 }

@@ -3,8 +3,12 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import "./LogicalConnective.sol";
+import "./DecidablePredicate.sol";
 
-contract ThereExistsSuchThatQuantifier is LogicalConnective {
+contract ThereExistsSuchThatQuantifier is
+    LogicalConnective,
+    DecidablePredicate
+{
     address notAddress;
     address forAddress;
 
@@ -41,5 +45,12 @@ contract ThereExistsSuchThatQuantifier is LogicalConnective {
             "inputs must be same"
         );
         return true;
+    }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        return false;
     }
 }

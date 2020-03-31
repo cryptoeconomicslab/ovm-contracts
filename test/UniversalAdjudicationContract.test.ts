@@ -9,6 +9,8 @@ import {
 import * as UniversalAdjudicationContract from '../build/contracts/UniversalAdjudicationContract.json'
 import * as Utils from '../build/contracts/Utils.json'
 import * as NotPredicate from '../build/contracts/NotPredicate.json'
+import * as OrPredicate from '../build/contracts/OrPredicate.json'
+import * as AndPredicate from '../build/contracts/AndPredicate.json'
 import * as TestPredicate from '../build/contracts/TestPredicate.json'
 import * as ethers from 'ethers'
 const abi = new ethers.utils.AbiCoder()
@@ -23,10 +25,12 @@ describe('UniversalAdjudicationContract', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
-  let adjudicationContract: ethers.Contract
-  let utils: ethers.Contract
-  let testPredicate: ethers.Contract
-  let notPredicate: ethers.Contract
+  let adjudicationContract: ethers.Contract,
+    utils: ethers.Contract,
+    testPredicate: ethers.Contract,
+    notPredicate: ethers.Contract,
+    orPredicate: ethers.Contract,
+    andPredicate: ethers.Contract
   let trueProperty: OvmProperty,
     falseProperty: OvmProperty,
     notProperty: OvmProperty,
@@ -45,6 +49,15 @@ describe('UniversalAdjudicationContract', () => {
     notPredicate = await deployContract(wallet, NotPredicate, [
       adjudicationContract.address,
       utils.address
+    ])
+    andPredicate = await deployContract(wallet, AndPredicate, [
+      adjudicationContract.address,
+      notPredicate.address,
+      utils.address
+    ])
+    orPredicate = await deployContract(wallet, OrPredicate, [
+      notPredicate.address,
+      andPredicate.address
     ])
     testPredicate = await deployContract(wallet, TestPredicate, [
       adjudicationContract.address,
@@ -173,6 +186,70 @@ describe('UniversalAdjudicationContract', () => {
       await expect(adjudicationContract.decideClaimToTrue(gameId)).to.be
         .reverted
     })
+  })
+
+  describe('decideClaimWithWitness', () => {
+    it('decide to be true given correct witness for Or property', async () => {
+      const property = {
+        predicateAddress: orPredicate.address,
+        inputs: [
+          // True property
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [[testPredicate.address, ['0x01']]]
+          ),
+          // False property
+          abi.encode(['tuple(address, bytes[])'], [[testPredicate.address, []]])
+        ]
+      }
+
+      const witness = [
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.not.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
+
+    it.skip('decide to be true given correct witness for ThereExists property', async () => {})
+
+    it.skip('decide to be true nested property ThereExists(Or(Atomic)) property', async () => {})
+
+    it.skip('decide to be true nested property Or(ThereExists(Atomic)) property', async () => {})
+
+    it.skip('cannot decide to be true with ForAll property', async () => {})
+
+    it('cannot decide with invalid witness for Or property', async () => {
+      const property = {
+        predicateAddress: orPredicate.address,
+        inputs: [
+          // True property
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [[testPredicate.address, ['0x01']]]
+          ),
+          // False property
+          abi.encode(['tuple(address, bytes[])'], [[testPredicate.address, []]])
+        ]
+      }
+
+      const witness = [
+        '0x0000000000000000000000000000000000000000000000000000000000000003'
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.reverted
+    })
+
+    it.skip('cannot decide with invalid witness for ThereExists property', async () => {})
   })
 
   describe('setPredicateDecision', () => {

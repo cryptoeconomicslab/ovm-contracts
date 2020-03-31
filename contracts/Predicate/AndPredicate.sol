@@ -2,13 +2,14 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
+import "./DecidablePredicate.sol";
 import "./LogicalConnective.sol";
 import {
     UniversalAdjudicationContract
 } from "../UniversalAdjudicationContract.sol";
 import "../Utils.sol";
 
-contract AndPredicate is LogicalConnective {
+contract AndPredicate is LogicalConnective, DecidablePredicate {
     address uacAddress;
     address notPredicateAddress;
     Utils utils;
@@ -72,5 +73,12 @@ contract AndPredicate is LogicalConnective {
             utils.getPropertyId(property),
             true
         );
+    }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        return false;
     }
 }

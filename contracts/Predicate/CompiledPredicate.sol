@@ -16,4 +16,8 @@ interface CompiledPredicate {
         returns (bool);
     function decideTrue(bytes[] calldata _inputs, bytes[] calldata _witness)
         external;
+    function decideWithWitness(
+        bytes[] calldata _inputs,
+        bytes[] calldata _witness
+    ) external returns (bool);
 }

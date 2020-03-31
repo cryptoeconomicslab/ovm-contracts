@@ -3,12 +3,13 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import "./LogicalConnective.sol";
+import "./DecidablePredicate.sol";
 import {
     UniversalAdjudicationContract
 } from "../UniversalAdjudicationContract.sol";
 import "../Utils.sol";
 
-contract NotPredicate is LogicalConnective {
+contract NotPredicate is LogicalConnective, DecidablePredicate {
     address uacAddress;
     Utils utils;
 
@@ -64,5 +65,12 @@ contract NotPredicate is LogicalConnective {
         );
 
         emit ValueDecided(true, innerProperty);
+    }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        return false;
     }
 }
