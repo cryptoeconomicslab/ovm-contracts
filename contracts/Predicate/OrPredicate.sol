@@ -3,8 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import "./LogicalConnective.sol";
+import {DecidablePredicate} from "./DecidablePredicate.sol";
 
-contract OrPredicate is LogicalConnective {
+contract OrPredicate is LogicalConnective, DecidablePredicate {
     address notAddress;
     address andAddress;
 
@@ -39,5 +40,32 @@ contract OrPredicate is LogicalConnective {
             );
         }
         return true;
+    }
+
+    /**
+     * @dev Decide property using witness
+     */
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        uint256 index = abi.decode(_witness[0], (uint256));
+        require(
+            index < _inputs.length,
+            "witness must be smaller than inputs length"
+        );
+        bytes memory propertyBytes = _inputs[index];
+        types.Property memory property = abi.decode(
+            propertyBytes,
+            (types.Property)
+        );
+        DecidablePredicate predicate = DecidablePredicate(
+            property.predicateAddress
+        );
+        bytes[] memory witness = new bytes[](_witness.length - 1);
+        for (uint256 i = 0; i < _witness.length - 1; i++) {
+            witness[i] = _witness[i + 1];
+        }
+        return predicate.decideWithWitness(property.inputs, witness);
     }
 }

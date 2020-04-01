@@ -9,11 +9,23 @@ import {
 import * as UniversalAdjudicationContract from '../build/contracts/UniversalAdjudicationContract.json'
 import * as Utils from '../build/contracts/Utils.json'
 import * as NotPredicate from '../build/contracts/NotPredicate.json'
+import * as OrPredicate from '../build/contracts/OrPredicate.json'
+import * as AndPredicate from '../build/contracts/AndPredicate.json'
 import * as TestPredicate from '../build/contracts/TestPredicate.json'
+import * as ThereExistsSuchThatQuantifier from '../build/contracts/ThereExistsSuchThatQuantifier.json'
+import * as ForAllSuchThatQuantifier from '../build/contracts/ForAllSuchThatQuantifier.json'
+import * as EqualPredicate from '../build/contracts/EqualPredicate.json'
 import * as ethers from 'ethers'
 const abi = new ethers.utils.AbiCoder()
 import { increaseBlocks } from './helpers/increaseBlocks'
-import { getGameIdFromProperty, OvmProperty } from './helpers/utils'
+import {
+  getGameIdFromProperty,
+  OvmProperty,
+  randomAddress,
+  encodeProperty,
+  encodeString,
+  encodeVariable
+} from './helpers/utils'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
@@ -23,14 +35,20 @@ describe('UniversalAdjudicationContract', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
-  let adjudicationContract: ethers.Contract
-  let utils: ethers.Contract
-  let testPredicate: ethers.Contract
-  let notPredicate: ethers.Contract
+  let adjudicationContract: ethers.Contract,
+    utils: ethers.Contract,
+    testPredicate: ethers.Contract,
+    notPredicate: ethers.Contract,
+    orPredicate: ethers.Contract,
+    andPredicate: ethers.Contract,
+    thereExistsSuchThatQuantifier: ethers.Contract,
+    forAllQuantifier: ethers.Contract,
+    equalPredicate: ethers.Contract
   let trueProperty: OvmProperty,
     falseProperty: OvmProperty,
     notProperty: OvmProperty,
-    notFalseProperty: OvmProperty
+    notFalseProperty: OvmProperty,
+    thereProperty: OvmProperty
   const Undecided = 0
   const True = 1
   const False = 2
@@ -43,6 +61,37 @@ describe('UniversalAdjudicationContract', () => {
       [utils.address]
     )
     notPredicate = await deployContract(wallet, NotPredicate, [
+      adjudicationContract.address,
+      utils.address
+    ])
+    andPredicate = await deployContract(wallet, AndPredicate, [
+      adjudicationContract.address,
+      notPredicate.address,
+      utils.address
+    ])
+    orPredicate = await deployContract(wallet, OrPredicate, [
+      notPredicate.address,
+      andPredicate.address
+    ])
+    forAllQuantifier = await deployContract(wallet, ForAllSuchThatQuantifier, [
+      adjudicationContract.address,
+      notPredicate.address,
+      andPredicate.address,
+      utils.address
+    ])
+
+    thereExistsSuchThatQuantifier = await deployContract(
+      wallet,
+      ThereExistsSuchThatQuantifier,
+      [
+        notPredicate.address,
+        andPredicate.address,
+        orPredicate.address,
+        forAllQuantifier.address,
+        utils.address
+      ]
+    )
+    equalPredicate = await deployContract(wallet, EqualPredicate, [
       adjudicationContract.address,
       utils.address
     ])
@@ -71,6 +120,17 @@ describe('UniversalAdjudicationContract', () => {
       predicateAddress: notPredicate.address,
       inputs: [
         abi.encode(['tuple(address, bytes[])'], [[testPredicate.address, []]])
+      ]
+    }
+    thereProperty = {
+      predicateAddress: thereExistsSuchThatQuantifier.address,
+      inputs: [
+        encodeString(''),
+        encodeString('n'),
+        encodeProperty({
+          predicateAddress: equalPredicate.address,
+          inputs: [encodeVariable('n'), '0x01']
+        })
       ]
     }
   })
@@ -172,6 +232,214 @@ describe('UniversalAdjudicationContract', () => {
       const gameId = getGameIdFromProperty(notProperty)
       await expect(adjudicationContract.decideClaimToTrue(gameId)).to.be
         .reverted
+    })
+  })
+
+  describe('decideClaimWithWitness', () => {
+    it('decide to be true given correct witness for Or property', async () => {
+      const property = {
+        predicateAddress: orPredicate.address,
+        inputs: [
+          // True property
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [[testPredicate.address, ['0x01']]]
+          ),
+          // False property
+          abi.encode(['tuple(address, bytes[])'], [[testPredicate.address, []]])
+        ]
+      }
+
+      const witness = [
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.not.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
+
+    it('decide to be true given correct witness for ThereExists property', async () => {
+      await adjudicationContract.claimProperty(thereProperty)
+      const gameId = getGameIdFromProperty(thereProperty)
+      const witness = ['0x01']
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.not.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
+
+    it('decide to be true nested property ThereExists(Or(Atomic)) property', async () => {
+      const property = {
+        predicateAddress: thereExistsSuchThatQuantifier.address,
+        inputs: [
+          encodeString(''),
+          encodeString('n'),
+          encodeProperty({
+            predicateAddress: orPredicate.address,
+            inputs: [
+              // Equal property
+              abi.encode(
+                ['tuple(address, bytes[])'],
+                [[equalPredicate.address, ['0x01', encodeVariable('n')]]]
+              ),
+              // False property
+              abi.encode(
+                ['tuple(address, bytes[])'],
+                [[testPredicate.address, []]]
+              )
+            ]
+          })
+        ]
+      }
+
+      const witness = [
+        '0x01', // witness for there exists property
+        '0x0000000000000000000000000000000000000000000000000000000000000000' // witness for or property
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.not.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
+
+    it('decide to be true nested property Or(ThereExists(Atomic)) property', async () => {
+      const property = {
+        predicateAddress: orPredicate.address,
+        inputs: [
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [[testPredicate.address, []]]
+          ),
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [
+              [
+                thereExistsSuchThatQuantifier.address,
+                [
+                  encodeString(''),
+                  encodeString('n'),
+                  encodeProperty({
+                    predicateAddress: equalPredicate.address,
+                    inputs: ['0x01', encodeVariable('n')]
+                  })
+                ]
+              ]
+            ]
+          )
+        ]
+      }
+
+      const witness = [
+        '0x0000000000000000000000000000000000000000000000000000000000000001', // witness for or property
+        '0x01' // witness for there exists property
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.not.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
+
+    it('cannot decide to be true with ForAll property', async () => {
+      const property = {
+        predicateAddress: forAllQuantifier.address,
+        inputs: [
+          encodeProperty({
+            predicateAddress: testPredicate.address,
+            inputs: []
+          }),
+          encodeString('n'),
+          encodeProperty({
+            predicateAddress: testPredicate.address,
+            inputs: [encodeVariable('n')]
+          })
+        ]
+      }
+
+      const witness = ['0x01']
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, Undecided)
+    })
+
+    it('cannot decide to be true with And property', async () => {
+      const property = {
+        predicateAddress: andPredicate.address,
+        inputs: [
+          encodeProperty({
+            predicateAddress: testPredicate.address,
+            inputs: []
+          }),
+          encodeProperty({
+            predicateAddress: testPredicate.address,
+            inputs: ['0x01']
+          })
+        ]
+      }
+
+      const witness = ['0x01']
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, Undecided)
+    })
+
+    it('cannot decide with invalid witness for Or property', async () => {
+      const property = {
+        predicateAddress: orPredicate.address,
+        inputs: [
+          // True property
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [[testPredicate.address, ['0x01']]]
+          ),
+          // False property
+          abi.encode(['tuple(address, bytes[])'], [[testPredicate.address, []]])
+        ]
+      }
+
+      const witness = [
+        '0x0000000000000000000000000000000000000000000000000000000000000003'
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.reverted
+    })
+
+    it('cannot decide with invalid witness for ThereExists property', async () => {
+      await adjudicationContract.claimProperty(thereProperty)
+      const gameId = getGameIdFromProperty(thereProperty)
+      const witness = ['0x03']
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, Undecided)
     })
   })
 

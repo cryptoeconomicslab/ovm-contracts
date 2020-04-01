@@ -6,6 +6,7 @@ import "./Utils.sol";
 import {DataTypes as types} from "./DataTypes.sol";
 import "./Predicate/AtomicPredicate.sol";
 import "./Predicate/LogicalConnective.sol";
+import {DecidablePredicate} from "./Predicate/DecidablePredicate.sol";
 
 /**
  * Adjudication Contract is the contract to archive dispute game defined by predicate logic.
@@ -103,6 +104,30 @@ contract UniversalAdjudicationContract {
         // game should be decided false
         game.decision = types.Decision.False;
         emit ClaimDecided(_gameId, false);
+    }
+
+    /**
+     * @dev Decide the game decision with given witness
+     */
+    function decideClaimWithWitness(bytes32 _gameId, bytes[] memory _witness)
+        public
+    {
+        types.ChallengeGame storage game = instantiatedGames[_gameId];
+        require(
+            game.decision == types.Decision.Undecided,
+            "Decision must be undecided"
+        );
+        require(game.challenges.length == 0, "There must be no challenge");
+        DecidablePredicate property = DecidablePredicate(
+            game.property.predicateAddress
+        );
+        require(
+            property.decideWithWitness(game.property.inputs, _witness),
+            "property must be true with given witness"
+        );
+
+        game.decision = types.Decision.True;
+        emit ClaimDecided(_gameId, true);
     }
 
     /**

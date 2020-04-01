@@ -44,4 +44,20 @@ contract MockOwnershipPredicate is CompiledPredicate {
             _depositedRangeId
         );
     }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        return true;
+    }
+
+    function getChild(bytes[] memory inputs, bytes[] memory challengeInput)
+        public
+        view
+        returns (types.Property memory)
+    {
+        return
+            types.Property({predicateAddress: address(this), inputs: inputs});
+    }
 }

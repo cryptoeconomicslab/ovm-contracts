@@ -6,9 +6,10 @@ import {
     UniversalAdjudicationContract
 } from "../../UniversalAdjudicationContract.sol";
 import "../AtomicPredicate.sol";
+import "../DecidablePredicate.sol";
 import "../../Utils.sol";
 
-contract BaseAtomicPredicate is AtomicPredicate {
+contract BaseAtomicPredicate is AtomicPredicate, DecidablePredicate {
     UniversalAdjudicationContract public adjudicationContract;
     Utils public utils;
 
@@ -19,6 +20,13 @@ contract BaseAtomicPredicate is AtomicPredicate {
 
     function decide(bytes[] memory _inputs) public view returns (bool) {
         return false;
+    }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        return decide(_inputs);
     }
 
     function decideTrue(bytes[] memory _inputs) public {

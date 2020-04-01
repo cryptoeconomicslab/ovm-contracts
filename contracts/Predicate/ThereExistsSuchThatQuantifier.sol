@@ -3,14 +3,31 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import "./LogicalConnective.sol";
+import "./DecidablePredicate.sol";
+import "../Utils.sol";
 
-contract ThereExistsSuchThatQuantifier is LogicalConnective {
+contract ThereExistsSuchThatQuantifier is
+    LogicalConnective,
+    DecidablePredicate
+{
     address notAddress;
+    address andAddress;
+    address orAddress;
     address forAddress;
+    Utils utils;
 
-    constructor(address _notAddress, address _forAddress) public {
+    constructor(
+        address _notAddress,
+        address _andAddress,
+        address _orAddress,
+        address _forAddress,
+        address _utilsAddress
+    ) public {
+        andAddress = _andAddress;
         notAddress = _notAddress;
+        orAddress = _orAddress;
         forAddress = _forAddress;
+        utils = Utils(_utilsAddress);
     }
 
     /**
@@ -41,5 +58,90 @@ contract ThereExistsSuchThatQuantifier is LogicalConnective {
             "inputs must be same"
         );
         return true;
+    }
+
+    function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
+        public
+        returns (bool)
+    {
+        bytes memory propertyBytes = replaceVariable(
+            _inputs[2],
+            _inputs[1],
+            _witness[0]
+        );
+
+        types.Property memory property = abi.decode(
+            propertyBytes,
+            (types.Property)
+        );
+        DecidablePredicate predicate = DecidablePredicate(
+            property.predicateAddress
+        );
+        bytes[] memory witness = new bytes[](_witness.length - 1);
+        for (uint256 i = 0; i < _witness.length - 1; i++) {
+            witness[i] = _witness[i + 1];
+        }
+        return predicate.decideWithWitness(property.inputs, witness);
+    }
+
+    /**
+     * @dev Replace placeholder by quantified in propertyBytes
+     */
+    function replaceVariable(
+        bytes memory propertyBytes,
+        bytes memory placeholder,
+        bytes memory quantified
+    ) private view returns (bytes memory) {
+        // Support property as the variable in ForAllSuchThatQuantifier.
+        // This code enables meta operation which we were calling eval without adding specific "eval" contract.
+        // For instance, we can write a property like `∀su ∈ SU: su()`.
+        if (utils.isPlaceholder(propertyBytes)) {
+            if (
+                keccak256(utils.getInputValue(propertyBytes)) ==
+                keccak256(placeholder)
+            ) {
+                return quantified;
+            }
+        }
+        types.Property memory property = abi.decode(
+            propertyBytes,
+            (types.Property)
+        );
+        if (property.predicateAddress == notAddress) {
+            property.inputs[0] = replaceVariable(
+                property.inputs[0],
+                placeholder,
+                quantified
+            );
+        } else if (property.predicateAddress == address(this)) {
+            property.inputs[2] = replaceVariable(
+                property.inputs[2],
+                placeholder,
+                quantified
+            );
+        } else if (
+            property.predicateAddress == andAddress ||
+            property.predicateAddress == orAddress
+        ) {
+            for (uint256 i = 0; i < property.inputs.length; i++) {
+                property.inputs[i] = replaceVariable(
+                    property.inputs[i],
+                    placeholder,
+                    quantified
+                );
+            }
+        } else {
+            for (uint256 i = 0; i < property.inputs.length; i++) {
+                if (utils.isPlaceholder(property.inputs[i])) {
+                    if (
+                        keccak256(utils.getInputValue(property.inputs[i])) ==
+                        keccak256(placeholder)
+                    ) {
+                        property.inputs[i] = quantified;
+                    }
+                }
+            }
+        }
+        return abi.encode(property);
     }
 }
