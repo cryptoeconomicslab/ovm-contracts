@@ -75,7 +75,13 @@ describe('UniversalAdjudicationContract', () => {
     thereExistsSuchThatQuantifier = await deployContract(
       wallet,
       ThereExistsSuchThatQuantifier,
-      [notPredicate.address, andPredicate.address, forAddress, utils.address]
+      [
+        notPredicate.address,
+        andPredicate.address,
+        orPredicate.address,
+        forAddress,
+        utils.address
+      ]
     )
     equalPredicate = await deployContract(wallet, EqualPredicate, [
       adjudicationContract.address,
@@ -260,9 +266,84 @@ describe('UniversalAdjudicationContract', () => {
       assert.equal(game.decision, True)
     })
 
-    it.skip('decide to be true nested property ThereExists(Or(Atomic)) property', async () => {})
+    it('decide to be true nested property ThereExists(Or(Atomic)) property', async () => {
+      const property = {
+        predicateAddress: thereExistsSuchThatQuantifier.address,
+        inputs: [
+          encodeString(''),
+          encodeString('n'),
+          encodeProperty({
+            predicateAddress: orPredicate.address,
+            inputs: [
+              // Equal property
+              abi.encode(
+                ['tuple(address, bytes[])'],
+                [[equalPredicate.address, ['0x01', encodeVariable('n')]]]
+              ),
+              // False property
+              abi.encode(
+                ['tuple(address, bytes[])'],
+                [[testPredicate.address, []]]
+              )
+            ]
+          })
+        ]
+      }
 
-    it.skip('decide to be true nested property Or(ThereExists(Atomic)) property', async () => {})
+      const witness = [
+        '0x01', // witness for there exists property
+        '0x0000000000000000000000000000000000000000000000000000000000000000' // witness for or property
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.not.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
+
+    it('decide to be true nested property Or(ThereExists(Atomic)) property', async () => {
+      const property = {
+        predicateAddress: orPredicate.address,
+        inputs: [
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [[testPredicate.address, []]]
+          ),
+          abi.encode(
+            ['tuple(address, bytes[])'],
+            [
+              [
+                thereExistsSuchThatQuantifier.address,
+                [
+                  encodeString(''),
+                  encodeString('n'),
+                  encodeProperty({
+                    predicateAddress: equalPredicate.address,
+                    inputs: ['0x01', encodeVariable('n')]
+                  })
+                ]
+              ]
+            ]
+          )
+        ]
+      }
+
+      const witness = [
+        '0x0000000000000000000000000000000000000000000000000000000000000001', // witness for or property
+        '0x01' // witness for there exists property
+      ]
+
+      await adjudicationContract.claimProperty(property)
+      const gameId = getGameIdFromProperty(property)
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.not.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
 
     it.skip('cannot decide to be true with ForAll property', async () => {})
 

@@ -12,17 +12,20 @@ contract ThereExistsSuchThatQuantifier is
 {
     address notAddress;
     address andAddress;
+    address orAddress;
     address forAddress;
     Utils utils;
 
     constructor(
         address _notAddress,
         address _andAddress,
+        address _orAddress,
         address _forAddress,
         address _utilsAddress
     ) public {
         andAddress = _andAddress;
         notAddress = _notAddress;
+        orAddress = _orAddress;
         forAddress = _forAddress;
         utils = Utils(_utilsAddress);
     }
@@ -75,8 +78,8 @@ contract ThereExistsSuchThatQuantifier is
             property.predicateAddress
         );
         bytes[] memory witness = new bytes[](_witness.length - 1);
-        for (uint256 i = 1; i < _witness.length; i++) {
-            witness[i] = _witness[i];
+        for (uint256 i = 0; i < _witness.length - 1; i++) {
+            witness[i] = _witness[i + 1];
         }
         return predicate.decideWithWitness(property.inputs, witness);
     }
@@ -116,7 +119,10 @@ contract ThereExistsSuchThatQuantifier is
                 placeholder,
                 quantified
             );
-        } else if (property.predicateAddress == andAddress) {
+        } else if (
+            property.predicateAddress == andAddress ||
+            property.predicateAddress == orAddress
+        ) {
             for (uint256 i = 0; i < property.inputs.length; i++) {
                 property.inputs[i] = replaceVariable(
                     property.inputs[i],

@@ -63,8 +63,8 @@ contract OrPredicate is LogicalConnective, DecidablePredicate {
             property.predicateAddress
         );
         bytes[] memory witness = new bytes[](_witness.length - 1);
-        for (uint256 i = 1; i < _witness.length; i++) {
-            witness[i] = _witness[i];
+        for (uint256 i = 0; i < _witness.length - 1; i++) {
+            witness[i] = _witness[i + 1];
         }
         return predicate.decideWithWitness(property.inputs, witness);
     }
