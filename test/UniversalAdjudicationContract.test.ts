@@ -12,10 +12,19 @@ import * as NotPredicate from '../build/contracts/NotPredicate.json'
 import * as OrPredicate from '../build/contracts/OrPredicate.json'
 import * as AndPredicate from '../build/contracts/AndPredicate.json'
 import * as TestPredicate from '../build/contracts/TestPredicate.json'
+import * as ThereExistsSuchThatQuantifier from '../build/contracts/ThereExistsSuchThatQuantifier.json'
+import * as EqualPredicate from '../build/contracts/EqualPredicate.json'
 import * as ethers from 'ethers'
 const abi = new ethers.utils.AbiCoder()
 import { increaseBlocks } from './helpers/increaseBlocks'
-import { getGameIdFromProperty, OvmProperty } from './helpers/utils'
+import {
+  getGameIdFromProperty,
+  OvmProperty,
+  randomAddress,
+  encodeProperty,
+  encodeString,
+  encodeVariable
+} from './helpers/utils'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
@@ -30,14 +39,18 @@ describe('UniversalAdjudicationContract', () => {
     testPredicate: ethers.Contract,
     notPredicate: ethers.Contract,
     orPredicate: ethers.Contract,
-    andPredicate: ethers.Contract
+    andPredicate: ethers.Contract,
+    thereExistsSuchThatQuantifier: ethers.Contract,
+    equalPredicate: ethers.Contract
   let trueProperty: OvmProperty,
     falseProperty: OvmProperty,
     notProperty: OvmProperty,
-    notFalseProperty: OvmProperty
+    notFalseProperty: OvmProperty,
+    thereProperty: OvmProperty
   const Undecided = 0
   const True = 1
   const False = 2
+  const forAddress = randomAddress()
 
   beforeEach(async () => {
     utils = await deployContract(wallet, Utils, [])
@@ -58,6 +71,15 @@ describe('UniversalAdjudicationContract', () => {
     orPredicate = await deployContract(wallet, OrPredicate, [
       notPredicate.address,
       andPredicate.address
+    ])
+    thereExistsSuchThatQuantifier = await deployContract(
+      wallet,
+      ThereExistsSuchThatQuantifier,
+      [notPredicate.address, andPredicate.address, forAddress, utils.address]
+    )
+    equalPredicate = await deployContract(wallet, EqualPredicate, [
+      adjudicationContract.address,
+      utils.address
     ])
     testPredicate = await deployContract(wallet, TestPredicate, [
       adjudicationContract.address,
@@ -84,6 +106,17 @@ describe('UniversalAdjudicationContract', () => {
       predicateAddress: notPredicate.address,
       inputs: [
         abi.encode(['tuple(address, bytes[])'], [[testPredicate.address, []]])
+      ]
+    }
+    thereProperty = {
+      predicateAddress: thereExistsSuchThatQuantifier.address,
+      inputs: [
+        encodeString(''),
+        encodeString('n'),
+        encodeProperty({
+          predicateAddress: equalPredicate.address,
+          inputs: [encodeVariable('n'), '0x01']
+        })
       ]
     }
   })
@@ -216,7 +249,16 @@ describe('UniversalAdjudicationContract', () => {
       assert.equal(game.decision, True)
     })
 
-    it.skip('decide to be true given correct witness for ThereExists property', async () => {})
+    it('decide to be true given correct witness for ThereExists property', async () => {
+      await adjudicationContract.claimProperty(thereProperty)
+      const gameId = getGameIdFromProperty(thereProperty)
+      const witness = ['0x01']
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.not.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, True)
+    })
 
     it.skip('decide to be true nested property ThereExists(Or(Atomic)) property', async () => {})
 
@@ -249,7 +291,16 @@ describe('UniversalAdjudicationContract', () => {
         .to.be.reverted
     })
 
-    it.skip('cannot decide with invalid witness for ThereExists property', async () => {})
+    it('cannot decide with invalid witness for ThereExists property', async () => {
+      await adjudicationContract.claimProperty(thereProperty)
+      const gameId = getGameIdFromProperty(thereProperty)
+      const witness = ['0x03']
+
+      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
+        .to.be.reverted
+      const game = await adjudicationContract.getGame(gameId)
+      assert.equal(game.decision, Undecided)
+    })
   })
 
   describe('setPredicateDecision', () => {
