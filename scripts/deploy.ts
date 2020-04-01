@@ -124,7 +124,10 @@ const deployLogicalConnective = async (
     ThereExistsSuchThatQuantifier,
     wallet,
     notPredicate.address,
-    forAllSuchThatQuantifier.address
+    andPredicate.address,
+    orPredicate.address,
+    forAllSuchThatQuantifier.address,
+    utilsAddress
   )
   logicalConnectiveAddressTable['ThereExistsSuchThat'] =
     thereExistsSuchThatQuantifier.address
