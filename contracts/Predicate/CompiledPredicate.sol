@@ -14,8 +14,6 @@ interface CompiledPredicate {
         external
         view
         returns (bool);
-    function decideTrue(bytes[] calldata _inputs, bytes[] calldata _witness)
-        external;
     function decideWithWitness(
         bytes[] calldata _inputs,
         bytes[] calldata _witness
