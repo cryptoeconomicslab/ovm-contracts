@@ -508,4 +508,32 @@ describe('UniversalAdjudicationContract', () => {
       ).to.be.reverted
     })
   })
+
+  describe('isDecidable', () => {
+    it('returns false when dispute period has not passed yet', async () => {
+      await adjudicationContract.claimProperty(trueProperty)
+      const gameId = getGameIdFromProperty(trueProperty)
+      const decidable = await adjudicationContract.isDecidable(gameId)
+      expect(decidable).false
+    })
+
+    it('returns false when challenge is not empty', async () => {
+      await adjudicationContract.claimProperty(notProperty)
+      await adjudicationContract.claimProperty(trueProperty)
+      const gameId = getGameIdFromProperty(notProperty)
+      const challengeGameId = getGameIdFromProperty(trueProperty)
+      await adjudicationContract.challenge(gameId, ['0x'], challengeGameId)
+
+      const decidable = await adjudicationContract.isDecidable(gameId)
+      expect(decidable).false
+    })
+
+    it('returns true when dispute period has passed and no challenge remains', async () => {
+      await adjudicationContract.claimProperty(trueProperty)
+      const gameId = getGameIdFromProperty(trueProperty)
+      await increaseBlocks(wallets, 7)
+      const decidable = await adjudicationContract.isDecidable(gameId)
+      expect(decidable).true
+    })
+  })
 })
