@@ -219,6 +219,23 @@ contract UniversalAdjudicationContract {
             types.Decision.True;
     }
 
+    function isDecidable(bytes32 _propertyId) public view returns (bool) {
+        types.ChallengeGame storage game = instantiatedGames[_propertyId];
+        if (game.createdBlock > block.number - DISPUTE_PERIOD) {
+            return false;
+        }
+
+        // check all _game.challenges should be false
+        for (uint256 i = 0; i < game.challenges.length; i++) {
+            types.ChallengeGame memory challengingGame = instantiatedGames[game
+                .challenges[i]];
+            if (challengingGame.decision != types.Decision.False) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function isDecidedById(bytes32 _propertyId) public view returns (bool) {
         return instantiatedGames[_propertyId].decision == types.Decision.True;
     }
