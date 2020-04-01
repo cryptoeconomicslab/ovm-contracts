@@ -8,6 +8,7 @@ import {
 } from 'ethereum-waffle'
 import * as MockChallenge from '../build/contracts/MockChallenge.json'
 import * as ThereExistsSuchThatQuantifier from '../build/contracts/ThereExistsSuchThatQuantifier.json'
+import * as Utils from '../build/contracts/Utils.json'
 import * as ethers from 'ethers'
 import {
   OvmProperty,
@@ -24,19 +25,22 @@ describe('ThereExistsSuchThatQuantifier', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
-  let thereExistsSuchThatQuantifier: ethers.Contract
+  let thereExistsSuchThatQuantifier: ethers.Contract, utils: ethers.Contract
   const boolAddress = randomAddress()
   const notAddress = randomAddress()
+  const andAddress = randomAddress()
+  const orAddress = randomAddress()
   const forAddress = randomAddress()
   let mockChallenge: ethers.Contract
   let thereProperty: OvmProperty
 
   beforeEach(async () => {
+    utils = await deployContract(wallet, Utils, [])
     mockChallenge = await deployContract(wallet, MockChallenge, [])
     thereExistsSuchThatQuantifier = await deployContract(
       wallet,
       ThereExistsSuchThatQuantifier,
-      [notAddress, forAddress]
+      [notAddress, andAddress, orAddress, forAddress, utils.address]
     )
     thereProperty = {
       predicateAddress: thereExistsSuchThatQuantifier.address,
