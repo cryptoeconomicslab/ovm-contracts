@@ -56,21 +56,8 @@ contract UniversalAdjudicationContract {
      * @dev Sets the game decision true when its dispute period has already passed.
      */
     function decideClaimToTrue(bytes32 _gameId) public {
+        require(isDecidable(_gameId), "claim should be decidable");
         types.ChallengeGame storage game = instantiatedGames[_gameId];
-        // check all _game.challenges should be false
-        for (uint256 i = 0; i < game.challenges.length; i++) {
-            types.ChallengeGame memory challengingGame = instantiatedGames[game
-                .challenges[i]];
-            require(
-                challengingGame.decision == types.Decision.False,
-                "all _game.challenges must be false"
-            );
-        }
-        // should check dispute period
-        require(
-            game.createdBlock < block.number - DISPUTE_PERIOD,
-            "Dispute period haven't passed yet."
-        );
         // game should be decided true
         game.decision = types.Decision.True;
         emit ClaimDecided(_gameId, true);
