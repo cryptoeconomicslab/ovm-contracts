@@ -28,7 +28,6 @@ library DataTypes {
         Property stateObject;
     }
     struct Checkpoint {
-        Range subrange;
         Property stateUpdate;
     }
     struct Exit {
