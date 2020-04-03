@@ -5,6 +5,9 @@ import "../../Utils.sol";
 import "./BaseAtomicPredicate.sol";
 import {Storage} from "../../Storage.sol";
 
+/*
+ * IsStoredPredicate is a predicate to check if certain value is stored in contract with certain key.
+ */
 contract IsStoredPredicate is BaseAtomicPredicate {
     constructor(address _uacAddress, address _utilsAddress)
         public
