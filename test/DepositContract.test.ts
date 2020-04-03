@@ -115,10 +115,9 @@ describe('DepositContract', () => {
       const checkpointFinalized = events[1]
       assert.equal(
         checkpointFinalized.values.checkpointId,
-        '0xf9f1a95730077ac5d890fe8614d4144030e357990707d6acde2d7b1d3954faf6'
+        '0xc3acb1e01c944b0261c8ac68e6e18998e9a33a5e0e0452a3981f0a5498206087'
       )
       assert.deepEqual(checkpointFinalized.values.checkpoint, [
-        [ethers.utils.bigNumberify(0), ethers.utils.bigNumberify(1)],
         [
           mockStateUpdatePredicateContract.address,
           [
@@ -140,7 +139,6 @@ describe('DepositContract', () => {
 
       const checkpointFinalized2 = events2[1]
       assert.deepEqual(checkpointFinalized2.values.checkpoint, [
-        [ethers.utils.bigNumberify(1), ethers.utils.bigNumberify(3)],
         [
           mockStateUpdatePredicateContract.address,
           [

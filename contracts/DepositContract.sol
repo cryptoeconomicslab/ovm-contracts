@@ -87,7 +87,6 @@ contract DepositContract {
             inputs: inputs
         });
         types.Checkpoint memory checkpoint = types.Checkpoint({
-            subrange: depositRange,
             stateUpdate: stateUpdate
         });
         extendDepositedRanges(_amount);
@@ -123,6 +122,7 @@ contract DepositContract {
             isSubrange(_range, depositedRanges[_depositedRangeId]),
             "range must be of a depostied range (the one that has not been exited)"
         );
+
         types.Range storage encompasingRange = depositedRanges[_depositedRangeId];
         /*
          * depositedRanges makes O(1) checking existence of certain range.
@@ -164,17 +164,11 @@ contract DepositContract {
             universalAdjudicationContract.isDecided(_checkpointProperty),
             "Checkpointing claim must be decided"
         );
-        // types.Checkpoint memory checkpoint = createCheckpoint(_checkpointProperty);
-        types.Range memory range = abi.decode(
-            _checkpointProperty.inputs[0],
-            (types.Range)
-        );
         types.Property memory property = abi.decode(
-            _checkpointProperty.inputs[1],
+            _checkpointProperty.inputs[0],
             (types.Property)
         );
         types.Checkpoint memory checkpoint = types.Checkpoint({
-            subrange: range,
             stateUpdate: property
         });
 
@@ -243,29 +237,6 @@ contract DepositContract {
 
     function getExitId(types.Exit memory _exit) private pure returns (bytes32) {
         return keccak256(abi.encode(_exit));
-    }
-
-    /**
-     * @dev deserialize property to Checkpoint instance
-     */
-    function createCheckpoint(types.Property memory _checkpoint)
-        private
-        pure
-        returns (types.Checkpoint memory)
-    {
-        types.Range memory range = abi.decode(
-            _checkpoint.inputs[0],
-            (types.Range)
-        );
-        types.Property memory stateUpdateProperty = abi.decode(
-            _checkpoint.inputs[1],
-            (types.Property)
-        );
-        return
-            types.Checkpoint({
-                subrange: range,
-                stateUpdate: stateUpdateProperty
-            });
     }
 
     function getExitId(types.Property memory _exit)
