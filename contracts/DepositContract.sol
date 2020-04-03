@@ -32,21 +32,24 @@ contract DepositContract {
     ERC20 public erc20;
     CommitmentContract public commitmentContract;
     UniversalAdjudicationContract public universalAdjudicationContract;
-    // Fixme: when StateUpdatePredicate is merged
     address public stateUpdatePredicateContract;
+    address public exitPredicateAddress;
+    address public exitDepositPredicateAddress;
 
     // totalDeposited is the most right coin id which has been deposited
     uint256 public totalDeposited;
     // depositedRanges are currently deposited ranges
     mapping(uint256 => types.Range) public depositedRanges;
-    mapping(bytes32 => types.Checkpoint) public checkpoints;
+    mapping(bytes32 => bool) public checkpoints;
 
     constructor(
         address _erc20,
         address _commitmentContract,
         address _universalAdjudicationContract,
         // Fixme: when StateUpdatePredicate is merged
-        address _stateUpdatePredicateContract
+        address _stateUpdatePredicateContract,
+        address _exitPredicateAddress,
+        address _exitDepositPredicateAddress
     ) public {
         erc20 = ERC20(_erc20);
         commitmentContract = CommitmentContract(_commitmentContract);
@@ -54,6 +57,8 @@ contract DepositContract {
             _universalAdjudicationContract
         );
         stateUpdatePredicateContract = _stateUpdatePredicateContract;
+        exitPredicateAddress = _exitPredicateAddress;
+        exitDepositPredicateAddress = _exitDepositPredicateAddress;
     }
 
     /**
@@ -91,6 +96,8 @@ contract DepositContract {
         });
         extendDepositedRanges(_amount);
         bytes32 checkpointId = getCheckpointId(checkpoint);
+        // store the checkpoint
+        checkpoints[checkpointId] = true;
         emit CheckpointFinalized(checkpointId, checkpoint);
     }
 
@@ -174,26 +181,33 @@ contract DepositContract {
 
         bytes32 checkpointId = getCheckpointId(checkpoint);
         // store the checkpoint
-        checkpoints[checkpointId] = checkpoint;
+        checkpoints[checkpointId] = true;
         emit CheckpointFinalized(checkpointId, checkpoint);
     }
 
     /**
      * finalizeExit
      * @param _exitProperty A property which is instance of exit predicate and its inputs are range and StateUpdate that exiting account wants to withdraw.
+     *     _exitProperty can be a property of ether ExitPredicate or ExitDepositPredicate.
      * @param _depositedRangeId Id of deposited range
-     * @dev spec is https://docs.plasma.group/projects/spec/en/latest/src/02-contracts/deposit-contract.html#finalizeexit
+     * @return return StateUpdate of exit property which is finalized.
+     * @dev The steps of finalizeExit.
+     *     1. Serialize exit property
+     *     2. check the property is decided by Adjudication Contract.
+     *     3. Transfer asset to payout contract corresponding to StateObject.
+     *     Please alse see https://docs.plasma.group/projects/spec/en/latest/src/02-contracts/deposit-contract.html#finalizeexit
      */
     function finalizeExit(
         types.Property memory _exitProperty,
         uint256 _depositedRangeId
-    ) public returns (types.Exit memory) {
-        types.Exit memory exit = Deserializer.deserializeExit(_exitProperty);
-        bytes32 exitId = getExitId(exit);
+    ) public returns (types.StateUpdate memory) {
+        types.StateUpdate memory stateUpdate = verifyExitProperty(
+            _exitProperty
+        );
+        bytes32 exitId = getExitId(_exitProperty);
         // get payout contract address
         address payout = CompiledPredicate(
-            exit
-                .stateUpdate
+            stateUpdate
                 .stateObject
                 .predicateAddress
         )
@@ -208,18 +222,61 @@ contract DepositContract {
             "finalizeExit must be called from payout contract"
         );
         require(
-            exit.stateUpdate.depositContractAddress == address(this),
+            stateUpdate.depositContractAddress == address(this),
             "StateUpdate.depositContractAddress must be this contract address"
         );
 
         // Remove the deposited range
-        removeDepositedRange(exit.stateUpdate.range, _depositedRangeId);
+        removeDepositedRange(stateUpdate.range, _depositedRangeId);
         //Transfer tokens to its predicate
-        uint256 amount = exit.stateUpdate.range.end -
-            exit.stateUpdate.range.start;
+        uint256 amount = stateUpdate.range.end - stateUpdate.range.start;
         erc20.transfer(payout, amount);
         emit ExitFinalized(exitId);
-        return exit;
+        return stateUpdate;
+    }
+
+    /**
+     * @dev verify StateUpdate in Exit property.
+     *     _exitProperty must be instance of ether ExitPredicate or ExitDepositPredicate.
+     *     if _exitProperty is instance of ExitDepositPredicate, check _exitProperty.su is subrange of _exitProperty.checkpoint.
+     */
+    function verifyExitProperty(types.Property memory _exitProperty)
+        private
+        returns (types.StateUpdate memory)
+    {
+        if (_exitProperty.predicateAddress == exitPredicateAddress) {
+            types.Exit memory exit = Deserializer.deserializeExit(
+                _exitProperty
+            );
+            // TODO: check inclusion proof
+            return exit.stateUpdate;
+        } else if (
+            _exitProperty.predicateAddress == exitDepositPredicateAddress
+        ) {
+            types.ExitDeposit memory exitDeposit = Deserializer
+                .deserializeExitDeposit(_exitProperty);
+            types.Checkpoint memory checkpoint = exitDeposit.checkpoint;
+            types.StateUpdate memory stateUpdate = Deserializer
+                .deserializeStateUpdate(checkpoint.stateUpdate);
+            require(
+                checkpoints[getCheckpointId(checkpoint)],
+                "checkpoint must be finalized"
+            );
+            require(
+                stateUpdate.depositContractAddress ==
+                    exitDeposit.stateUpdate.depositContractAddress,
+                "depositContractAddress must be same"
+            );
+            require(
+                stateUpdate.blockNumber == exitDeposit.stateUpdate.blockNumber,
+                "blockNumber must be same"
+            );
+            require(
+                isSubrange(exitDeposit.stateUpdate.range, stateUpdate.range),
+                "range must be subrange of checkpoint"
+            );
+            return exitDeposit.stateUpdate;
+        }
     }
 
     /* Helpers */
@@ -233,10 +290,6 @@ contract DepositContract {
         returns (bytes32)
     {
         return keccak256(abi.encode(_checkpoint));
-    }
-
-    function getExitId(types.Exit memory _exit) private pure returns (bytes32) {
-        return keccak256(abi.encode(_exit));
     }
 
     function getExitId(types.Property memory _exit)
