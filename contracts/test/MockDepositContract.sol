@@ -19,8 +19,8 @@ contract MockDepositContract {
     function finalizeExit(
         types.Property memory _exitProperty,
         uint256 _depositedRangeId
-    ) public returns (types.Exit memory) {
-        return Deserializer.deserializeExit(_exitProperty);
+    ) public returns (types.StateUpdate memory) {
+        return Deserializer.deserializeExit(_exitProperty).stateUpdate;
     }
 
 }

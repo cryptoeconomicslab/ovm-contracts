@@ -305,6 +305,18 @@ const deployCompiledPredicates = async (
   )
   deployedPredicateTable['ExitPredicate'] = exitPredicate
 
+  const depositExitPredicate = await deployOneCompiledPredicate(
+    'ExitDepositPredicate',
+    [],
+    wallet,
+    uacAddress,
+    utilsAddress,
+    ethers.constants.AddressZero,
+    logicalConnectives,
+    atomicPredicates
+  )
+  deployedPredicateTable['ExitDepositPredicate'] = depositExitPredicate
+
   return deployedPredicateTable
 }
 
@@ -391,7 +403,9 @@ const deployContracts = async (
     plasmaETH.address,
     commitmentContract.address,
     adjudicationContract.address,
-    deployedPredicateTable['StateUpdatePredicate'].deployedAddress
+    deployedPredicateTable['StateUpdatePredicate'].deployedAddress,
+    deployedPredicateTable['ExitPredicate'].deployedAddress,
+    deployedPredicateTable['ExitDepositPredicate'].deployedAddress
   )
   await plasmaETH.setDepositContractAddress(depositContract.address)
   console.log('DepositContract Deployed')

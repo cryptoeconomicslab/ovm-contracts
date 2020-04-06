@@ -35,6 +35,11 @@ library DataTypes {
         InclusionProof inclusionProof;
     }
 
+    struct ExitDeposit {
+        StateUpdate stateUpdate;
+        Checkpoint checkpoint;
+    }
+
     struct InclusionProof {
         AddressInclusionProof addressInclusionProof;
         IntervalInclusionProof intervalInclusionProof;
