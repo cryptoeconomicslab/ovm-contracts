@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 contract PlasmaETH is ERC20, ERC20Detailed {
     constructor(string memory name, string memory symbol, uint8 decimals)
         public
+        ERC20()
         ERC20Detailed(name, symbol, decimals)
     {}
 
@@ -34,15 +35,13 @@ contract PlasmaETH is ERC20, ERC20Detailed {
     /**
      * @dev transfer PlasmaETH as ETH
      */
-    function transfer(address payable _address, uint256 _amount)
-        public
-        returns (bool)
-    {
+    function transfer(address _address, uint256 _amount) public returns (bool) {
         require(
             allowance(_address, msg.sender) >= _amount,
             "PlasmaETH: transfer amount exceeds approved amount"
         );
-        _unwrap(_address, _amount);
+        // TODO: we can write `paybale(userAddress)` after v0.6.0
+        _unwrap(address(uint160(_address)), _amount);
         return true;
     }
 
