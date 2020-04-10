@@ -36,10 +36,6 @@ contract PlasmaETH is ERC20, ERC20Detailed {
      * @dev transfer PlasmaETH as ETH
      */
     function transfer(address _address, uint256 _amount) public returns (bool) {
-        require(
-            allowance(_address, msg.sender) >= _amount,
-            "PlasmaETH: transfer amount exceeds approved amount"
-        );
         // TODO: we can write `paybale(userAddress)` after v0.6.0
         _unwrap(address(uint160(_address)), _amount);
         return true;
@@ -56,5 +52,4 @@ contract PlasmaETH is ERC20, ERC20Detailed {
         _burn(_address, _amount);
         _address.transfer(_amount);
     }
-
 }
