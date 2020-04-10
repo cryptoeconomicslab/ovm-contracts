@@ -3,37 +3,16 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "./DepositContract.sol";
 
 /**
  * @dev PlasmaETH is ERC20 Token wrap ETH for Plasma
  */
 contract PlasmaETH is ERC20, ERC20Detailed {
-    address public depositContractAddress;
     constructor(string memory name, string memory symbol, uint8 decimals)
         public
+        ERC20()
         ERC20Detailed(name, symbol, decimals)
     {}
-
-    function setDepositContractAddress(address _depositContractAddress) public {
-        depositContractAddress = _depositContractAddress;
-    }
-
-    /**
-     * @dev deposit is the way to skip wrap and approve in deposit flow.
-     * This method execute deposit flow automatically.
-     */
-    function deposit(uint256 _amount, types.Property memory _initialState)
-        public
-        payable
-    {
-        wrap(_amount);
-        require(
-            approve(depositContractAddress, _amount),
-            "must succeed to approve"
-        );
-        DepositContract(depositContractAddress).deposit(_amount, _initialState);
-    }
 
     /**
      * @dev wrap ETH in PlasmaETH
@@ -50,12 +29,29 @@ contract PlasmaETH is ERC20, ERC20Detailed {
      * @dev unwrap PlasmaETH
      */
     function unwrap(uint256 _amount) public {
-        require(
-            balanceOf(msg.sender) >= _amount,
-            "PlasmaETH: unwrap amount exceeds balance"
-        );
-        _burn(msg.sender, _amount);
-        msg.sender.transfer(_amount);
+        _unwrap(msg.sender, _amount);
     }
 
+    /**
+     * @dev transfer PlasmaETH as ETH
+     */
+    function transfer(address _address, uint256 _amount) public returns (bool) {
+        require(ERC20.transfer(_address, _amount), "failed ERC20.transfer");
+
+        // TODO: we can write `paybale(userAddress)` after v0.6.0
+        _unwrap(address(uint160(_address)), _amount);
+        return true;
+    }
+
+    /**
+     * @dev unwrap PlasmaETH and transfer ETH
+     */
+    function _unwrap(address payable _address, uint256 _amount) private {
+        require(
+            balanceOf(_address) >= _amount,
+            "PlasmaETH: unwrap amount exceeds balance"
+        );
+        _burn(_address, _amount);
+        _address.transfer(_amount);
+    }
 }
