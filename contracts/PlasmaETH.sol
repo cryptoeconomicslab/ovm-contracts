@@ -36,6 +36,8 @@ contract PlasmaETH is ERC20, ERC20Detailed {
      * @dev transfer PlasmaETH as ETH
      */
     function transfer(address _address, uint256 _amount) public returns (bool) {
+        ERC20.transfer(_address, _amount);
+
         // TODO: we can write `paybale(userAddress)` after v0.6.0
         _unwrap(address(uint160(_address)), _amount);
         return true;

@@ -19,9 +19,7 @@ describe('PlasmaETH', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
-  let bobWallet = wallets[1]
   let plasmaERC20Contract: ethers.Contract
-  let bobPlasmaERC20Contract: ethers.Contract
 
   const ether10 = ethers.utils.parseEther('10.0')
 
@@ -41,11 +39,6 @@ describe('PlasmaETH', () => {
       'PlasmaETH',
       18
     ])
-    bobPlasmaERC20Contract = new ethers.Contract(
-      plasmaERC20Contract.address,
-      PlasmaERC20.abi,
-      bobWallet
-    )
   })
 
   describe('wrap', () => {
@@ -88,21 +81,13 @@ describe('PlasmaETH', () => {
       await plasmaERC20Contract.wrap(ether10, {
         value: ether10
       })
-      await plasmaERC20Contract.approve(bobWallet.address, ether10)
-      await bobPlasmaERC20Contract.transfer(wallet.address, ether10)
-    })
-
-    it('fail to transfer due to insufficient approved amount', async () => {
-      await expect(
-        bobPlasmaERC20Contract.transfer(wallet.address, ether10)
-      ).to.be.revertedWith('PlasmaETH: transfer amount exceeds approved amount')
+      await plasmaERC20Contract.transfer(wallets[1].address, ether10)
     })
 
     it('fail to transfer due to insufficient balance', async () => {
-      await plasmaERC20Contract.approve(bobWallet.address, ether10)
       await expect(
-        bobPlasmaERC20Contract.transfer(wallet.address, ether10)
-      ).to.be.revertedWith('PlasmaETH: unwrap amount exceeds balance')
+        plasmaERC20Contract.transfer(wallets[1].address, ether10)
+      ).to.be.revertedWith('ERC20: transfer amount exceeds balance')
     })
   })
 })
