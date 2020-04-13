@@ -407,7 +407,6 @@ const deployContracts = async (
     deployedPredicateTable['ExitPredicate'].deployedAddress,
     deployedPredicateTable['ExitDepositPredicate'].deployedAddress
   )
-  await plasmaETH.setDepositContractAddress(depositContract.address)
   console.log('DepositContract Deployed')
 
   return {
