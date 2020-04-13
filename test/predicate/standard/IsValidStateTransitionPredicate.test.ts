@@ -1,27 +1,19 @@
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity,
-  link
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity } from 'ethereum-waffle'
 import * as MockAdjudicationContract from '../../../build/contracts/MockAdjudicationContract.json'
 import * as Utils from '../../../build/contracts/Utils.json'
 import * as IsValidStateTransitionPredicate from '../../../build/contracts/IsValidStateTransitionPredicate.json'
 import * as MockCompiledPredicate from '../../../build/contracts/MockCompiledPredicate.json'
 import * as IsContainedPredicate from '../../../build/contracts/IsContainedPredicate.json'
 import * as ethers from 'ethers'
-const abi = new ethers.utils.AbiCoder()
 import { encodeProperty, encodeRange, encodeInteger } from '../../helpers/utils'
 
 chai.use(solidity)
-chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('IsValidStateTransition', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let isValidStateTransitionPredicate: ethers.Contract
   let adjudicationContract: ethers.Contract

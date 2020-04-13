@@ -1,11 +1,5 @@
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity,
-  link
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity, link } from 'ethereum-waffle'
 import * as PlasmaERC20 from '../build/contracts/PlasmaETH.json'
 import * as MockDepositContract from '../build/contracts/MockDepositContract.json'
 import * as Deserializer from '../build/contracts/Deserializer.json'
@@ -16,8 +10,8 @@ chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('PlasmaETH', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let plasmaERC20Contract: ethers.Contract
 

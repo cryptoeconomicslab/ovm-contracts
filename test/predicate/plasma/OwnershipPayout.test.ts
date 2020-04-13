@@ -1,11 +1,5 @@
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity,
-  link
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity, link } from 'ethereum-waffle'
 import * as MockDepositContract from '../../../build/contracts/MockDepositContract.json'
 import * as Utils from '../../../build/contracts/Utils.json'
 import * as OwnershipPayout from '../../../build/contracts/OwnershipPayout.json'
@@ -30,8 +24,8 @@ const { expect } = chai
 const abi = new ethers.utils.AbiCoder()
 
 describe('OwnershipPayout', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let ownershipPayout: ethers.Contract
   let mockDepositContract: ethers.Contract

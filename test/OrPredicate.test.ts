@@ -1,11 +1,6 @@
 /* contract imports */
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity } from 'ethereum-waffle'
 import * as MockChallenge from '../build/contracts/MockChallenge.json'
 import * as OrPredicate from '../build/contracts/OrPredicate.json'
 import * as ethers from 'ethers'
@@ -16,8 +11,8 @@ chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('OrPredicate', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let orPredicate: ethers.Contract
   const boolAddress = randomAddress()

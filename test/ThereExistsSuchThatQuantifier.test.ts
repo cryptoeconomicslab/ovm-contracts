@@ -1,11 +1,6 @@
 /* contract imports */
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity } from 'ethereum-waffle'
 import * as MockChallenge from '../build/contracts/MockChallenge.json'
 import * as ThereExistsSuchThatQuantifier from '../build/contracts/ThereExistsSuchThatQuantifier.json'
 import * as Utils from '../build/contracts/Utils.json'
@@ -22,8 +17,8 @@ chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('ThereExistsSuchThatQuantifier', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let thereExistsSuchThatQuantifier: ethers.Contract, utils: ethers.Contract
   const boolAddress = randomAddress()

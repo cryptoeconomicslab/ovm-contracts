@@ -1,11 +1,5 @@
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity,
-  link
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity, link } from 'ethereum-waffle'
 import * as MockAdjudicationContract from '../../../build/contracts/MockAdjudicationContract.json'
 import * as Utils from '../../../build/contracts/Utils.json'
 import * as ECRecover from '../../../build/contracts/ECRecover.json'
@@ -15,12 +9,11 @@ import { hexlify, toUtf8Bytes } from 'ethers/utils'
 import { encodeConstant, encodeAddress } from '../../helpers/utils'
 
 chai.use(solidity)
-chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('IsValidSignaturePredicate', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let isValidSignaturePredicate: ethers.Contract
   let adjudicationContract: ethers.Contract

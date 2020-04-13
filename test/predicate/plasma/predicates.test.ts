@@ -1,10 +1,5 @@
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity } from 'ethereum-waffle'
 import * as MockAdjudicationContract from '../../../build/contracts/MockAdjudicationContract.json'
 import * as MockChallenge from '../../../build/contracts/MockChallenge.json'
 import * as MockAtomicPredicate from '../../../build/contracts/MockAtomicPredicate.json'
@@ -19,8 +14,8 @@ chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('predicates', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let mockChallenge: ethers.Contract
   const notAddress = randomAddress()

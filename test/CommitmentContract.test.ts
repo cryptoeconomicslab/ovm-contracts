@@ -1,10 +1,5 @@
 import chai from 'chai'
-import {
-  createMockProvider,
-  deployContract,
-  getWallets,
-  solidity
-} from 'ethereum-waffle'
+import { MockProvider, deployContract, solidity } from 'ethereum-waffle'
 import * as CommitmentContract from '../build/contracts/CommitmentContract.json'
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
@@ -15,8 +10,8 @@ chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('CommitmentContract', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
+  let provider = new MockProvider()
+  let wallets = provider.getWallets()
   let wallet = wallets[0]
   let commitmentContract: any
   const root = ethers.utils.keccak256(
