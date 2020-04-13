@@ -1,4 +1,4 @@
-pragma solidity ^0.5.3;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 /* Internal Contract Imports */
@@ -262,7 +262,6 @@ contract UniversalAdjudicationContract {
         for (uint256 i = index; i < challenges.length - 1; i++) {
             challenges[i] = challenges[i + 1];
         }
-        delete challenges[challenges.length - 1];
-        challenges.length -= 1;
+        challenges.pop();
     }
 }

@@ -25,28 +25,22 @@
     "@cryptoeconomicslab/ovm-ethereum-generator": "^0.2.9",
     "@cryptoeconomicslab/ovm-parser": "^0.2.5",
     "@cryptoeconomicslab/ovm-transpiler": "^0.2.9",
-    "@openzeppelin/contracts": "^2.5.0",
+    "@openzeppelin/contracts": "^3.0.0-rc.1",
     "@types/chai": "^4.2.5",
     "@types/jest": "^24.0.23",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "dotenv": "^8.2.0",
-    "ethereum-waffle": "^2.1.0",
+    "ethereum-waffle": "^2.4.0",
     "ethers": "^4.0.33",
-    "husky": "^3.1.0",
     "mocha": "^6.2.0",
     "prettier": "^1.19.1",
-    "prettier-plugin-solidity": "^1.0.0-alpha.34",
+    "prettier-plugin-solidity": "^1.0.0-alpha.48",
     "ts-node": "^8.5.0",
     "typescript": "^3.7.2"
   },
   "dependencies": {
     "@cryptoeconomicslab/hash": "0.0.17",
     "@cryptoeconomicslab/primitives": "0.0.17"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run prettier"
-    }
   }
 }

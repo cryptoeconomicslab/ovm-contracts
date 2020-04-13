@@ -23,15 +23,11 @@ import {
   encodeRange,
   encodeInteger
 } from './helpers/utils'
-import {
-  getTransactionEvent,
-  getTransactionEvents
-} from './helpers/getTransactionEvent'
+import { getTransactionEvents } from './helpers/getTransactionEvent'
 const abi = new ethers.utils.AbiCoder()
 const { MaxUint256 } = ethers.constants
 
 chai.use(solidity)
-chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 describe('DepositContract', () => {
@@ -114,7 +110,7 @@ describe('DepositContract', () => {
       })
       const events = await getTransactionEvents(provider, tx, depositContract)
       const depositedRangeExtended = events[0]
-      assert.deepEqual(depositedRangeExtended.values.newRange, [
+      expect(depositedRangeExtended.values.newRange).to.deep.equal([
         ethers.utils.bigNumberify(0),
         ethers.utils.bigNumberify(1)
       ])
@@ -124,7 +120,7 @@ describe('DepositContract', () => {
         checkpointFinalized.values.checkpointId,
         '0xc3acb1e01c944b0261c8ac68e6e18998e9a33a5e0e0452a3981f0a5498206087'
       )
-      assert.deepEqual(checkpointFinalized.values.checkpoint, [
+      expect(checkpointFinalized.values.checkpoint).to.deep.equal([
         [
           mockStateUpdatePredicateContract.address,
           [
@@ -139,13 +135,13 @@ describe('DepositContract', () => {
       const tx2 = await depositContract.deposit(2, stateObject)
       const events2 = await getTransactionEvents(provider, tx2, depositContract)
       const depositedRangeExtended2 = events2[0]
-      assert.deepEqual(depositedRangeExtended2.values.newRange, [
+      expect(depositedRangeExtended2.values.newRange).to.deep.equal([
         ethers.utils.bigNumberify(0),
         ethers.utils.bigNumberify(3)
       ])
 
       const checkpointFinalized2 = events2[1]
-      assert.deepEqual(checkpointFinalized2.values.checkpoint, [
+      expect(checkpointFinalized2.values.checkpoint).to.deep.equal([
         [
           mockStateUpdatePredicateContract.address,
           [
@@ -347,7 +343,7 @@ describe('DepositContract', () => {
         depositContract
       )
       const depositedRangeRemoved = events[0]
-      assert.deepEqual(depositedRangeRemoved.values.removedRange, [
+      expect(depositedRangeRemoved.values.removedRange).to.deep.equal([
         ethers.utils.bigNumberify(0),
         ethers.utils.bigNumberify(5)
       ])

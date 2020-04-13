@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
@@ -11,7 +11,12 @@ contract IsContainedPredicate is BaseAtomicPredicate {
         BaseAtomicPredicate(_uacAddress, _utilsAddress)
     {}
 
-    function decide(bytes[] memory _inputs) public view returns (bool) {
+    function decide(bytes[] memory _inputs)
+        public
+        view
+        override
+        returns (bool)
+    {
         types.Range memory range = utils.bytesToRange(_inputs[0]);
         types.Range memory subrange = utils.bytesToRange(_inputs[1]);
         require(

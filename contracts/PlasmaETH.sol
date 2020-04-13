@@ -1,18 +1,18 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
 /**
  * @dev PlasmaETH is ERC20 Token wrap ETH for Plasma
  */
-contract PlasmaETH is ERC20, ERC20Detailed {
+contract PlasmaETH is ERC20 {
     constructor(string memory name, string memory symbol, uint8 decimals)
         public
-        ERC20()
-        ERC20Detailed(name, symbol, decimals)
-    {}
+        ERC20(name, symbol)
+    {
+        _setupDecimals(decimals);
+    }
 
     /**
      * @dev wrap ETH in PlasmaETH
@@ -35,7 +35,11 @@ contract PlasmaETH is ERC20, ERC20Detailed {
     /**
      * @dev transfer PlasmaETH as ETH
      */
-    function transfer(address _address, uint256 _amount) public returns (bool) {
+    function transfer(address _address, uint256 _amount)
+        public
+        override
+        returns (bool)
+    {
         require(ERC20.transfer(_address, _amount), "failed ERC20.transfer");
 
         // TODO: we can write `paybale(userAddress)` after v0.6.0

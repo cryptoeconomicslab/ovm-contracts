@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
@@ -43,7 +43,7 @@ contract AndPredicate is LogicalConnective, DecidablePredicate {
         bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,
         types.Property calldata _challnge
-    ) external view returns (bool) {
+    ) external view override returns (bool) {
         // challengeInput is index of child property
         uint256 index = abi.decode(_challengeInputs[0], (uint256));
         // challenge should be not(p[index])
@@ -77,6 +77,7 @@ contract AndPredicate is LogicalConnective, DecidablePredicate {
 
     function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
         public
+        override
         returns (bool)
     {
         return false;

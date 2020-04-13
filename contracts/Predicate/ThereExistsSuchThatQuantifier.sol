@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
@@ -37,7 +37,7 @@ contract ThereExistsSuchThatQuantifier is
         bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,
         types.Property calldata _challnge
-    ) external view returns (bool) {
+    ) external view override returns (bool) {
         // challenge must be for(, , not(p))
         require(
             _challnge.predicateAddress == forAddress,
@@ -62,6 +62,7 @@ contract ThereExistsSuchThatQuantifier is
 
     function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
         public
+        override
         returns (bool)
     {
         bytes memory propertyBytes = replaceVariable(

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
@@ -43,7 +43,7 @@ contract NotPredicate is LogicalConnective, DecidablePredicate {
         bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,
         types.Property calldata _challenge
-    ) external view returns (bool) {
+    ) external view override returns (bool) {
         // The valid challenge of not(p) is p and _inputs[0] is p here
         return keccak256(_inputs[0]) == keccak256(abi.encode(_challenge));
     }
@@ -69,6 +69,7 @@ contract NotPredicate is LogicalConnective, DecidablePredicate {
 
     function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
         public
+        override
         returns (bool)
     {
         return false;

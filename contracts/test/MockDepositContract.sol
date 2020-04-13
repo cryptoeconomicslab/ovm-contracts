@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -8,6 +8,7 @@ import "./Library/Deserializer.sol";
 
 contract MockDepositContract {
     ERC20 public erc20;
+
     constructor(address mockToken) public {
         erc20 = MockToken(mockToken);
     }
@@ -22,5 +23,4 @@ contract MockDepositContract {
     ) public returns (types.StateUpdate memory) {
         return Deserializer.deserializeExit(_exitProperty).stateUpdate;
     }
-
 }

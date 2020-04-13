@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
@@ -21,7 +21,7 @@ contract OrPredicate is LogicalConnective, DecidablePredicate {
         bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,
         types.Property calldata _challnge
-    ) external view returns (bool) {
+    ) external view override returns (bool) {
         // challenge must be and(not(p[0]), not(p[1]), ...)
         require(
             _challnge.predicateAddress == andAddress,
@@ -47,6 +47,7 @@ contract OrPredicate is LogicalConnective, DecidablePredicate {
      */
     function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
         public
+        override
         returns (bool)
     {
         uint256 index = abi.decode(_witness[0], (uint256));

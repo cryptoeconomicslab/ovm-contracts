@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
@@ -38,7 +38,12 @@ contract IsValidStateTransitionPredicate is AtomicPredicate {
         );
     }
 
-    function decide(bytes[] memory _inputs) public view returns (bool) {
+    function decide(bytes[] memory _inputs)
+        public
+        view
+        override
+        returns (bool)
+    {
         types.Property memory previousStateUpdate = abi.decode(
             _inputs[0],
             (types.Property)
@@ -80,7 +85,7 @@ contract IsValidStateTransitionPredicate is AtomicPredicate {
         return true;
     }
 
-    function decideTrue(bytes[] memory _inputs) public {
+    function decideTrue(bytes[] memory _inputs) public override {
         require(decide(_inputs), "must decide true");
         types.Property memory property = types.Property({
             predicateAddress: address(this),

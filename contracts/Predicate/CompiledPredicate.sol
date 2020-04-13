@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
@@ -24,11 +24,12 @@ interface CompiledPredicate {
         external
         view
         returns (bool);
+
     function decideTrue(bytes[] calldata _inputs, bytes[] calldata _witness)
         external;
+
     function decideWithWitness(
         bytes[] calldata _inputs,
         bytes[] calldata _witness
     ) external returns (bool);
-
 }

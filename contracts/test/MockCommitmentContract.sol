@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
@@ -9,6 +9,7 @@ import {DataTypes as types} from "../DataTypes.sol";
  */
 contract MockCommitmentContract {
     uint256 public currentBlock = 100;
+
     function verifyInclusion(
         bytes32 _leaf,
         address _tokenAddress,

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.3;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {Storage} from "../Storage.sol";
@@ -10,7 +10,12 @@ contract MockStorage is Storage {
         value = _value;
     }
 
-    function retrieve(bytes memory _key) public view returns (bytes memory) {
+    function retrieve(bytes memory _key)
+        public
+        view
+        override
+        returns (bytes memory)
+    {
         return value;
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
@@ -16,7 +16,12 @@ contract VerifyInclusionPredicate is BaseAtomicPredicate {
         commitmentContract = CommitmentContract(_commitmentContract);
     }
 
-    function decide(bytes[] memory _inputs) public view returns (bool) {
+    function decide(bytes[] memory _inputs)
+        public
+        view
+        override
+        returns (bool)
+    {
         return
             commitmentContract.verifyInclusion(
                 keccak256(_inputs[0]),

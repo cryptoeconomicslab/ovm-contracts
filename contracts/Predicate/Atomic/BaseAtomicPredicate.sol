@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
@@ -18,18 +18,25 @@ contract BaseAtomicPredicate is AtomicPredicate, DecidablePredicate {
         utils = Utils(_utilsAddress);
     }
 
-    function decide(bytes[] memory _inputs) public view returns (bool) {
+    function decide(bytes[] memory _inputs)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return false;
     }
 
     function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
         public
+        override
         returns (bool)
     {
         return decide(_inputs);
     }
 
-    function decideTrue(bytes[] memory _inputs) public {
+    function decideTrue(bytes[] memory _inputs) public override {
         require(decide(_inputs), "must decide true");
         types.Property memory property = types.Property({
             predicateAddress: address(this),

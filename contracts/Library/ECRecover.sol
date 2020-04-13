@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 
 library ECRecover {
     function ecverify(bytes32 hash, bytes memory sig, address signer)

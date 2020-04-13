@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {DataTypes as types} from "../../DataTypes.sol";
 import "../../Utils.sol";
 import "../../DepositContract.sol";
+
 
 contract OwnershipPayout {
     Utils utils;

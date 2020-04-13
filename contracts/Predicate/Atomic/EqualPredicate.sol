@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "../../Utils.sol";
@@ -11,7 +11,12 @@ contract EqualPredicate is BaseAtomicPredicate {
         BaseAtomicPredicate(_uacAddress, _utilsAddress)
     {}
 
-    function decide(bytes[] memory _inputs) public view returns (bool) {
+    function decide(bytes[] memory _inputs)
+        public
+        view
+        override
+        returns (bool)
+    {
         bytes32 hashOfFirstInput = keccak256(_inputs[0]);
         bytes32 hashOfSecondInput = keccak256(_inputs[1]);
         require(
