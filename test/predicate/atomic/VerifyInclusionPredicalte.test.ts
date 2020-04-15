@@ -85,7 +85,8 @@ describe('VerifyInclusionPredicate', () => {
         ]
       ]
     )
-    const blockNumber = abi.encode(['uint256'], [120])
+    const root =
+      '0xef583c07cae62e3a002a9ad558064ae80db0000000000000000000b6da16ea8a'
 
     it('suceed to decide', async () => {
       await verifyInclusionPredicate.decide([
@@ -93,7 +94,7 @@ describe('VerifyInclusionPredicate', () => {
         token,
         range,
         inclusionProof,
-        blockNumber
+        root
       ])
     })
 
@@ -104,7 +105,7 @@ describe('VerifyInclusionPredicate', () => {
           token,
           leaf,
           inclusionProof,
-          blockNumber
+          root
         ])
       ).to.be.reverted
     })

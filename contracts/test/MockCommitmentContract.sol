@@ -18,4 +18,14 @@ contract MockCommitmentContract {
     ) public pure returns (bool) {
         return true;
     }
+
+    function verifyInclusionWithRoot(
+        bytes32 _leaf,
+        address _tokenAddress,
+        types.Range memory _range,
+        types.InclusionProof memory _inclusionProof,
+        bytes32 _root
+    ) public pure returns (bool) {
+        return true;
+    }
 }
