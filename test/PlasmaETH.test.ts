@@ -73,24 +73,4 @@ describe('PlasmaETH', () => {
       )
     })
   })
-
-  describe('transfer', () => {
-    const bob = '0xe1269DB510588Ed1302d16A4C2f02Ab377CAB0bC'
-
-    beforeEach(async () => {})
-
-    it('succeed to transfer', async () => {
-      await plasmaERC20Contract.wrap(ether10, {
-        value: ether10
-      })
-      await plasmaERC20Contract.transfer(bob, ether10)
-      expect(await provider.getBalance(bob)).equal(ether10)
-    })
-
-    it('fail to transfer due to insufficient balance', async () => {
-      await expect(
-        plasmaERC20Contract.transfer(bob, ether10)
-      ).to.be.revertedWith('ERC20: transfer amount exceeds balance')
-    })
-  })
 })
