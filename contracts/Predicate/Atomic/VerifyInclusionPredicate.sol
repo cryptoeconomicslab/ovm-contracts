@@ -18,12 +18,12 @@ contract VerifyInclusionPredicate is BaseAtomicPredicate {
 
     function decide(bytes[] memory _inputs) public view returns (bool) {
         return
-            commitmentContract.verifyInclusion(
+            commitmentContract.verifyInclusionWithRoot(
                 keccak256(_inputs[0]),
                 utils.bytesToAddress(_inputs[1]),
                 abi.decode(_inputs[2], (types.Range)),
                 abi.decode(_inputs[3], (types.InclusionProof)),
-                abi.decode(_inputs[4], (uint256))
+                abi.decode(_inputs[4], (bytes32))
             );
     }
 }

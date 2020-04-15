@@ -42,22 +42,22 @@ contract CommitmentContract {
     }
 
     /**
-     * verifyInclusion method verifies inclusion of message in Double Layer Tree.
+     * verifyInclusionWithRoot method verifies inclusion proof in Double Layer Tree.
      *     The message has range and token address and these also must be verified.
      *     Please see https://docs.plasma.group/projects/spec/en/latest/src/01-core/double-layer-tree.html for further details.
      * @param _leaf a message to verify its inclusion
      * @param _tokenAddress token address of the message
      * @param _range range of the message
      * @param _inclusionProof The proof data to verify inclusion
-     * @param _blkNumber block number where the Merkle root is stored
+     * @param _root merkle root to verify inclusionProof
      */
-    function verifyInclusion(
+    function verifyInclusionWithRoot(
         bytes32 _leaf,
         address _tokenAddress,
         types.Range memory _range,
         types.InclusionProof memory _inclusionProof,
-        uint256 _blkNumber
-    ) public view returns (bool) {
+        bytes32 _root
+    ) public pure returns (bool) {
         // Calcurate the root of interval tree
         (bytes32 computedRoot, uint256 implicitEnd) = computeIntervalTreeRoot(
             _leaf,
@@ -82,7 +82,34 @@ contract CommitmentContract {
             _tokenAddress <= implicitAddress,
             "required address must not exceed the implicit address"
         );
-        return computedRoot == blocks[_blkNumber];
+        return computedRoot == _root;
+    }
+
+    /**
+     * verifyInclusion method verifies inclusion of message in Double Layer Tree.
+     *     receives block number as its fifth argument instead of merkle root hash.
+     *     use the block number to retrieve merkle root stored in contract's state.
+     * @param _leaf a message to verify its inclusion
+     * @param _tokenAddress token address of the message
+     * @param _range range of the message
+     * @param _inclusionProof The proof data to verify inclusion
+     * @param _blkNumber block number where the Merkle root is stored
+     */
+    function verifyInclusion(
+        bytes32 _leaf,
+        address _tokenAddress,
+        types.Range memory _range,
+        types.InclusionProof memory _inclusionProof,
+        uint256 _blkNumber
+    ) public view returns (bool) {
+        return
+            verifyInclusionWithRoot(
+                _leaf,
+                _tokenAddress,
+                _range,
+                _inclusionProof,
+                blocks[_blkNumber]
+            );
     }
 
     /**
