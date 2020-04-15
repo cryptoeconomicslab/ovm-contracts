@@ -29,29 +29,11 @@ contract PlasmaETH is ERC20, ERC20Detailed {
      * @dev unwrap PlasmaETH
      */
     function unwrap(uint256 _amount) public {
-        _unwrap(msg.sender, _amount);
-    }
-
-    /**
-     * @dev transfer PlasmaETH as ETH
-     */
-    function transfer(address _address, uint256 _amount) public returns (bool) {
-        require(ERC20.transfer(_address, _amount), "failed ERC20.transfer");
-
-        // TODO: we can write `paybale(userAddress)` after v0.6.0
-        _unwrap(address(uint160(_address)), _amount);
-        return true;
-    }
-
-    /**
-     * @dev unwrap PlasmaETH and transfer ETH
-     */
-    function _unwrap(address payable _address, uint256 _amount) private {
         require(
-            balanceOf(_address) >= _amount,
+            balanceOf(msg.sender) >= _amount,
             "PlasmaETH: unwrap amount exceeds balance"
         );
-        _burn(_address, _amount);
-        _address.transfer(_amount);
+        _burn(msg.sender, _amount);
+        msg.sender.transfer(_amount);
     }
 }
