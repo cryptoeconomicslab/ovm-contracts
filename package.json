@@ -22,9 +22,9 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@cryptoeconomicslab/ovm-ethereum-generator": "^0.2.9",
-    "@cryptoeconomicslab/ovm-parser": "^0.2.5",
-    "@cryptoeconomicslab/ovm-transpiler": "^0.2.9",
+    "@cryptoeconomicslab/ovm-ethereum-generator": "^0.3.4",
+    "@cryptoeconomicslab/ovm-parser": "^0.3.0",
+    "@cryptoeconomicslab/ovm-transpiler": "^0.3.4",
     "@openzeppelin/contracts": "^2.5.0",
     "@types/chai": "^4.2.5",
     "@types/jest": "^24.0.23",
@@ -41,8 +41,8 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
-    "@cryptoeconomicslab/hash": "0.0.17",
-    "@cryptoeconomicslab/primitives": "0.0.17"
+    "@cryptoeconomicslab/hash": "^0.3.4",
+    "@cryptoeconomicslab/primitives": "^0.3.4"
   },
   "husky": {
     "hooks": {
