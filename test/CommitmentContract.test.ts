@@ -9,6 +9,7 @@ import * as CommitmentContract from '../build/contracts/CommitmentContract.json'
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
+import { AbiCoder } from 'ethers/utils'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
@@ -45,6 +46,17 @@ describe('CommitmentContract', () => {
     })
     it('fail to submit root because of invalid block number', async () => {
       await expect(commitmentContract.submitRoot(0, root)).to.be.reverted
+    })
+  })
+
+  describe('retrieve', () => {
+    it('succeed to retrieve root with block', async () => {
+      const abi = new AbiCoder()
+      await commitmentContract.submitRoot(1, root)
+      const retrieved = await commitmentContract.retrieve(
+        abi.encode(['uint256'], [1])
+      )
+      expect(retrieved).to.equals(root)
     })
   })
 

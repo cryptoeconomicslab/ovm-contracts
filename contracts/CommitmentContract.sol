@@ -3,12 +3,13 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "./DataTypes.sol";
 import "./Utils.sol";
+import "./Storage.sol";
 
 /**
  * @title CommitmentChain
  * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
-contract CommitmentContract {
+contract CommitmentContract is Storage {
     // Single operator address
     address public operatorAddress;
     // Current block number of commitment chain
@@ -39,6 +40,11 @@ contract CommitmentContract {
         blocks[blkNumber] = _root;
         currentBlock = blkNumber;
         emit BlockSubmitted(blkNumber, _root);
+    }
+
+    function retrieve(bytes memory _key) public view returns (bytes memory) {
+        uint256 blockNumber = abi.decode(_key, (uint256));
+        return abi.encode(blocks[blockNumber]);
     }
 
     /**
