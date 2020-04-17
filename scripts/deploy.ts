@@ -251,6 +251,7 @@ const deployCompiledPredicates = async (
   wallet: ethers.Wallet,
   uacAddress: string,
   utilsAddress: string,
+  commitmentContractAddress: string,
   logicalConnectives: { [key: string]: string },
   atomicPredicates: { [key: string]: string },
   payoutContracts: { [key: string]: string }
@@ -283,7 +284,7 @@ const deployCompiledPredicates = async (
 
   const checkpointPredicate = await deployOneCompiledPredicate(
     'CheckpointPredicate',
-    [],
+    [commitmentContractAddress],
     wallet,
     uacAddress,
     utilsAddress,
@@ -376,6 +377,7 @@ const deployContracts = async (
     wallet,
     adjudicationContract.address,
     utils.address,
+    commitmentContract.address,
     logicalConnectives,
     atomicPredicates,
     payoutContracts
