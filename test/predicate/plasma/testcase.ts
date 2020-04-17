@@ -1,6 +1,7 @@
 import { ethers } from 'ethers'
 import { createOwnershipTestCase } from './OwnershipPredicateTestCase'
 import { createStateUpdateTestCase } from './StateUpdatePredicateTestCase'
+import { createIncludedAtTestCase } from './IncludedAtPredicateTestCase'
 import { OvmProperty } from '../../helpers/utils'
 
 interface ChallengeTestCase {
@@ -38,5 +39,6 @@ export const createTestCases: (
   wallet: ethers.Wallet
 ) => TestCase[] = (logicalConnectives: string[], wallet: ethers.Wallet) => [
   createOwnershipTestCase(logicalConnectives, wallet),
-  createStateUpdateTestCase(logicalConnectives, wallet)
+  createStateUpdateTestCase(logicalConnectives, wallet),
+  createIncludedAtTestCase(logicalConnectives, wallet)
 ]

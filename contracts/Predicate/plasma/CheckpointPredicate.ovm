@@ -4,7 +4,7 @@ from lib import IncludedAt
 @library
 @quantifier("so.block${b}.range${token},RANGE,${range}")
 def SU(so, token, range, b) :=
-  IncludedAt(so, token, range, b).any()
+  IncludedAt(so, token, range, b, $commitmentContract).any()
 
 def checkpoint(su, proof) :=
   VerifyInclusion(su.3, su.0, su.1, proof, su.2)
