@@ -14,7 +14,7 @@
     "deploy:kovan": "npm run build && node build/scripts/scripts/deploy.js kovan",
     "test": "npm run build && mocha --require ts-node/register 'test/**/*.test.ts'",
     "test:specify": "npm run build && mocha --require ts-node/register",
-    "compileProperties": "node build/scripts/scripts/compileProperties.js"
+    "compileProperties": "node build/scripts/scripts/compile.js"
   },
   "author": {
     "name": "Crypteconomics Lab",

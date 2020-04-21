@@ -7,13 +7,7 @@ import path from 'path'
 import { AbiCoder } from 'ethers/utils'
 const abi = new AbiCoder()
 
-compileAllSourceFiles(
-  path.join(__dirname, '../../../contracts/Predicate/plasma')
-).then(() => {
-  console.log('all compiled')
-})
-
-async function compileAllSourceFiles(targetDir: string) {
+export async function compileAllSourceFiles(targetDir: string) {
   const files = fs.readdirSync(targetDir)
 
   await Promise.all(
