@@ -8,6 +8,7 @@ import {
 import * as MockAdjudicationContract from '../../../build/contracts/MockAdjudicationContract.json'
 import * as MockChallenge from '../../../build/contracts/MockChallenge.json'
 import * as MockAtomicPredicate from '../../../build/contracts/MockAtomicPredicate.json'
+import * as EqualPredicate from '../../../build/contracts/EqualPredicate.json'
 import * as MockCompiledPredicate from '../../../build/contracts/MockCompiledPredicate.json'
 import * as Utils from '../../../build/contracts/Utils.json'
 import * as ethers from 'ethers'
@@ -30,6 +31,7 @@ describe('predicates', () => {
   let mockAtomicPredicateAddress: string
   let mockAtomicPredicate: ethers.Contract
   let mockCompiledPredicate: ethers.Contract
+  let equalPredicate: ethers.Contract
 
   beforeEach(async () => {
     mockAtomicPredicate = await deployContract(wallet, MockAtomicPredicate, [])
@@ -57,6 +59,10 @@ describe('predicates', () => {
           MockAdjudicationContract,
           [false]
         )
+        equalPredicate = await deployContract(wallet, EqualPredicate, [
+          adjudicationContract.address,
+          utils.address
+        ])
         targetPredicate = await deployContract(
           wallet,
           testcase.contract,
@@ -71,7 +77,7 @@ describe('predicates', () => {
         )
         await targetPredicate.setPredicateAddresses(
           mockAtomicPredicate.address,
-          mockAtomicPredicate.address,
+          equalPredicate.address,
           mockAtomicPredicate.address,
           mockAtomicPredicate.address,
           mockAtomicPredicate.address,
