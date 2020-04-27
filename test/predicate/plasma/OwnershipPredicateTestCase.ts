@@ -4,8 +4,7 @@ import {
   encodeLabel,
   encodeString,
   encodeProperty,
-  encodeVariable,
-  encodeConstant
+  encodeVariable
 } from '../../helpers/utils'
 
 const transaction = '0x001234567890'
@@ -51,7 +50,7 @@ export const createOwnershipTestCase = (
                       transaction,
                       encodeVariable('v0'),
                       wallet.address,
-                      encodeConstant('secp256k1')
+                      encodeString('secp256k1')
                     ]
                   })
                 ]

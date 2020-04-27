@@ -65,12 +65,6 @@ contract Utils {
             keccak256(subBytes(target, 0, 1)) == keccak256(bytes("L"));
     }
 
-    function isConstant(bytes memory target) public pure returns (bool) {
-        return
-            target.length < 20 &&
-            keccak256(subBytes(target, 0, 1)) == keccak256(bytes("C"));
-    }
-
     function getInputValue(bytes memory target)
         public
         pure
@@ -101,14 +95,6 @@ contract Utils {
             result[i - startIndex] = target[i];
         }
         return result;
-    }
-
-    function prefixConstant(bytes memory _source)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return prefix(bytes1("C"), _source);
     }
 
     function prefixLabel(bytes memory _source)
