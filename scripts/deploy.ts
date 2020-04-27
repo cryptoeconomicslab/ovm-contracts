@@ -21,7 +21,11 @@ import * as ThereExistsSuchThatQuantifier from '../build/contracts/ThereExistsSu
 import * as IsValidSignaturePredicate from '../build/contracts/IsValidSignaturePredicate.json'
 import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.json'
 import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
-import { randomAddress, encodeString } from '../test/helpers/utils'
+import {
+  randomAddress,
+  encodeAddress,
+  encodeString
+} from '../test/helpers/utils'
 import { compileJSON } from './compileProperties'
 import Provider = ethers.providers.Provider
 import fs from 'fs'
@@ -30,7 +34,7 @@ import {
   CompiledPredicate,
   InitilizationConfig
 } from './InitializationConfig.js'
-const txAddress = ethers.constants.AddressZero
+const txAddress = encodeAddress(ethers.constants.AddressZero)
 
 if (
   !process.argv.length ||

@@ -7,7 +7,8 @@ import {
   encodeVariable,
   randomAddress,
   encodeRange,
-  encodeInteger
+  encodeInteger,
+  encodeAddress
 } from '../../helpers/utils'
 
 const txAddress = randomAddress()
@@ -22,7 +23,7 @@ export const createStateUpdateTestCase = (
   return {
     name: 'StateUpdatePredicate',
     contract: StateUpdatePredicate,
-    extraArgs: [txAddress],
+    extraArgs: [encodeAddress(txAddress)],
     validChallenges: [
       {
         name:
