@@ -2,12 +2,14 @@ from lib import LessThan
 from lib import IncludedAt
 
 @library
-@quantifier("so.block${b}.range${token},RANGE,${range}")
-def SU(so, token, range, b) :=
-  IncludedAt(so, token, range, b, $commitmentContract).any()
+@quantifier("su.block${b}.range${token},RANGE,${range}")
+def SU(su, token, range, b) :=
+  IncludedAt(su.3, token, range, b, $commitmentContract).any()
 
 def checkpoint(su, proof) :=
-  VerifyInclusion(su.3, su.0, su.1, proof, su.2)
+  Stored($commitmentContract, su.2).any(root ->
+    VerifyInclusion(su.3, su.0, su.1, proof, root)
+  )
   and LessThan(su.2).all(b -> 
     SU(su.0, su.1, b).all(old_su -> old_su())
   )
