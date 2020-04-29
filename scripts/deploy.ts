@@ -300,7 +300,7 @@ const deployCompiledPredicates = async (
 
   const exitPredicate = await deployOneCompiledPredicate(
     'ExitPredicate',
-    [checkpointPredicate.deployedAddress],
+    [],
     wallet,
     uacAddress,
     utilsAddress,

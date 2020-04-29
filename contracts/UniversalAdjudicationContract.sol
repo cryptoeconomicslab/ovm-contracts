@@ -12,7 +12,7 @@ import {DecidablePredicate} from "./Predicate/DecidablePredicate.sol";
  * Adjudication Contract is the contract to archive dispute game defined by predicate logic.
  */
 contract UniversalAdjudicationContract {
-    uint256 DISPUTE_PERIOD = 7;
+    uint256 DISPUTE_PERIOD = 1;
     mapping(bytes32 => types.ChallengeGame) public instantiatedGames;
     Utils utils;
 
@@ -70,6 +70,7 @@ contract UniversalAdjudicationContract {
         public
     {
         types.ChallengeGame storage game = instantiatedGames[_gameId];
+
         types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
         // check _challenge is in _game.challenges
         bytes32 challengingGameId = utils.getPropertyId(
@@ -124,6 +125,7 @@ contract UniversalAdjudicationContract {
         public
     {
         types.ChallengeGame storage game = instantiatedGames[_gameId];
+
         types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
         // check _challenge is in _game.challenges
         bytes32 challengingGameId = utils.getPropertyId(
@@ -174,6 +176,7 @@ contract UniversalAdjudicationContract {
         bytes32 _challengingGameId
     ) public returns (bool) {
         types.ChallengeGame storage game = instantiatedGames[_gameId];
+
         types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
         require(
             LogicalConnective(game.property.predicateAddress).isValidChallenge(
