@@ -26,7 +26,7 @@ import {
   encodeAddress,
   encodeString
 } from '../test/helpers/utils'
-import { compileJSON } from './compileProperties'
+import { compile } from '@cryptoeconomicslab/ovm-ethereum-generator'
 import Provider = ethers.providers.Provider
 import fs from 'fs'
 import path from 'path'
@@ -238,7 +238,7 @@ const deployOneCompiledPredicate = async (
     payoutContractAddress
   )
   await tx.wait()
-  const propertyData = compileJSON(
+  const propertyData = compile.compileJSON(
     path.join(__dirname, `../../../contracts/Predicate/plasma`),
     name
   )
