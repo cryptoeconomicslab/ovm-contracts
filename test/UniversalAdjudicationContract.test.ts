@@ -145,8 +145,7 @@ describe('UniversalAdjudicationContract', () => {
       const game = await adjudicationContract.getGame(claimId)
 
       // check newly stored property is equal to the claimed property
-      assert.equal(game.property.predicateAddress, notProperty.predicateAddress)
-      assert.equal(game.property.inputs[0], notProperty.inputs[0])
+      assert.equal(game.propertyHash, claimId)
       assert.equal(game.decision, Undecided)
     })
     it('fails to add an already claimed property and throws Error', async () => {
@@ -165,7 +164,7 @@ describe('UniversalAdjudicationContract', () => {
       const gameId = getGameIdFromProperty(notProperty)
       const challengingGameId = getGameIdFromProperty(trueProperty)
       await expect(
-        adjudicationContract.challenge(gameId, ['0x'], challengingGameId)
+        adjudicationContract.challenge(notProperty, ['0x'], trueProperty)
       )
         .to.emit(adjudicationContract, 'ClaimChallenged')
         .withArgs(gameId, challengingGameId)
@@ -176,10 +175,8 @@ describe('UniversalAdjudicationContract', () => {
     it('not(true) fail to be challenged by not(false)', async () => {
       await adjudicationContract.claimProperty(notProperty)
       await adjudicationContract.claimProperty(notFalseProperty)
-      const gameId = getGameIdFromProperty(notProperty)
-      const challengingGameId = getGameIdFromProperty(notFalseProperty)
       await expect(
-        adjudicationContract.challenge(gameId, ['0x'], challengingGameId)
+        adjudicationContract.challenge(notProperty, ['0x'], notFalseProperty)
       ).to.be.reverted
     })
   })
@@ -189,11 +186,10 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(notProperty)
       await adjudicationContract.claimProperty(trueProperty)
       const gameId = getGameIdFromProperty(notProperty)
-      const challengingGameId = getGameIdFromProperty(trueProperty)
-      await adjudicationContract.challenge(gameId, ['0x'], challengingGameId)
+      await adjudicationContract.challenge(notProperty, ['0x'], trueProperty)
       await testPredicate.decideTrue(['0x01'])
       await expect(
-        adjudicationContract.decideClaimToFalse(gameId, challengingGameId)
+        adjudicationContract.decideClaimToFalse(notProperty, trueProperty)
       )
         .to.emit(adjudicationContract, 'ClaimDecided')
         .withArgs(gameId, false)
@@ -204,11 +200,13 @@ describe('UniversalAdjudicationContract', () => {
     it('not(false) fail to decided false without challenges', async () => {
       await adjudicationContract.claimProperty(notFalseProperty)
       await adjudicationContract.claimProperty(falseProperty)
-      const gameId = getGameIdFromProperty(notFalseProperty)
-      const challengingGameId = getGameIdFromProperty(falseProperty)
-      await adjudicationContract.challenge(gameId, ['0x'], challengingGameId)
+      await adjudicationContract.challenge(
+        notFalseProperty,
+        ['0x'],
+        falseProperty
+      )
       await expect(
-        adjudicationContract.decideClaimToFalse(gameId, challengingGameId)
+        adjudicationContract.decideClaimToFalse(notFalseProperty, falseProperty)
       ).to.be.reverted
     })
   })
@@ -257,8 +255,9 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(property)
       const gameId = getGameIdFromProperty(property)
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.not.be.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(property, witness)
+      ).to.not.be.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, True)
     })
@@ -268,8 +267,9 @@ describe('UniversalAdjudicationContract', () => {
       const gameId = getGameIdFromProperty(thereProperty)
       const witness = ['0x01']
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.not.be.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(thereProperty, witness)
+      ).to.not.be.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, True)
     })
@@ -306,8 +306,9 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(property)
       const gameId = getGameIdFromProperty(property)
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.be.not.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(property, witness)
+      ).to.be.not.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, True)
     })
@@ -347,8 +348,9 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(property)
       const gameId = getGameIdFromProperty(property)
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.be.not.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(property, witness)
+      ).to.be.not.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, True)
     })
@@ -374,8 +376,9 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(property)
       const gameId = getGameIdFromProperty(property)
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.be.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(property, witness)
+      ).to.be.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, Undecided)
     })
@@ -400,8 +403,9 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(property)
       const gameId = getGameIdFromProperty(property)
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.be.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(property, witness)
+      ).to.be.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, Undecided)
     })
@@ -425,10 +429,10 @@ describe('UniversalAdjudicationContract', () => {
       ]
 
       await adjudicationContract.claimProperty(property)
-      const gameId = getGameIdFromProperty(property)
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.be.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(property, witness)
+      ).to.be.reverted
     })
 
     it('cannot decide with invalid witness for ThereExists property', async () => {
@@ -436,8 +440,9 @@ describe('UniversalAdjudicationContract', () => {
       const gameId = getGameIdFromProperty(thereProperty)
       const witness = ['0x03']
 
-      await expect(adjudicationContract.decideClaimWithWitness(gameId, witness))
-        .to.be.reverted
+      await expect(
+        adjudicationContract.decideClaimWithWitness(thereProperty, witness)
+      ).to.be.reverted
       const game = await adjudicationContract.getGame(gameId)
       assert.equal(game.decision, Undecided)
     })
@@ -463,9 +468,9 @@ describe('UniversalAdjudicationContract', () => {
     })
     it('fail to call setPredicateDecision directlly', async () => {
       await adjudicationContract.claimProperty(trueProperty)
-      const gameId = getGameIdFromProperty(trueProperty)
-      await expect(adjudicationContract.setPredicateDecision(gameId, true)).to
-        .be.reverted
+      await expect(
+        adjudicationContract.setPredicateDecision(trueProperty, true)
+      ).to.be.reverted
     })
   })
 
@@ -476,10 +481,14 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(falseProperty)
       const gameId = getGameIdFromProperty(notFalseProperty)
       const challengeGameId = getGameIdFromProperty(falseProperty)
-      await adjudicationContract.challenge(gameId, ['0x'], challengeGameId)
+      await adjudicationContract.challenge(
+        notFalseProperty,
+        ['0x'],
+        falseProperty
+      )
       await testPredicate.decideFalse(falseProperty.inputs)
       await expect(
-        adjudicationContract.removeChallenge(gameId, challengeGameId)
+        adjudicationContract.removeChallenge(notFalseProperty, falseProperty)
       )
         .to.emit(adjudicationContract, 'ChallengeRemoved')
         .withArgs(gameId, challengeGameId)
@@ -491,9 +500,13 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(falseProperty)
       const gameId = getGameIdFromProperty(notFalseProperty)
       const challengeGameId = getGameIdFromProperty(falseProperty)
-      await adjudicationContract.challenge(gameId, ['0x'], challengeGameId)
+      await adjudicationContract.challenge(
+        notFalseProperty,
+        ['0x'],
+        falseProperty
+      )
       await expect(
-        adjudicationContract.removeChallenge(gameId, challengeGameId)
+        adjudicationContract.removeChallenge(notFalseProperty, falseProperty)
       ).to.be.reverted
     })
     it('fail to remove true from not(true)', async () => {
@@ -501,10 +514,10 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(trueProperty)
       const gameId = getGameIdFromProperty(notProperty)
       const challengeGameId = getGameIdFromProperty(trueProperty)
-      await adjudicationContract.challenge(gameId, ['0x'], challengeGameId)
+      await adjudicationContract.challenge(notProperty, ['0x'], trueProperty)
       await testPredicate.decideTrue(trueProperty.inputs)
       await expect(
-        adjudicationContract.removeChallenge(gameId, challengeGameId)
+        adjudicationContract.removeChallenge(notProperty, trueProperty)
       ).to.be.reverted
     })
   })
@@ -522,7 +535,7 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(trueProperty)
       const gameId = getGameIdFromProperty(notProperty)
       const challengeGameId = getGameIdFromProperty(trueProperty)
-      await adjudicationContract.challenge(gameId, ['0x'], challengeGameId)
+      await adjudicationContract.challenge(notProperty, ['0x'], trueProperty)
 
       const decidable = await adjudicationContract.isDecidable(gameId)
       expect(decidable).false

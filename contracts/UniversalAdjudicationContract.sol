@@ -74,13 +74,13 @@ contract UniversalAdjudicationContract {
         types.Property memory _challengingProperty
     ) public {
         // check _challenge is in _game.challenges
-        bytes32 _gameId = utils.getPropertyId(_property);
-        bytes32 _challengingGameId = utils.getPropertyId(_challengingProperty);
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
+        bytes32 gameId = utils.getPropertyId(_property);
+        bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
+        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
         bool isValidChallenge = false;
         for (uint256 i = 0; i < game.challenges.length; i++) {
-            if (game.challenges[i] == _challengingGameId) {
+            if (game.challenges[i] == challengingGameId) {
                 isValidChallenge = true;
             }
         }
@@ -93,7 +93,7 @@ contract UniversalAdjudicationContract {
         );
         // game should be decided false
         game.decision = types.Decision.False;
-        emit ClaimDecided(_gameId, false);
+        emit ClaimDecided(gameId, false);
     }
 
     /**
@@ -103,8 +103,8 @@ contract UniversalAdjudicationContract {
         types.Property memory _property,
         bytes[] memory _witness
     ) public {
-        bytes32 _gameId = utils.getPropertyId(_property);
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
+        bytes32 gameId = utils.getPropertyId(_property);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
         require(
             game.decision == types.Decision.Undecided,
             "Decision must be undecided"
@@ -119,7 +119,7 @@ contract UniversalAdjudicationContract {
         );
 
         game.decision = types.Decision.True;
-        emit ClaimDecided(_gameId, true);
+        emit ClaimDecided(gameId, true);
     }
 
     /**
