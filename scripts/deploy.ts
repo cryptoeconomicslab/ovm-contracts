@@ -288,7 +288,7 @@ const deployCompiledPredicates = async (
 
   const checkpointPredicate = await deployOneCompiledPredicate(
     'CheckpointPredicate',
-    [commitmentContractAddress],
+    [encodeAddress(commitmentContractAddress)],
     wallet,
     uacAddress,
     utilsAddress,
@@ -422,7 +422,7 @@ const deployContracts = async (
     constantVariableTable: {
       secp256k1: encodeString('secp256k1'),
       txAddress: txAddress,
-      commitmentContract: commitmentContract.address
+      commitmentContract: encodeAddress(commitmentContract.address)
     },
     commitmentContract: commitmentContract.address,
     adjudicationContract: adjudicationContract.address,
