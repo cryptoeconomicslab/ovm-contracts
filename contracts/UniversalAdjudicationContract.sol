@@ -26,6 +26,15 @@ contract UniversalAdjudicationContract {
     event ClaimDecided(bytes32 gameId, bool decision);
     event ChallengeRemoved(bytes32 gameId, bytes32 challengeGameId);
 
+    modifier isInitiated(types.Property memory property) {
+        bytes32 propertyHash = utils.getPropertyId(property);
+        require(
+            instantiatedGames[propertyHash].propertyHash == propertyHash,
+            "game must be initiated"
+        );
+        _;
+    }
+
     constructor(address _utilsAddress) public {
         utils = Utils(_utilsAddress);
     }
@@ -72,7 +81,7 @@ contract UniversalAdjudicationContract {
     function decideClaimToFalse(
         types.Property memory _property,
         types.Property memory _challengingProperty
-    ) public {
+    ) public isInitiated(_property) {
         // check _challenge is in _game.challenges
         bytes32 gameId = utils.getPropertyId(_property);
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
@@ -102,7 +111,7 @@ contract UniversalAdjudicationContract {
     function decideClaimWithWitness(
         types.Property memory _property,
         bytes[] memory _witness
-    ) public {
+    ) public isInitiated(_property) {
         bytes32 gameId = utils.getPropertyId(_property);
         types.ChallengeGame storage game = instantiatedGames[gameId];
         require(
@@ -155,7 +164,7 @@ contract UniversalAdjudicationContract {
     function setPredicateDecision(
         types.Property memory _property,
         bool _decision
-    ) public {
+    ) public isInitiated(_property) {
         bytes32 gameId = utils.getPropertyId(_property);
         types.ChallengeGame storage game = instantiatedGames[gameId];
         // only the prodicate can decide a claim
@@ -218,6 +227,9 @@ contract UniversalAdjudicationContract {
     }
 
     function isDecidable(bytes32 _propertyId) public view returns (bool) {
+        if (instantiatedGames[_propertyId].propertyHash != _propertyId) {
+            return false;
+        }
         types.ChallengeGame storage game = instantiatedGames[_propertyId];
         if (game.createdBlock > block.number - DISPUTE_PERIOD) {
             return false;

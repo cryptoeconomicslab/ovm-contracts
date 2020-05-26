@@ -234,6 +234,14 @@ describe('UniversalAdjudicationContract', () => {
   })
 
   describe('decideClaimWithWitness', () => {
+    it('can not decide not initiated game', async () => {
+      const witness = ['0x01']
+
+      await expect(
+        adjudicationContract.decideClaimWithWitness(thereProperty, witness)
+      ).to.be.reverted
+    })
+
     it('decide to be true given correct witness for Or property', async () => {
       const property = {
         predicateAddress: orPredicate.address,
