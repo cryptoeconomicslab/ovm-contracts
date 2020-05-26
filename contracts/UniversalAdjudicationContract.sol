@@ -26,6 +26,15 @@ contract UniversalAdjudicationContract {
     event ClaimDecided(bytes32 gameId, bool decision);
     event ChallengeRemoved(bytes32 gameId, bytes32 challengeGameId);
 
+    modifier isInitiated(types.Property memory property) {
+        bytes32 propertyHash = utils.getPropertyId(property);
+        require(
+            instantiatedGames[propertyHash].propertyHash == propertyHash,
+            "game must be initiated"
+        );
+        _;
+    }
+
     constructor(address _utilsAddress) public {
         utils = Utils(_utilsAddress);
     }
@@ -35,21 +44,24 @@ contract UniversalAdjudicationContract {
      */
     function claimProperty(types.Property memory _claim) public {
         // get the id of this property
-        bytes32 gameId = utils.getPropertyId(_claim);
+        bytes32 propertyHash = utils.getPropertyId(_claim);
         // make sure a claim on this property has not already been made
-        require(isEmptyClaim(instantiatedGames[gameId]), "claim isn't empty");
+        require(
+            isEmptyClaim(instantiatedGames[propertyHash]),
+            "claim isn't empty"
+        );
 
         // create the claim status. Always begins with no proven contradictions
         types.ChallengeGame memory newGame = types.ChallengeGame(
-            _claim,
+            propertyHash,
             new bytes32[](0),
             types.Decision.Undecided,
             block.number
         );
 
         // store the claim
-        instantiatedGames[gameId] = newGame;
-        emit NewPropertyClaimed(gameId, _claim, block.number);
+        instantiatedGames[propertyHash] = newGame;
+        emit NewPropertyClaimed(propertyHash, _claim, block.number);
     }
 
     /**
@@ -66,15 +78,15 @@ contract UniversalAdjudicationContract {
     /**
      * @dev Sets the game decision false when its challenge has been evaluated to true.
      */
-    function decideClaimToFalse(bytes32 _gameId, bytes32 _challengingGameId)
-        public
-    {
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
+    function decideClaimToFalse(
+        types.Property memory _property,
+        types.Property memory _challengingProperty
+    ) public isInitiated(_property) {
         // check _challenge is in _game.challenges
-        bytes32 challengingGameId = utils.getPropertyId(
-            challengingGame.property
-        );
+        bytes32 gameId = utils.getPropertyId(_property);
+        bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
+        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
         bool isValidChallenge = false;
         for (uint256 i = 0; i < game.challenges.length; i++) {
             if (game.challenges[i] == challengingGameId) {
@@ -90,45 +102,47 @@ contract UniversalAdjudicationContract {
         );
         // game should be decided false
         game.decision = types.Decision.False;
-        emit ClaimDecided(_gameId, false);
+        emit ClaimDecided(gameId, false);
     }
 
     /**
      * @dev Decide the game decision with given witness
      */
-    function decideClaimWithWitness(bytes32 _gameId, bytes[] memory _witness)
-        public
-    {
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
+    function decideClaimWithWitness(
+        types.Property memory _property,
+        bytes[] memory _witness
+    ) public isInitiated(_property) {
+        bytes32 gameId = utils.getPropertyId(_property);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
         require(
             game.decision == types.Decision.Undecided,
             "Decision must be undecided"
         );
         require(game.challenges.length == 0, "There must be no challenge");
         DecidablePredicate property = DecidablePredicate(
-            game.property.predicateAddress
+            _property.predicateAddress
         );
         require(
-            property.decideWithWitness(game.property.inputs, _witness),
+            property.decideWithWitness(_property.inputs, _witness),
             "property must be true with given witness"
         );
 
         game.decision = types.Decision.True;
-        emit ClaimDecided(_gameId, true);
+        emit ClaimDecided(gameId, true);
     }
 
     /**
      * @dev Removes a challenge when its decision has been evaluated to false.
      */
-    function removeChallenge(bytes32 _gameId, bytes32 _challengingGameId)
-        public
-    {
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
+    function removeChallenge(
+        types.Property memory _property,
+        types.Property memory _challengingProperty
+    ) public {
+        bytes32 gameId = utils.getPropertyId(_property);
+        bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
+        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
         // check _challenge is in _game.challenges
-        bytes32 challengingGameId = utils.getPropertyId(
-            challengingGame.property
-        );
         int128 challengeIndex = -1;
         for (uint256 i = 0; i < game.challenges.length; i++) {
             if (game.challenges[i] == challengingGameId) {
@@ -144,14 +158,18 @@ contract UniversalAdjudicationContract {
         );
         // remove challenge
         removeChallengefromArray(game.challenges, uint256(challengeIndex));
-        emit ChallengeRemoved(_gameId, _challengingGameId);
+        emit ChallengeRemoved(gameId, challengingGameId);
     }
 
-    function setPredicateDecision(bytes32 _gameId, bool _decision) public {
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
+    function setPredicateDecision(
+        types.Property memory _property,
+        bool _decision
+    ) public isInitiated(_property) {
+        bytes32 gameId = utils.getPropertyId(_property);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
         // only the prodicate can decide a claim
         require(
-            game.property.predicateAddress == msg.sender,
+            _property.predicateAddress == msg.sender,
             "setPredicateDecision must be called from predicate."
         );
         if (_decision) {
@@ -159,32 +177,34 @@ contract UniversalAdjudicationContract {
         } else {
             game.decision = types.Decision.False;
         }
-        emit AtomicPropositionDecided(_gameId, _decision);
+        emit AtomicPropositionDecided(gameId, _decision);
     }
 
     /**
      * @dev challenge a game specified by gameId with a challengingGame specified by _challengingGameId
-     * @param _gameId challenged game id
+     * @param _property challenged game id
      * @param _challengeInputs array of input to verify child of game tree
-     * @param _challengingGameId child of game tree
+     * @param _challengingProperty child of game tree
      */
     function challenge(
-        bytes32 _gameId,
+        types.Property memory _property,
         bytes[] memory _challengeInputs,
-        bytes32 _challengingGameId
+        types.Property memory _challengingProperty
     ) public returns (bool) {
-        types.ChallengeGame storage game = instantiatedGames[_gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[_challengingGameId];
+        bytes32 gameId = utils.getPropertyId(_property);
+        bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
+        types.ChallengeGame storage game = instantiatedGames[gameId];
+        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
         require(
-            LogicalConnective(game.property.predicateAddress).isValidChallenge(
-                game.property.inputs,
+            LogicalConnective(_property.predicateAddress).isValidChallenge(
+                _property.inputs,
                 _challengeInputs,
-                challengingGame.property
+                _challengingProperty
             ),
             "_challenge isn't valid"
         );
-        game.challenges.push(_challengingGameId);
-        emit ClaimChallenged(_gameId, _challengingGameId);
+        game.challenges.push(challengingGameId);
+        emit ClaimChallenged(gameId, challengingGameId);
         return true;
     }
 
@@ -207,6 +227,9 @@ contract UniversalAdjudicationContract {
     }
 
     function isDecidable(bytes32 _propertyId) public view returns (bool) {
+        if (instantiatedGames[_propertyId].propertyHash != _propertyId) {
+            return false;
+        }
         types.ChallengeGame storage game = instantiatedGames[_propertyId];
         if (game.createdBlock > block.number - DISPUTE_PERIOD) {
             return false;

@@ -29,7 +29,7 @@ contract TestPredicate is BaseAtomicPredicate {
             inputs: _inputs
         });
         UniversalAdjudicationContract(adjudicationContract)
-            .setPredicateDecision(utils.getPropertyId(property), false);
+            .setPredicateDecision(property, false);
 
         emit ValueDecided(false, _inputs);
     }

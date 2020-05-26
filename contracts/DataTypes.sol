@@ -11,7 +11,7 @@ library DataTypes {
     enum Decision {Undecided, True, False}
 
     struct ChallengeGame {
-        Property property;
+        bytes32 propertyHash;
         bytes32[] challenges;
         Decision decision;
         uint256 createdBlock;

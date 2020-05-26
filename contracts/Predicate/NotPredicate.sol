@@ -60,7 +60,7 @@ contract NotPredicate is LogicalConnective, DecidablePredicate {
         inputs[0] = abi.encode(innerProperty);
         types.Property memory property = createPropertyFromInput(inputs);
         UniversalAdjudicationContract(uacAddress).setPredicateDecision(
-            utils.getPropertyId(property),
+            property,
             true
         );
 

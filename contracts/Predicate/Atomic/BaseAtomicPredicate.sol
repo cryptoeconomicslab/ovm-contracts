@@ -35,9 +35,6 @@ contract BaseAtomicPredicate is AtomicPredicate, DecidablePredicate {
             predicateAddress: address(this),
             inputs: _inputs
         });
-        adjudicationContract.setPredicateDecision(
-            utils.getPropertyId(property),
-            true
-        );
+        adjudicationContract.setPredicateDecision(property, true);
     }
 }

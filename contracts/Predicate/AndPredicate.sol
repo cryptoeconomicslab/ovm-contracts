@@ -70,7 +70,7 @@ contract AndPredicate is LogicalConnective, DecidablePredicate {
         }
         types.Property memory property = createPropertyFromInput(inputs);
         UniversalAdjudicationContract(uacAddress).setPredicateDecision(
-            utils.getPropertyId(property),
+            property,
             true
         );
     }
