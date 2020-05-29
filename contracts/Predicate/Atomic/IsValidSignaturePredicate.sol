@@ -14,9 +14,7 @@ contract IsValidSignaturePredicate is BaseAtomicPredicate {
 
     function decide(bytes[] memory _inputs) public view returns (bool) {
         require(
-            keccak256(
-                abi.encodePacked(string(utils.getInputValue(_inputs[3])))
-            ) ==
+            keccak256(abi.encodePacked(string(_inputs[3]))) ==
                 keccak256("secp256k1"),
             "verifierType must be secp256k1"
         );
