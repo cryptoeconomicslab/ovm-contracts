@@ -5,7 +5,6 @@ import {DataTypes as types} from "../../DataTypes.sol";
 import "../../Utils.sol";
 import "./BaseAtomicPredicate.sol";
 
-
 contract HasIntersectionPredicate is BaseAtomicPredicate {
     constructor(address _uacAddress, address _utilsAddress)
         public
