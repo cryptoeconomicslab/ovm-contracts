@@ -60,7 +60,7 @@ export function encodeVariable(str: string) {
 }
 
 export function encodeConstant(str: string) {
-  return prefix('C', encodeString(str))
+  return encodeString(str)
 }
 
 export function encodeAddress(address: string) {
