@@ -18,9 +18,13 @@ import * as NotPredicate from '../build/contracts/NotPredicate.json'
 import * as ForAllSuchThatQuantifier from '../build/contracts/ForAllSuchThatQuantifier.json'
 import * as OrPredicate from '../build/contracts/OrPredicate.json'
 import * as ThereExistsSuchThatQuantifier from '../build/contracts/ThereExistsSuchThatQuantifier.json'
+import * as EqualPredicate from '../build/contracts/EqualPredicate.json'
+import * as IsLessThanPredicate from '../build/contracts/IsLessThanPredicate.json'
+import * as IsStoredPredicate from '../build/contracts/IsStoredPredicate.json'
 import * as IsValidSignaturePredicate from '../build/contracts/IsValidSignaturePredicate.json'
 import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.json'
 import * as HasIntersectionPredicate from '../build/contracts/HasIntersectionPredicate.json'
+import * as VerifyInclusionPredicate from '../build/contracts/VerifyInclusionPredicate.json'
 import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
 import {
   randomAddress,
@@ -144,7 +148,8 @@ const deployLogicalConnective = async (
 const deployAtomicPredicates = async (
   wallet: ethers.Wallet,
   uacAddress: string,
-  utilsAddress: string
+  utilsAddress: string,
+  commitmentContractAddress: string
 ): Promise<{ [key: string]: string }> => {
   const atomicPredicateAddressTable: { [key: string]: string } = {}
 
@@ -168,26 +173,48 @@ const deployAtomicPredicates = async (
   )
   atomicPredicateAddressTable['IsContained'] = isContainedPredicate.address
   console.log('IsContainedPredicate Deployed')
-
-  console.log('Deploying HasIntersectionPredicate')
+  const equalPredicate = await deployContract(
+    EqualPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
+  const isLessThanPredicate = await deployContract(
+    IsLessThanPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
+  const isStoredPredicate = await deployContract(
+    IsStoredPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
+  const verifyInclusion = await deployContract(
+    VerifyInclusionPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress,
+    commitmentContractAddress
+  )
   const hasIntersectionPredicate = await deployContract(
     HasIntersectionPredicate,
     wallet,
     uacAddress,
     utilsAddress
   )
-  atomicPredicateAddressTable['HasIntersection'] =
-    hasIntersectionPredicate.address
-  console.log('HasIntersectionPredicate Deployed')
 
   // TODO: deploy contracts
-  atomicPredicateAddressTable['IsLessThan'] = randomAddress()
-  atomicPredicateAddressTable['Equal'] = randomAddress()
-  atomicPredicateAddressTable['VerifyInclusion'] = randomAddress()
+  atomicPredicateAddressTable['IsLessThan'] = isLessThanPredicate.address
+  atomicPredicateAddressTable['Equal'] = equalPredicate.address
+  atomicPredicateAddressTable['VerifyInclusion'] = verifyInclusion.address
   atomicPredicateAddressTable['IsSameAmount'] = randomAddress()
   atomicPredicateAddressTable['IsConcatenatedWith'] = randomAddress()
   atomicPredicateAddressTable['IsValidHash'] = randomAddress()
-  atomicPredicateAddressTable['IsStored'] = randomAddress()
+  atomicPredicateAddressTable['IsStored'] = isStoredPredicate.address
+  atomicPredicateAddressTable['HasIntersection'] =
+    hasIntersectionPredicate.address
 
   return atomicPredicateAddressTable
 }
@@ -387,7 +414,8 @@ const deployContracts = async (
   const atomicPredicates = await deployAtomicPredicates(
     wallet,
     adjudicationContract.address,
-    utils.address
+    utils.address,
+    commitmentContract.address
   )
   const payoutContracts = await deployPayoutContracts(wallet, utils.address)
   const deployedPredicateTable = await deployCompiledPredicates(
