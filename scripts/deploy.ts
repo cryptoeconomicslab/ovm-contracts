@@ -23,6 +23,7 @@ import * as IsLessThanPredicate from '../build/contracts/IsLessThanPredicate.jso
 import * as IsStoredPredicate from '../build/contracts/IsStoredPredicate.json'
 import * as IsValidSignaturePredicate from '../build/contracts/IsValidSignaturePredicate.json'
 import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.json'
+import * as HasIntersectionPredicate from '../build/contracts/HasIntersectionPredicate.json'
 import * as VerifyInclusionPredicate from '../build/contracts/VerifyInclusionPredicate.json'
 import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
 import {
@@ -172,7 +173,6 @@ const deployAtomicPredicates = async (
   )
   atomicPredicateAddressTable['IsContained'] = isContainedPredicate.address
   console.log('IsContainedPredicate Deployed')
-
   const equalPredicate = await deployContract(
     EqualPredicate,
     wallet,
@@ -198,6 +198,12 @@ const deployAtomicPredicates = async (
     utilsAddress,
     commitmentContractAddress
   )
+  const hasIntersectionPredicate = await deployContract(
+    HasIntersectionPredicate,
+    wallet,
+    uacAddress,
+    utilsAddress
+  )
 
   // TODO: deploy contracts
   atomicPredicateAddressTable['IsLessThan'] = isLessThanPredicate.address
@@ -207,6 +213,8 @@ const deployAtomicPredicates = async (
   atomicPredicateAddressTable['IsConcatenatedWith'] = randomAddress()
   atomicPredicateAddressTable['IsValidHash'] = randomAddress()
   atomicPredicateAddressTable['IsStored'] = isStoredPredicate.address
+  atomicPredicateAddressTable['HasIntersection'] =
+    hasIntersectionPredicate.address
 
   return atomicPredicateAddressTable
 }
@@ -261,6 +269,7 @@ const deployOneCompiledPredicate = async (
     atomicPredicates['Equal'],
     atomicPredicates['IsValidSignature'],
     atomicPredicates['IsContained'],
+    atomicPredicates['HasIntersection'],
     atomicPredicates['VerifyInclusion'],
     atomicPredicates['IsSameAmount'],
     atomicPredicates['IsConcatenatedWith'],

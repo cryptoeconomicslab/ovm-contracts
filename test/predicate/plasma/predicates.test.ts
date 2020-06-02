@@ -85,6 +85,7 @@ describe('predicates', () => {
           mockAtomicPredicate.address,
           mockAtomicPredicate.address,
           mockAtomicPredicate.address,
+          mockAtomicPredicate.address,
           ownershipPayout
         )
       })
