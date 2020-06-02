@@ -4,16 +4,13 @@ pragma experimental ABIEncoderV2;
 import {DataTypes as types} from "./DataTypes.sol";
 import "./Utils.sol";
 import "./Storage.sol";
+import "./Storage/UsingStorage.sol";
 
 /**
  * @title CommitmentChain
  * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
-contract CommitmentContract is Storage {
-    // Single operator address
-    address public operatorAddress;
-    // Current block number of commitment chain
-    uint256 public currentBlock = 0;
+contract CommitmentContract is Storage, UsingStorage {
     // History of Merkle Root
     mapping(uint256 => bytes32) public blocks;
 
@@ -21,6 +18,8 @@ contract CommitmentContract is Storage {
     event BlockSubmitted(uint64 blockNumber, bytes32 root);
 
     modifier isOperator() {
+        bytes32 operatorAddressKey = keccak256(abi.encodePacked("operatorAddress"));
+        address operatorAddress = eternalStorage().getAddress(operatorAddressKey);
         require(
             msg.sender == operatorAddress,
             "msg.sender should be registered operator address"
@@ -28,23 +27,24 @@ contract CommitmentContract is Storage {
         _;
     }
 
-    constructor(address _operatorAddress) public {
-        operatorAddress = _operatorAddress;
-    }
-
     function submitRoot(uint64 blkNumber, bytes32 _root) public isOperator {
+        bytes32 currentBlockKey = keccak256(abi.encodePacked("currentBlockKey"));
+        uint256 currentBlock = eternalStorage().getUint(currentBlockKey);
         require(
             currentBlock + 1 == blkNumber,
             "blkNumber should be next block"
         );
-        blocks[blkNumber] = _root;
-        currentBlock = blkNumber;
+        bytes32 blkNumberKey = keccak256(abi.encodePacked("blkNumberKey", blkNumber));
+        eternalStorage().setBytes(blkNumberKey, _root);
+        eternalStorage().setUint(currentBlockKey, blkNumber);
         emit BlockSubmitted(blkNumber, _root);
     }
 
     function retrieve(bytes memory _key) public view returns (bytes memory) {
         uint256 blockNumber = abi.decode(_key, (uint256));
-        return abi.encode(blocks[blockNumber]);
+        bytes32 blkNumberKey = keccak256(abi.encodePacked("blkNumberKey", blockNumber));
+        bytes32 root = eternalStorage().getBytes(blkNumberKey);
+        return abi.encode(root);
     }
 
     /**
@@ -108,13 +108,15 @@ contract CommitmentContract is Storage {
         types.InclusionProof memory _inclusionProof,
         uint256 _blkNumber
     ) public view returns (bool) {
+        bytes32 blkNumberKey = keccak256(abi.encodePacked("blkNumberKey", _blkNumber));
+        bytes32 root = eternalStorage().getBytes(blkNumberKey);
         return
             verifyInclusionWithRoot(
                 _leaf,
                 _tokenAddress,
                 _range,
                 _inclusionProof,
-                blocks[_blkNumber]
+                root
             );
     }
 
