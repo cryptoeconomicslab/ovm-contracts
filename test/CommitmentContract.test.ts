@@ -25,9 +25,9 @@ describe('CommitmentContract', () => {
   )
 
   beforeEach(async () => {
-    commitmentContract = await deployContract(wallet, CommitmentContract, [
-      wallet.address
-    ])
+    commitmentContract = await deployContract(wallet, CommitmentContract,[], { gasLimit: 5000000 })
+    await commitmentContract.createStorage()
+    await commitmentContract.setOperator(wallet.address)
   })
 
   describe('submitRoot', () => {

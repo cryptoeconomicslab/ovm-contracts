@@ -6,7 +6,6 @@ import {
   solidity,
 } from 'ethereum-waffle'
 import * as UsingStorageTestContract from '../../build/contracts/UsingStorageTest.json'
-import { Bytes } from '@cryptoeconomicslab/primitives'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
@@ -21,7 +20,7 @@ describe('UsingStorage: eternalStorage', () => {
     it('returns EternalStorage instance', async () => {
         const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
         await usingStorageTest.createStorage()
-        const result = await usingStorageTest.getEternalStorageAddress()
+        const result = await usingStorageTest.getStorageAddress()
         const expected = await usingStorageTest.getStorageAddress()
         expect(result).to.be.equal(expected)
     })
@@ -30,7 +29,7 @@ describe('UsingStorage: eternalStorage', () => {
         await usingStorageTest.createStorage()
         await usingStorageTest.pause()
         const result = await usingStorageTest
-            .getEternalStorageAddress()
+            .getUInt()
             .catch((err: Error) => err)
             expect(result).to.be.an.instanceOf(Error)
             expect((result as Error).message).to.include('You cannot use that')

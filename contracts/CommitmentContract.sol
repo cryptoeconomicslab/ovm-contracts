@@ -11,11 +11,9 @@ import "./Storage/UsingStorage.sol";
  * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
 contract CommitmentContract is Storage, UsingStorage {
-    // History of Merkle Root
-    mapping(uint256 => bytes32) public blocks;
 
     // Event definitions
-    event BlockSubmitted(uint64 blockNumber, bytes32 root);
+    event BlockSubmitted(uint256 blockNumber, bytes32 root);
 
     modifier isOperator() {
         bytes32 operatorAddressKey = keccak256(
@@ -31,7 +29,7 @@ contract CommitmentContract is Storage, UsingStorage {
         _;
     }
 
-    function currentBlock() public returns (uint256) {
+    function currentBlock() public view returns (uint256) {
         bytes32 currentBlockKey = keccak256(
             abi.encodePacked("currentBlockKey")
         );
@@ -39,7 +37,17 @@ contract CommitmentContract is Storage, UsingStorage {
         return currentBlock;
     }
 
-    function submitRoot(uint64 blkNumber, bytes32 _root) public isOperator {
+    function setOperator(address operator) external onlyOwner {
+        bytes32 operatorAddressKey = keccak256(
+            abi.encodePacked("operatorAddress")
+        );
+        eternalStorage().setAddress(
+            operatorAddressKey,
+            operator
+        );
+    }
+
+    function submitRoot(uint256 blkNumber, bytes32 _root) public isOperator {
         uint256 currentBlock = currentBlock();
         require(
             currentBlock + 1 == blkNumber,
