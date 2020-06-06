@@ -11,7 +11,6 @@ import "./Storage/UsingStorage.sol";
  * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
 contract CommitmentContract is Storage, UsingStorage {
-
     // Event definitions
     event BlockSubmitted(uint256 blockNumber, bytes32 root);
 
@@ -41,10 +40,7 @@ contract CommitmentContract is Storage, UsingStorage {
         bytes32 operatorAddressKey = keccak256(
             abi.encodePacked("operatorAddress")
         );
-        eternalStorage().setAddress(
-            operatorAddressKey,
-            operator
-        );
+        eternalStorage().setAddress(operatorAddressKey, operator);
     }
 
     function submitRoot(uint256 blkNumber, bytes32 _root) public isOperator {
