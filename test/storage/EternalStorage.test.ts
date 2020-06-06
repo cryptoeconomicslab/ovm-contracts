@@ -9,12 +9,10 @@ import * as EternalStorageContract from '../../build/contracts/EternalStorage.js
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
-import { AbiCoder } from 'ethers/utils'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
-const { expect, assert } = chai
-const abi = new AbiCoder()
+const { expect } = chai
 
 function validateNotCurrentOwnerError(error: any){
   expect(error).to.be.an.instanceOf(Error)
