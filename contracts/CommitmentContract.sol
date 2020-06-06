@@ -28,6 +28,13 @@ contract CommitmentContract is Storage, UsingStorage {
         _;
     }
 
+    function blocks(uint256 blockNumber) public view returns (bytes32) {
+        bytes32 blkNumberKey = keccak256(
+            abi.encodePacked("blkNumberKey", blockNumber)
+        );
+        return eternalStorage().getBytes(blkNumberKey);
+    }
+
     function currentBlock() public view returns (uint256) {
         bytes32 currentBlockKey = keccak256(
             abi.encodePacked("currentBlockKey")
@@ -62,10 +69,7 @@ contract CommitmentContract is Storage, UsingStorage {
 
     function retrieve(bytes memory _key) public view returns (bytes memory) {
         uint256 blockNumber = abi.decode(_key, (uint256));
-        bytes32 blkNumberKey = keccak256(
-            abi.encodePacked("blkNumberKey", blockNumber)
-        );
-        bytes32 root = eternalStorage().getBytes(blkNumberKey);
+        bytes32 root = blocks(blockNumber);
         return abi.encode(root);
     }
 
@@ -130,10 +134,7 @@ contract CommitmentContract is Storage, UsingStorage {
         types.InclusionProof memory _inclusionProof,
         uint256 _blkNumber
     ) public view returns (bool) {
-        bytes32 blkNumberKey = keccak256(
-            abi.encodePacked("blkNumberKey", _blkNumber)
-        );
-        bytes32 root = eternalStorage().getBytes(blkNumberKey);
+        bytes32 root = blocks(_blkNumber);
         return
             verifyInclusionWithRoot(
                 _leaf,
