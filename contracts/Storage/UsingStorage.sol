@@ -8,7 +8,7 @@ contract UsingStorage is Ownable, Pausable {
     address private _storage;
 
     modifier hasStorage() {
-        require(_storage != address(0), "storage is not setted");
+        require(_storage != address(0), "storage is not set");
         _;
     }
 
@@ -27,7 +27,7 @@ contract UsingStorage is Ownable, Pausable {
     }
 
     function createStorage() external onlyOwner {
-        require(_storage == address(0), "storage is setted");
+        require(_storage == address(0), "storage is set");
         EternalStorage tmp = new EternalStorage();
         _storage = address(tmp);
     }

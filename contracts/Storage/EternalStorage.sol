@@ -15,8 +15,7 @@ contract EternalStorage {
         _;
     }
 
-    function changeOwner(address _newOwner) external {
-        require(msg.sender == currentOwner, "not current owner");
+    function changeOwner(address _newOwner) external onlyCurrentOwner {
         currentOwner = _newOwner;
     }
 

@@ -40,8 +40,8 @@ describe('EternalStorage', () => {
 		describe('uint', () => {
 			it('get.', async () => {
 				await eternalStorage.setUint(key, 10)
-        const result = await eternalStorage.getUint(key)
-        expect(result.toNumber()).to.be.equal(10)
+        		const result = await eternalStorage.getUint(key)
+        		expect(result.toNumber()).to.be.equal(10)
 			})
 			it('delete.', async () => {
 				await eternalStorage.deleteUint(key)
@@ -55,14 +55,14 @@ describe('EternalStorage', () => {
 			it('cannot be set to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.setUint(key, 10)
-          .catch((err: Error) => err)
-        validateNotCurrentOwnerError(result)
+					.catch((err: Error) => err)
+        		validateNotCurrentOwnerError(result)
 			})
-			it('cannot be delete to other than the owner.', async () => {
+			it('cannot be deleted to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.deleteUint(key)
-          .catch((err: Error) => err)
-        validateNotCurrentOwnerError(result)
+					.catch((err: Error) => err)
+        		validateNotCurrentOwnerError(result)
 			})
 		})
 		describe('byte32', () => {
@@ -72,7 +72,7 @@ describe('EternalStorage', () => {
 			})
 			it('get.', async () => {
 				await eternalStorage.setBytes(key, value)
-        const result = await eternalStorage.getBytes(key)
+        		const result = await eternalStorage.getBytes(key)
 				expect(result).to.be.equal(value)
 			})
 			it('delete.', async () => {
@@ -88,13 +88,13 @@ describe('EternalStorage', () => {
 				const result = await eternalStorageOtherOwner
 					.setBytes(key, value)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
-			it('cannot be delete to other than the owner.', async () => {
+			it('cannot be deleted to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.deleteBytes(key)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
 		})
 		describe('string', () => {
@@ -116,13 +116,13 @@ describe('EternalStorage', () => {
 				const result = await eternalStorageOtherOwner
 					.setString(key, 'test')
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
-			it('cannot be delete to other than the owner.', async () => {
+			it('cannot be deleted to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.deleteString(key)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
 		})
 		describe('bool', () => {
@@ -144,13 +144,13 @@ describe('EternalStorage', () => {
 				const result = await eternalStorageOtherOwner
 					.setBool(key, true)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
-			it('cannot be delete to other than the owner.', async () => {
+			it('cannot be deleted to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.deleteBool(key)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
 		})
 		describe('int', () => {
@@ -172,13 +172,13 @@ describe('EternalStorage', () => {
 				const result = await eternalStorageOtherOwner
 					.setInt(key, -1)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
-			it('cannot be delete to other than the owner.', async () => {
+			it('cannot be deleted to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.deleteInt(key)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
 		})
 		describe('address', () => {
@@ -200,13 +200,13 @@ describe('EternalStorage', () => {
 				const result = await eternalStorageOtherOwner
 					.setAddress(key, otherWallet2.address)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
-			it('cannot be delete to other than the owner.', async () => {
+			it('cannot be deleted to other than the owner.', async () => {
 				const result = await eternalStorageOtherOwner
 					.deleteAddress(key)
 					.catch((err: Error) => err)
-          validateNotCurrentOwnerError(result)
+          		validateNotCurrentOwnerError(result)
 			})
 		})
 	})
@@ -241,18 +241,18 @@ describe('EternalStorage; upgradeOwner', () => {
     const result = await eternalStorage
       .setUint(key, 1)
       .catch((err: Error) => err)
-      validateNotCurrentOwnerError(result)
+    validateNotCurrentOwnerError(result)
   })
   it('Even if the owner changes, the value cannot be changed from an unrelated address.', async () => {
     const result = await eternalStorageOtherOwner2
       .setUint(key, 1)
       .catch((err: Error) => err)
-      validateNotCurrentOwnerError(result)
+    validateNotCurrentOwnerError(result)
   })
   it('Even if the owner changes, owner change is not executed.', async () => {
     const result = await eternalStorageOtherOwner2
       .changeOwner(otherWallet2.address)
       .catch((err: Error) => err)
-      validateNotCurrentOwnerError(result)
+    validateNotCurrentOwnerError(result)
   })
 })

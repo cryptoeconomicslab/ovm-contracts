@@ -17,13 +17,6 @@ describe('UsingStorage: eternalStorage', () => {
     let wallet = wallets[0]
     let otherWallet1 = wallets[1]
 
-    it('returns EternalStorage instance', async () => {
-        const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
-        await usingStorageTest.createStorage()
-        const result = await usingStorageTest.getStorageAddress()
-        const expected = await usingStorageTest.getStorageAddress()
-        expect(result).to.be.equal(expected)
-    })
     it('should fail to returns EternalStorage instance when the contract is pausing', async () => {
         const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
         await usingStorageTest.createStorage()
@@ -31,8 +24,8 @@ describe('UsingStorage: eternalStorage', () => {
         const result = await usingStorageTest
             .getUInt()
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('You cannot use that')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('You cannot use that')
     })
     it('should fail to set to pause when sent from a non-owner account', async () => {
         const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
@@ -41,8 +34,8 @@ describe('UsingStorage: eternalStorage', () => {
         const result = await usingStorageTestOtherOwner
             .pause()
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('PauserRole: caller does not have the Pauser role')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('PauserRole: caller does not have the Pauser role')
     })
 })
 
@@ -55,8 +48,8 @@ describe('UsingStorage; hasStorage, createStorage', () => {
         const result = await usingStorageTest
             .getStorageAddress()
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('storage is not setted')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('storage is not setted')
     })
     it('If storage has not been created, an error will occur when accessing storage.', async () => {
         const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
@@ -76,8 +69,8 @@ describe('UsingStorage; hasStorage, createStorage', () => {
         const result = await usingStorageTest
             .createStorage()
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('storage is setted')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('storage is setted')
     })
 })
 
@@ -111,8 +104,8 @@ describe('UsingStorage; getStorageAddress, setStorage, changeOwner', () => {
         const result = await usingStorageTest2
             .setUInt(2)
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('not current owner')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('not current owner')
     })
     it('Delegation of authority is not possible from the delegate.', async () => {
         const storageAddress = await usingStorageTest1.getStorageAddress()
@@ -120,8 +113,8 @@ describe('UsingStorage; getStorageAddress, setStorage, changeOwner', () => {
         const result = await usingStorageTest2
             .changeOwner(usingStorageTest2.address)
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('not current owner')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('not current owner')
     })
     it('When delegating authority, the delegate can write to storage', async () => {
         const storageAddress = await usingStorageTest1.getStorageAddress()
@@ -138,7 +131,7 @@ describe('UsingStorage; getStorageAddress, setStorage, changeOwner', () => {
         const result = await usingStorageTest1
             .setUInt(2)
             .catch((err: Error) => err)
-            expect(result).to.be.an.instanceOf(Error)
-            expect((result as Error).message).to.include('not current owner')
+        expect(result).to.be.an.instanceOf(Error)
+        expect((result as Error).message).to.include('not current owner')
     })
 })
