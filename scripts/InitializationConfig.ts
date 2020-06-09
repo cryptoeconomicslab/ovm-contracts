@@ -12,4 +12,9 @@ export interface InitilizationConfig {
   adjudicationContract: string
   payoutContracts: { [key: string]: string }
   PlasmaETH: string
+  utils: {
+    utils: string
+    deserializer: string
+    ecrecover: string
+  }
 }
