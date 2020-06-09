@@ -49,13 +49,13 @@ describe('UsingStorage; hasStorage, createStorage', () => {
             .getStorageAddress()
             .catch((err: Error) => err)
         expect(result).to.be.an.instanceOf(Error)
-        expect((result as Error).message).to.include('storage is not setted')
+        expect((result as Error).message).to.include('storage is not set')
     })
     it('If storage has not been created, an error will occur when accessing storage.', async () => {
         const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
         const result = await usingStorageTest.getUInt().catch((err: Error) => err)
         expect(result).to.be.an.instanceOf(Error)
-        expect((result as Error).message).to.include('storage is not setted')
+        expect((result as Error).message).to.include('storage is not set')
     })
     it('If the storage has been created, you can access the storage.', async () => {
         const usingStorageTest = await deployContract(wallet, UsingStorageTestContract)
@@ -70,7 +70,7 @@ describe('UsingStorage; hasStorage, createStorage', () => {
             .createStorage()
             .catch((err: Error) => err)
         expect(result).to.be.an.instanceOf(Error)
-        expect((result as Error).message).to.include('storage is setted')
+        expect((result as Error).message).to.include('storage is set')
     })
 })
 

@@ -6,6 +6,7 @@ import {
   solidity
 } from 'ethereum-waffle'
 import * as CommitmentContract from '../build/contracts/CommitmentContract.json'
+import * as CommitmentContractStorage from '../build/contracts/CommitmentContractStorage.json'
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
@@ -20,17 +21,20 @@ describe('CommitmentContract', () => {
   let wallets = getWallets(provider)
   let wallet = wallets[0]
   let commitmentContract: any
+  let commitmentContractStorage: any
   const root = ethers.utils.keccak256(
     ethers.utils.arrayify(ethers.constants.HashZero)
   )
 
   beforeEach(async () => {
-    commitmentContract = await deployContract(wallet, CommitmentContract,[], { gasLimit: 5000000 })
-    await commitmentContract.createStorage()
-    await commitmentContract.setOperator(wallet.address)
+    commitmentContract = await deployContract(wallet, CommitmentContract,[wallet.address])
   })
 
   describe('submitRoot', () => {
+    it('check submit root gas cost', async () => {
+      const gasCost = await commitmentContract.estimate.submitRoot(1, root)
+      expect(gasCost.toNumber()).to.be.lt(67000)
+    })
     it('succeed to submit root', async () => {
       await expect(commitmentContract.submitRoot(1, root)).to.emit(
         commitmentContract,
