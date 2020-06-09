@@ -32,6 +32,8 @@ describe('CommitmentContract', () => {
 
   describe('submitRoot', () => {
     it('succeed to submit root', async () => {
+      const gasCost = await commitmentContract.estimate.submitRoot(1, root)
+      expect(gasCost.toNumber()).to.be.lt(67000)
       await expect(commitmentContract.submitRoot(1, root)).to.emit(
         commitmentContract,
         'BlockSubmitted'
