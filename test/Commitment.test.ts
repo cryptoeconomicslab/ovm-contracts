@@ -12,7 +12,7 @@ chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect } = chai
 
-describe('Commitment', () => {
+describe.only('Commitment', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
@@ -33,6 +33,10 @@ describe('Commitment', () => {
         commitment,
         'BlockSubmitted'
       )
+    })
+    it('check gas cost', async () => {
+      const gasCost = await commitment.estimate.submitRoot(1, root)
+      expect(gasCost.toNumber()).to.be.lt(67000)
     })
     it('fail to submit root because of unregistered operator address', async () => {
       const commitmentContractFromOtherWallet = commitment.connect(
