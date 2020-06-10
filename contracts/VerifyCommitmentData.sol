@@ -2,49 +2,24 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "./DataTypes.sol";
-import "./Utils.sol";
 import "./Storage.sol";
+import "./Commitment.sol";
 
 /**
  * @title CommitmentChain
  * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
-contract CommitmentContract is Storage {
-    // Single operator address
-    address public operatorAddress;
-    // Current block number of commitment chain
-    uint256 public currentBlock = 0;
-    // History of Merkle Root
-    mapping(uint256 => bytes32) public blocks;
+contract VerifyCommitmentData is Storage {
+    Commitment commitment;
 
-    // Event definitions
-    event BlockSubmitted(uint64 blockNumber, bytes32 root);
-
-    modifier isOperator() {
-        require(
-            msg.sender == operatorAddress,
-            "msg.sender should be registered operator address"
-        );
-        _;
-    }
-
-    constructor(address _operatorAddress) public {
-        operatorAddress = _operatorAddress;
-    }
-
-    function submitRoot(uint64 blkNumber, bytes32 _root) public isOperator {
-        require(
-            currentBlock + 1 == blkNumber,
-            "blkNumber should be next block"
-        );
-        blocks[blkNumber] = _root;
-        currentBlock = blkNumber;
-        emit BlockSubmitted(blkNumber, _root);
+    constructor(address _commitmentAddress) public {
+        commitment = Commitment(_commitmentAddress);
     }
 
     function retrieve(bytes memory _key) public view returns (bytes memory) {
         uint256 blockNumber = abi.decode(_key, (uint256));
-        return abi.encode(blocks[blockNumber]);
+        bytes32 tmp = commitment.blocks(blockNumber);
+        return abi.encode(tmp);
     }
 
     /**
@@ -114,7 +89,7 @@ contract CommitmentContract is Storage {
                 _tokenAddress,
                 _range,
                 _inclusionProof,
-                blocks[_blkNumber]
+                commitment.blocks(_blkNumber)
             );
     }
 

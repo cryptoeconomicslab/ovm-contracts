@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /* Internal Imports */
 import {DataTypes as types} from "./DataTypes.sol";
-import {CommitmentContract} from "./CommitmentContract.sol";
+import {Commitment} from "./Commitment.sol";
 import {
     UniversalAdjudicationContract
 } from "./UniversalAdjudicationContract.sol";
@@ -30,7 +30,7 @@ contract DepositContract {
 
     /* Public Variables and Mappings*/
     ERC20 public erc20;
-    CommitmentContract public commitmentContract;
+    Commitment public commitment;
     UniversalAdjudicationContract public universalAdjudicationContract;
     address public stateUpdatePredicateContract;
     address public exitPredicateAddress;
@@ -44,7 +44,7 @@ contract DepositContract {
 
     constructor(
         address _erc20,
-        address _commitmentContract,
+        address _commitment,
         address _universalAdjudicationContract,
         // Fixme: when StateUpdatePredicate is merged
         address _stateUpdatePredicateContract,
@@ -52,7 +52,7 @@ contract DepositContract {
         address _exitDepositPredicateAddress
     ) public {
         erc20 = ERC20(_erc20);
-        commitmentContract = CommitmentContract(_commitmentContract);
+        commitment = Commitment(_commitment);
         universalAdjudicationContract = UniversalAdjudicationContract(
             _universalAdjudicationContract
         );
@@ -281,7 +281,7 @@ contract DepositContract {
 
     /* Helpers */
     function getLatestPlasmaBlockNumber() private returns (uint256) {
-        return commitmentContract.currentBlock();
+        return commitment.currentBlock();
     }
 
     function getCheckpointId(types.Checkpoint memory _checkpoint)
