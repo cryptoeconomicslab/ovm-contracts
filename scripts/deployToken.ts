@@ -18,20 +18,22 @@ async function deployToken() {
   const mnemonic = process.env.DEPLOY_MNEMONIC
   const network = process.env.DEPLOY_NETWORK
   const deployLocalUrl = process.env.DEPLOY_LOCAL_URL
+  const minterAddress =
+    process.env.MINTER_ADDRESS || '0xf17f52151EbEF6C7334FAD080c5704D77216b732'
 
   const wallet = getDeployer(mnemonic, network, deployLocalUrl)
 
   const config: InitilizationConfig = JSON.parse(
     fs.readFileSync(path.join(__dirname, '../..', 'out.config.json')).toString()
   )
-
   console.log('Deploy DummyERC20')
   const dummyERC20 = await deployContract(
     DummyERC20,
     wallet,
     'DUM',
     'DummyERC20',
-    18
+    18,
+    minterAddress
   )
   link(
     DepositContract,
