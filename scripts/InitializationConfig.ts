@@ -8,7 +8,7 @@ export interface InitilizationConfig {
   atomicPredicateAddressTable: { [key: string]: string }
   deployedPredicateTable: { [key: string]: CompiledPredicate }
   constantVariableTable: { [key: string]: string }
-  commitmentContract: string
+  commitment: string
   adjudicationContract: string
   payoutContracts: { [key: string]: string }
   PlasmaETH: string

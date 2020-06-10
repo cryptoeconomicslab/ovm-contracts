@@ -6,7 +6,7 @@ import { config } from 'dotenv'
 import { resolve } from 'path'
 import { link } from 'ethereum-waffle'
 
-import * as CommitmentContract from '../build/contracts/CommitmentContract.json'
+import * as Commitment from '../build/contracts/Commitment.json'
 import * as Deserializer from '../build/contracts/Deserializer.json'
 import * as ECRecover from '../build/contracts/ECRecover.json'
 import * as UniversalAdjudicationContract from '../build/contracts/UniversalAdjudicationContract.json'
@@ -149,7 +149,7 @@ const deployAtomicPredicates = async (
   wallet: ethers.Wallet,
   uacAddress: string,
   utilsAddress: string,
-  commitmentContractAddress: string
+  commitmentAddress: string
 ): Promise<{ [key: string]: string }> => {
   const atomicPredicateAddressTable: { [key: string]: string } = {}
 
@@ -196,7 +196,7 @@ const deployAtomicPredicates = async (
     wallet,
     uacAddress,
     utilsAddress,
-    commitmentContractAddress
+    commitmentAddress
   )
   const hasIntersectionPredicate = await deployContract(
     HasIntersectionPredicate,
@@ -295,7 +295,7 @@ const deployCompiledPredicates = async (
   wallet: ethers.Wallet,
   uacAddress: string,
   utilsAddress: string,
-  commitmentContractAddress: string,
+  commitmentAddress: string,
   logicalConnectives: { [key: string]: string },
   atomicPredicates: { [key: string]: string },
   payoutContracts: { [key: string]: string }
@@ -328,7 +328,7 @@ const deployCompiledPredicates = async (
 
   const checkpointPredicate = await deployOneCompiledPredicate(
     'CheckpointPredicate',
-    [encodeAddress(commitmentContractAddress)],
+    [encodeAddress(commitmentAddress)],
     wallet,
     uacAddress,
     utilsAddress,
@@ -368,17 +368,17 @@ const deployCompiledPredicates = async (
 const deployContracts = async (
   wallet: ethers.Wallet
 ): Promise<InitilizationConfig> => {
-  console.log('Deploying CommitmentContract')
+  console.log('Deploying Commitment')
   const operatorAddress = process.env.OPERATOR_ADDRESS
   if (operatorAddress === undefined) {
     throw new Error('OPERATOR_ADDRESS not provided.')
   }
-  const commitmentContract = await deployContract(
-    CommitmentContract,
+  const commitment = await deployContract(
+    Commitment,
     wallet,
     operatorAddress
   )
-  console.log('CommitmentContract Deployed')
+  console.log('Commitment Deployed')
 
   console.log('Deploying Utils')
   const utils = await deployContract(Utils, wallet)
@@ -415,14 +415,14 @@ const deployContracts = async (
     wallet,
     adjudicationContract.address,
     utils.address,
-    commitmentContract.address
+    commitment.address
   )
   const payoutContracts = await deployPayoutContracts(wallet, utils.address)
   const deployedPredicateTable = await deployCompiledPredicates(
     wallet,
     adjudicationContract.address,
     utils.address,
-    commitmentContract.address,
+    commitment.address,
     logicalConnectives,
     atomicPredicates,
     payoutContracts
@@ -448,7 +448,7 @@ const deployContracts = async (
     DepositContract,
     wallet,
     plasmaETH.address,
-    commitmentContract.address,
+    commitment.address,
     adjudicationContract.address,
     deployedPredicateTable['StateUpdatePredicate'].deployedAddress,
     deployedPredicateTable['ExitPredicate'].deployedAddress,
@@ -463,9 +463,9 @@ const deployContracts = async (
     constantVariableTable: {
       secp256k1: encodeString('secp256k1'),
       txAddress: txAddress,
-      commitmentContract: encodeAddress(commitmentContract.address)
+      commitment: encodeAddress(commitment.address)
     },
-    commitmentContract: commitmentContract.address,
+    commitment: commitment.address,
     adjudicationContract: adjudicationContract.address,
     payoutContracts: {
       DepositContract: depositContract.address,
