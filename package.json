@@ -12,9 +12,11 @@
     "build": "mkdir -p build && waffle waffle-config.json && tsc --build ./tsconfig.json && npm run compileProperties",
     "deploy:dev": "npm run build && node build/scripts/scripts/deploy.js local",
     "deploy:kovan": "npm run build && node build/scripts/scripts/deploy.js kovan",
+    "deployToken:dev": "node build/scripts/scripts/deployToken.js local",
     "test": "npm run build && mocha --require ts-node/register 'test/**/*.test.ts'",
     "test:specify": "npm run build && mocha --require ts-node/register",
-    "compileProperties": "node build/scripts/scripts/compileProperties.js"
+    "compileProperties": "node build/scripts/scripts/compileProperties.js",
+    "docgen": "solidity-docgen --solc-module ./node_modules/solc -t doc-templates"
   },
   "author": {
     "name": "Crypteconomics Lab",
@@ -37,6 +39,8 @@
     "mocha": "^6.2.0",
     "prettier": "^1.19.1",
     "prettier-plugin-solidity": "^1.0.0-alpha.34",
+    "solc": "^0.5.17",
+    "solidity-docgen": "^0.5.3",
     "ts-node": "^8.5.0",
     "typescript": "^3.7.2"
   },

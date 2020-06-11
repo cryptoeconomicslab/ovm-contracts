@@ -44,7 +44,7 @@ describe('OwnershipPayout', () => {
     try {
       link(
         MockDepositContract,
-        'contracts/test/Library/Deserializer.sol:Deserializer',
+        'contracts/Library/Deserializer.sol:Deserializer',
         deserializer.address
       )
     } catch (e) {

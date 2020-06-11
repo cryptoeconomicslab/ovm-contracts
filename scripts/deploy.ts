@@ -2,8 +2,6 @@
  * This deploy script was modified from https://github.com/plasma-group/pigi/blob/master/packages/unipig/src/contracts/deploy/deploy-rollup-chain.ts
  */
 import { ethers, utils } from 'ethers'
-import { config } from 'dotenv'
-import { resolve } from 'path'
 import { link } from 'ethereum-waffle'
 
 import * as Commitment from '../build/contracts/Commitment.json'
@@ -33,51 +31,15 @@ import {
   encodeString
 } from '../test/helpers/utils'
 import { compile } from '@cryptoeconomicslab/ovm-ethereum-generator'
-import Provider = ethers.providers.Provider
 import fs from 'fs'
 import path from 'path'
 import {
   CompiledPredicate,
   InitilizationConfig
 } from './InitializationConfig.js'
-const txAddress = encodeAddress(ethers.constants.AddressZero)
-
-if (
-  !process.argv.length ||
-  process.argv[process.argv.length - 1].endsWith('.js')
-) {
-  console.log('Error: Environment argument not provided.')
-  process.exit(0)
-}
-
-const environment = process.argv[process.argv.length - 1]
-const envPath = resolve(__dirname, `../../../.${environment}.env`)
-if (!fs.existsSync(envPath)) {
-  console.log(
-    `Error: Environment argument not found. Please do 'cp .env.example .${environment}.env'`
-  )
-  process.exit(0)
-}
-config({ path: envPath })
-
-const deployContract = async (
-  contractJson: any,
-  wallet: ethers.Wallet,
-  ...args: any
-): Promise<ethers.Contract> => {
-  const factory = new ethers.ContractFactory(
-    contractJson.abi,
-    contractJson.evm.bytecode,
-    wallet
-  )
-  const deployTx = await factory.getDeployTransaction(...args)
-  deployTx.gasPrice = 1000_000_000
-  const tx = await wallet.sendTransaction(deployTx)
-  const address = ethers.utils.getContractAddress(tx)
-  console.log(`Address: [${address}], Tx: [${tx.hash}]`)
-  await tx.wait()
-  return new ethers.Contract(address, factory.interface, factory.signer)
-}
+import { getDeployer, deployContract, txAddress } from './helper'
+import { configureEnv } from './configEnv'
+configureEnv()
 
 const deployLogicalConnective = async (
   wallet: ethers.Wallet,
@@ -479,34 +441,21 @@ const deployContracts = async (
       DepositContract: depositContract.address,
       ...payoutContracts
     },
-    PlasmaETH: plasmaETH.address
+    PlasmaETH: plasmaETH.address,
+    utils: {
+      utils: utils.address,
+      deserializer: deserializer.address,
+      ecrecover: ecrecover.address
+    }
   }
 }
 
 const deploy = async (): Promise<void> => {
   console.log(`\n\n********** STARTING DEPLOYMENT ***********\n\n`)
-  // Make sure mnemonic exists
-  const deployMnemonic = process.env.DEPLOY_MNEMONIC
-  if (!deployMnemonic) {
-    console.log(
-      `Error: No DEPLOY_MNEMONIC env var set. Please add it to .<environment>.env file it and try again. See .env.example for more info.\n`
-    )
-    return
-  }
-
-  // Connect provider
-  let provider: Provider
+  const mnemonic = process.env.DEPLOY_MNEMONIC
   const network = process.env.DEPLOY_NETWORK
-  if (!network || network === 'local') {
-    provider = new ethers.providers.JsonRpcProvider(
-      process.env.DEPLOY_LOCAL_URL || 'http://127.0.0.1:8545'
-    )
-  } else {
-    provider = ethers.getDefaultProvider(network)
-  }
-
-  // Create wallet
-  const wallet = ethers.Wallet.fromMnemonic(deployMnemonic).connect(provider)
+  const deployLocalUrl = process.env.DEPLOY_LOCAL_URL
+  const wallet = getDeployer(mnemonic, network, deployLocalUrl)
 
   console.log(`Deploying to network [${network || 'local'}] in 5 seconds!`)
   setTimeout(async () => {

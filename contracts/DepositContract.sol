@@ -14,18 +14,41 @@ import {
 import "./Predicate/CompiledPredicate.sol";
 import "./Library/Deserializer.sol";
 
+/**
+ * @notice Deposit contract is contract which manages tokens that users deposit when entering plasma.
+ * One deposit contract exists for each ERC20 contract. It keeps track of how much funds are deposited in a plasma.
+ * Client have to interact with this contract in order to enter or exiting from the plasma.
+ */
 contract DepositContract {
     using SafeMath for uint256;
 
     /* Events */
+    /**
+     * @notice Emitted when checkpoint is finalized
+     * @param checkpointId Hash of the checkpoint property
+     * @param checkpoint Finalized checkpoint
+    */
     event CheckpointFinalized(
         bytes32 checkpointId,
         types.Checkpoint checkpoint
     );
 
+    /**
+     * @notice Emitted when exit is finalized
+     * @param exitId Hash of the exit property
+     */
     event ExitFinalized(bytes32 exitId);
 
+    /**
+     * @notice Emitted when deposit range is extended
+     * @param newRange new range added to depositedRange
+     */
     event DepositedRangeExtended(types.Range newRange);
+
+    /**
+     * @notice Emitted when deposited range is removed
+     * @param removedRange range to be removed
+     */
     event DepositedRangeRemoved(types.Range removedRange);
 
     /* Public Variables and Mappings*/
@@ -62,10 +85,10 @@ contract DepositContract {
     }
 
     /**
-     * @dev deposit ERC20 token to deposit contract with initial state.
-     *     following https://docs.plasma.group/projects/spec/en/latest/src/02-contracts/deposit-contract.html#deposit
-     * @param _amount to deposit
-     * @param _initialState The initial state of deposit
+     * @notice Deposit ERC20 token to deposit contract with initial state represented as Property struct.
+     * @dev Client needs to approve this contract to transfer specified ERC20 token using `approve` method of ERC20 token before calling this method.
+     * @param _amount Token amount to deposit into plasma.
+     * @param _initialState Initial state of deposited token. OwnershipProperty is used for ordinary cases.
      */
     function deposit(uint256 _amount, types.Property memory _initialState)
         public
@@ -101,6 +124,7 @@ contract DepositContract {
         emit CheckpointFinalized(checkpointId, checkpoint);
     }
 
+    // TODO: make this private
     function extendDepositedRanges(uint256 _amount) public {
         uint256 oldStart = depositedRanges[totalDeposited].start;
         uint256 oldEnd = depositedRanges[totalDeposited].end;
@@ -121,6 +145,7 @@ contract DepositContract {
         );
     }
 
+    // TODO: make this private
     function removeDepositedRange(
         types.Range memory _range,
         uint256 _depositedRangeId
@@ -160,9 +185,10 @@ contract DepositContract {
     }
 
     /**
-     * finalizeCheckpoint
-     * @param _checkpointProperty A property which is instance of checkpoint predicate
-     * its first input is range to create checkpoint and second input is property for stateObject.
+     * @notice Method used to finalize a new checkpoint.
+     * @dev Given checkpoint property, checks if the property is already decided. If it's decided to true,
+     * create a new checkpoint with the property and emit an CheckpointFinalized event.
+     * @param _checkpointProperty Property instance of checkpoint predicate.
      */
     function finalizeCheckpoint(types.Property memory _checkpointProperty)
         public
@@ -186,17 +212,19 @@ contract DepositContract {
     }
 
     /**
-     * finalizeExit
-     * @param _exitProperty A property which is instance of exit predicate and its inputs are range and StateUpdate that exiting account wants to withdraw.
-     *     _exitProperty can be a property of ether ExitPredicate or ExitDepositPredicate.
-     * @param _depositedRangeId Id of deposited range
-     * @return return StateUpdate of exit property which is finalized.
-     * @dev The steps of finalizeExit.
+     * @notice Client calls this method to finalize withdrawal process. If succeed, ethereum account receives deposited amount corresponding
+     * to the state.
+     * @dev finalizeExit checks if given exit property is already decided. If it's decided, it sends token back to the owner.
+     * The steps of finalizeExit.
      *     1. Serialize exit property
      *     2. check the property is decided by Adjudication Contract.
      *     3. Transfer asset to payout contract corresponding to StateObject.
      *     Please alse see https://docs.plasma.group/projects/spec/en/latest/src/02-contracts/deposit-contract.html#finalizeexit
-     */
+     * @param _exitProperty A property which is an instance of exit predicate and its inputs are range and StateUpdate that exiting account wants to withdraw.
+     *     _exitProperty can be a property of either ExitPredicate or ExitDepositPredicate.
+     * @param _depositedRangeId Id of deposited range
+     * @return returns finalized StateUpdate of specified exit property
+    */
     function finalizeExit(
         types.Property memory _exitProperty,
         uint256 _depositedRangeId
