@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 /* External Imports */
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 /* Internal Imports */
 import {DataTypes as types} from "./DataTypes.sol";
@@ -13,13 +14,14 @@ import {
 } from "./UniversalAdjudicationContract.sol";
 import "./Predicate/CompiledPredicate.sol";
 import "./Library/Deserializer.sol";
+import "./DepositStorage.sol";
 
 /**
  * @notice Deposit contract is contract which manages tokens that users deposit when entering plasma.
  * One deposit contract exists for each ERC20 contract. It keeps track of how much funds are deposited in a plasma.
  * Client have to interact with this contract in order to enter or exiting from the plasma.
  */
-contract DepositContract {
+contract DepositContract is Ownable {
     using SafeMath for uint256;
 
     /* Events */
@@ -51,37 +53,46 @@ contract DepositContract {
      */
     event DepositedRangeRemoved(types.Range removedRange);
 
-    /* Public Variables and Mappings*/
-    ERC20 public erc20;
-    Commitment public commitment;
-    UniversalAdjudicationContract public universalAdjudicationContract;
-    address public stateUpdatePredicateContract;
-    address public exitPredicateAddress;
-    address public exitDepositPredicateAddress;
-
     // totalDeposited is the most right coin id which has been deposited
     uint256 public totalDeposited;
     // depositedRanges are currently deposited ranges
     mapping(uint256 => types.Range) public depositedRanges;
     mapping(bytes32 => bool) public checkpoints;
 
+    address private depositStorage;
+
     constructor(
-        address _erc20,
-        address _commitment,
-        address _universalAdjudicationContract,
-        // Fixme: when StateUpdatePredicate is merged
-        address _stateUpdatePredicateContract,
-        address _exitPredicateAddress,
-        address _exitDepositPredicateAddress
+        address _depositStorage
     ) public {
-        erc20 = ERC20(_erc20);
-        commitment = Commitment(_commitment);
-        universalAdjudicationContract = UniversalAdjudicationContract(
-            _universalAdjudicationContract
-        );
-        stateUpdatePredicateContract = _stateUpdatePredicateContract;
-        exitPredicateAddress = _exitPredicateAddress;
-        exitDepositPredicateAddress = _exitDepositPredicateAddress;
+        depositStorage = _depositStorage;
+    }
+
+    function setDepositStorage(address _address) external onlyOwner {
+        depositStorage = _depositStorage;
+    }
+
+    function setErc20(address _address) external onlyOwner {
+        DepositStorage(depositStorage).setErc20(_address);
+    }
+
+    function setCommitment(address _address) external onlyOwner {
+        DepositStorage(depositStorage).setCommitment(_address);
+    }
+
+    function setUniversalAdjudication(address _address) external onlyOwner {
+        DepositStorage(depositStorage).setUniversalAdjudication(_address);
+    }
+
+    function setSetStateUpdatePredicate(address _address) external onlyOwner {
+        DepositStorage(depositStorage).setStateUpdatePredicate(_address);
+    }
+
+    function setExitPredicate(address _address) external onlyOwner {
+        DepositStorage(depositStorage).setExitPredicate(_address);
+    }
+
+    function setExitDepositPredicate(address _address) external onlyOwner {
+        DepositStorage(depositStorage).setExitDepositPredicate(_address);
     }
 
     /**
@@ -97,6 +108,7 @@ contract DepositContract {
             totalDeposited < 2**256 - 1 - _amount,
             "DepositContract: totalDeposited exceed max uint256"
         );
+        ERC20 erc20 = ERC20(DepositStorage(depositStorage).getErc20());
         require(
             erc20.transferFrom(msg.sender, address(this), _amount),
             "must approved"
@@ -111,7 +123,7 @@ contract DepositContract {
         inputs[2] = abi.encode(getLatestPlasmaBlockNumber());
         inputs[3] = abi.encode(_initialState);
         types.Property memory stateUpdate = types.Property({ // Fixme: when StateUpdatePredicate is merged
-            predicateAddress: stateUpdatePredicateContract,
+            predicateAddress: DepositStorage(depositStorage).getStateUpdatePredicate(),
             inputs: inputs
         });
         types.Checkpoint memory checkpoint = types.Checkpoint({
@@ -193,8 +205,11 @@ contract DepositContract {
     function finalizeCheckpoint(types.Property memory _checkpointProperty)
         public
     {
+        UniversalAdjudicationContract tmp = UniversalAdjudicationContract(
+            DepositStorage(depositStorage).getUniversalAdjudication()
+        );
         require(
-            universalAdjudicationContract.isDecided(_checkpointProperty),
+            tmp.isDecided(_checkpointProperty),
             "Checkpointing claim must be decided"
         );
         types.Property memory property = abi.decode(
@@ -241,8 +256,11 @@ contract DepositContract {
         )
             .payoutContractAddress();
         // Check that we are authorized to finalize this exit
+        UniversalAdjudicationContract tmp = UniversalAdjudicationContract(
+            DepositStorage(depositStorage).getUniversalAdjudication()
+        );
         require(
-            universalAdjudicationContract.isDecided(_exitProperty),
+            tmp.isDecided(_exitProperty),
             "Exit must be decided after this block"
         );
         require(
@@ -258,6 +276,7 @@ contract DepositContract {
         removeDepositedRange(stateUpdate.range, _depositedRangeId);
         //Transfer tokens to its predicate
         uint256 amount = stateUpdate.range.end - stateUpdate.range.start;
+        ERC20 erc20 = ERC20(DepositStorage(depositStorage).getErc20());
         erc20.transfer(payout, amount);
         emit ExitFinalized(exitId);
         return stateUpdate;
@@ -272,14 +291,14 @@ contract DepositContract {
         private
         returns (types.StateUpdate memory)
     {
-        if (_exitProperty.predicateAddress == exitPredicateAddress) {
+        if (_exitProperty.predicateAddress == DepositStorage(depositStorage).getExitPredicate()) {
             types.Exit memory exit = Deserializer.deserializeExit(
                 _exitProperty
             );
             // TODO: check inclusion proof
             return exit.stateUpdate;
         } else if (
-            _exitProperty.predicateAddress == exitDepositPredicateAddress
+            _exitProperty.predicateAddress == DepositStorage(depositStorage).getExitDepositPredicate()
         ) {
             types.ExitDeposit memory exitDeposit = Deserializer
                 .deserializeExitDeposit(_exitProperty);
@@ -309,7 +328,7 @@ contract DepositContract {
 
     /* Helpers */
     function getLatestPlasmaBlockNumber() private returns (uint256) {
-        return commitment.currentBlock();
+        return Commitment(DepositStorage(depositStorage).getCommitment()).currentBlock();
     }
 
     function getCheckpointId(types.Checkpoint memory _checkpoint)
