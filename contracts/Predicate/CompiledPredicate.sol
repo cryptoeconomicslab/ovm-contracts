@@ -3,9 +3,22 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 
+/**
+ * @dev Compiled predicate interface. Predicates compiled from predicate DSL implement this interface
+ */
 interface CompiledPredicate {
+    /**
+     * @dev this method should return corresponding payout contract address
+     */
     function payoutContractAddress() external view returns (address);
 
+    /**
+     * @dev this method should implement a logic to tell if certain input array is valid challenge input of
+     * a property
+     * @param _inputs challenged input
+     * @param _challengeInputs challenging input
+     * @param _challenge challenging property
+     */
     function isValidChallenge(
         bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,

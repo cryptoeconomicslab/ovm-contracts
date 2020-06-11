@@ -9,6 +9,9 @@ import "../AtomicPredicate.sol";
 import "../DecidablePredicate.sol";
 import "../../Utils.sol";
 
+/**
+ * @dev base implementation of AtomicPredicate interface. Inherited by atomic predicate
+ */
 contract BaseAtomicPredicate is AtomicPredicate, DecidablePredicate {
     UniversalAdjudicationContract public adjudicationContract;
     Utils public utils;
