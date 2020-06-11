@@ -16,7 +16,7 @@
     "test": "npm run build && mocha --require ts-node/register 'test/**/*.test.ts'",
     "test:specify": "npm run build && mocha --require ts-node/register",
     "compileProperties": "node build/scripts/scripts/compileProperties.js",
-    "docgen": "solidity-docgen --solc-module ./node_modules/solc"
+    "docgen": "solidity-docgen --solc-module ./node_modules/solc -t doc-templates"
   },
   "author": {
     "name": "Crypteconomics Lab",
