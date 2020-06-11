@@ -61,9 +61,7 @@ contract DepositContract is Ownable {
 
     address private depositStorage;
 
-    constructor(
-        address _depositStorage
-    ) public {
+    constructor(address _depositStorage) public {
         depositStorage = _depositStorage;
     }
 
@@ -123,7 +121,8 @@ contract DepositContract is Ownable {
         inputs[2] = abi.encode(getLatestPlasmaBlockNumber());
         inputs[3] = abi.encode(_initialState);
         types.Property memory stateUpdate = types.Property({ // Fixme: when StateUpdatePredicate is merged
-            predicateAddress: DepositStorage(depositStorage).getStateUpdatePredicate(),
+            predicateAddress: DepositStorage(depositStorage)
+                .getStateUpdatePredicate(),
             inputs: inputs
         });
         types.Checkpoint memory checkpoint = types.Checkpoint({
@@ -291,14 +290,18 @@ contract DepositContract is Ownable {
         private
         returns (types.StateUpdate memory)
     {
-        if (_exitProperty.predicateAddress == DepositStorage(depositStorage).getExitPredicate()) {
+        if (
+            _exitProperty.predicateAddress ==
+            DepositStorage(depositStorage).getExitPredicate()
+        ) {
             types.Exit memory exit = Deserializer.deserializeExit(
                 _exitProperty
             );
             // TODO: check inclusion proof
             return exit.stateUpdate;
         } else if (
-            _exitProperty.predicateAddress == DepositStorage(depositStorage).getExitDepositPredicate()
+            _exitProperty.predicateAddress ==
+            DepositStorage(depositStorage).getExitDepositPredicate()
         ) {
             types.ExitDeposit memory exitDeposit = Deserializer
                 .deserializeExitDeposit(_exitProperty);
@@ -328,7 +331,9 @@ contract DepositContract is Ownable {
 
     /* Helpers */
     function getLatestPlasmaBlockNumber() private returns (uint256) {
-        return Commitment(DepositStorage(depositStorage).getCommitment()).currentBlock();
+        return
+            Commitment(DepositStorage(depositStorage).getCommitment())
+                .currentBlock();
     }
 
     function getCheckpointId(types.Checkpoint memory _checkpoint)
