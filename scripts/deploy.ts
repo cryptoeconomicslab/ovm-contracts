@@ -7,6 +7,7 @@ import { resolve } from 'path'
 import { link } from 'ethereum-waffle'
 
 import * as Commitment from '../build/contracts/Commitment.json'
+import * as VerifyCommitmentData from '../build/contracts/VerifyCommitmentData.json'
 import * as Deserializer from '../build/contracts/Deserializer.json'
 import * as ECRecover from '../build/contracts/ECRecover.json'
 import * as UniversalAdjudicationContract from '../build/contracts/UniversalAdjudicationContract.json'
@@ -380,6 +381,13 @@ const deployContracts = async (
   )
   console.log('Commitment Deployed')
 
+  const verifyCommitmentData = await deployContract(
+    VerifyCommitmentData,
+    wallet,
+    commitment.address
+  )
+  console.log('VerifyCommitmentData Deployed')
+
   console.log('Deploying Utils')
   const utils = await deployContract(Utils, wallet)
   console.log('Utils Deployed')
@@ -466,6 +474,7 @@ const deployContracts = async (
       commitment: encodeAddress(commitment.address)
     },
     commitment: commitment.address,
+    verifyCommitmentData: verifyCommitmentData.address,
     adjudicationContract: adjudicationContract.address,
     payoutContracts: {
       DepositContract: depositContract.address,
