@@ -9,23 +9,57 @@ import "./Predicate/LogicalConnective.sol";
 import {DecidablePredicate} from "./Predicate/DecidablePredicate.sol";
 
 /**
- * Adjudication Contract is the contract to archive dispute game defined by predicate logic.
+ * @notice UniversalAdjudicationContract is a contract to execute dispute game following optimistic game semantics.
  */
 contract UniversalAdjudicationContract {
     uint256 DISPUTE_PERIOD = 7;
     mapping(bytes32 => types.ChallengeGame) public instantiatedGames;
     Utils utils;
 
+    /**
+     * @dev Emitted when atomic proposition is decided
+     * @param gameId Hash of the property
+     * @param decision True/False
+     */
     event AtomicPropositionDecided(bytes32 gameId, bool decision);
+
+    /**
+     * @dev Emitted when new property is claimed
+     * @param gameId Hash of the property
+     * @param property Property of the claim
+     * @param createdBlock Block number when the claim is made
+     */
     event NewPropertyClaimed(
         bytes32 gameId,
         types.Property property,
         uint256 createdBlock
     );
+
+    /**
+     * @dev Emitted when a game is challenged
+     * @param gameId Hash of property which is challenged
+     * @param challengeGameId Hash of challenging property
+     */
     event ClaimChallenged(bytes32 gameId, bytes32 challengeGameId);
+
+    /**
+     * @dev Emitted when a claim is decided
+     * @param gameId hash of property which is decided
+     * @param decision True/False
+     */
     event ClaimDecided(bytes32 gameId, bool decision);
+
+    /**
+     * @dev Emitted when challenge property is removed
+     * @param gameId hash of challenged property
+     * @param challengeGameID hash of challenging property
+     */
     event ChallengeRemoved(bytes32 gameId, bytes32 challengeGameId);
 
+    /**
+     * @dev checks if property claim is already initiated
+     * @param property Property to be checked
+     */
     modifier isInitiated(types.Property memory property) {
         bytes32 propertyHash = utils.getPropertyId(property);
         require(
@@ -40,7 +74,8 @@ contract UniversalAdjudicationContract {
     }
 
     /**
-     * @dev Claims property and create new game. Id of game is hash of claimed property
+     * @notice Claims property to start new dispute game
+     * @param _claim property to be claimed
      */
     function claimProperty(types.Property memory _claim) public {
         // get the id of this property
@@ -65,7 +100,9 @@ contract UniversalAdjudicationContract {
     }
 
     /**
+     * @notice this method is used to fix the claim decision to be true.
      * @dev Sets the game decision true when its dispute period has already passed.
+     * @param _gameId Hash of a claimed property
      */
     function decideClaimToTrue(bytes32 _gameId) public {
         require(isDecidable(_gameId), "claim should be decidable");
@@ -76,7 +113,10 @@ contract UniversalAdjudicationContract {
     }
 
     /**
+     * @notice this method is used to fix the claim decision to be false.
      * @dev Sets the game decision false when its challenge has been evaluated to true.
+     * @param _property property to be decided to be false
+     * @param _challengingProperty counter property to be contradiction of the property
      */
     function decideClaimToFalse(
         types.Property memory _property,
@@ -106,7 +146,10 @@ contract UniversalAdjudicationContract {
     }
 
     /**
-     * @dev Decide the game decision with given witness
+     * @notice this method is used to decide a given property to be true or false using witness
+     * @notice the game should be already initiated and not decided beforehand. Emit ClaimDecided event when decision can be made.
+     * @param _property property to be decided
+     * @param _witness array of bytes which used to decide the property. witness should follow the rule corresponding to the property
      */
     function decideClaimWithWitness(
         types.Property memory _property,
@@ -132,7 +175,10 @@ contract UniversalAdjudicationContract {
     }
 
     /**
-     * @dev Removes a challenge when its decision has been evaluated to false.
+     * @notice this method is used to remove invalid challenge for a property
+     *  Removes a challenge when its decision has been evaluated to false.
+     * @param _property property which is invalidly challenged
+     * @param _challengingProperty challenging property which will be removed
      */
     function removeChallenge(
         types.Property memory _property,
@@ -161,6 +207,12 @@ contract UniversalAdjudicationContract {
         emit ChallengeRemoved(gameId, challengingGameId);
     }
 
+    /**
+     * @notice this method is used to set property decision to true or false
+     * @dev this method must be called from predicate contract of the property
+     * @param _property property whose decision will be set
+     * @param _decision True/False
+     */
     function setPredicateDecision(
         types.Property memory _property,
         bool _decision
