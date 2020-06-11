@@ -7,13 +7,13 @@ pragma experimental ABIEncoderV2;
 interface AtomicPredicate {
     /**
      * @dev used to decide the input is truthy
-     * @param _inptus input bytes
+     * @param _inputs input bytes
      */
     function decideTrue(bytes[] calldata _inputs) external;
 
     /**
      * @dev used to decide _inputs
-     * @param _inptus input bytes
+     * @param _inputs input bytes
      */
     function decide(bytes[] calldata _inputs) external view returns (bool);
 }

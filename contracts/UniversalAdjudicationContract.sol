@@ -52,7 +52,7 @@ contract UniversalAdjudicationContract {
     /**
      * @dev Emitted when challenge property is removed
      * @param gameId hash of challenged property
-     * @param challengeGameID hash of challenging property
+     * @param challengeGameId hash of challenging property
      */
     event ChallengeRemoved(bytes32 gameId, bytes32 challengeGameId);
 
