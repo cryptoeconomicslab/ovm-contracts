@@ -6,7 +6,7 @@ import {
   solidity
 } from 'ethereum-waffle'
 import * as Commitment from '../build/contracts/Commitment.json'
-import * as VerifyCommitmentData from '../build/contracts/VerifyCommitmentData.json'
+import * as Verify from '../build/contracts/Verify.json'
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
@@ -16,12 +16,12 @@ chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect } = chai
 
-describe('VerifyCommitmentData', () => {
+describe('Verify', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
   let commitment: any
-  let verifyCommitmentData: any
+  let verify: any
   const root = ethers.utils.keccak256(
     ethers.utils.arrayify(ethers.constants.HashZero)
   )
@@ -30,7 +30,7 @@ describe('VerifyCommitmentData', () => {
     commitment = await deployContract(wallet, Commitment, [
       wallet.address
     ])
-    verifyCommitmentData = await deployContract(wallet, VerifyCommitmentData, [
+    verify = await deployContract(wallet, Verify, [
       commitment.address
     ])
   })
@@ -39,7 +39,7 @@ describe('VerifyCommitmentData', () => {
     it('succeed to retrieve root with block', async () => {
       const abi = new AbiCoder()
       await commitment.submitRoot(1, root)
-      const retrieved = await verifyCommitmentData.retrieve(
+      const retrieved = await verify.retrieve(
         abi.encode(['uint256'], [1])
       )
       expect(retrieved).to.equals(root)
@@ -115,7 +115,7 @@ describe('VerifyCommitmentData', () => {
     })
 
     it('suceed to verify inclusion of the most left leaf', async () => {
-      const result = await verifyCommitmentData.verifyInclusion(
+      const result = await verify.verifyInclusion(
         leaf0.data,
         tokenAddress,
         { start: 0, end: 5 },
@@ -156,7 +156,7 @@ describe('VerifyCommitmentData', () => {
           ]
         }
       }
-      const result = await verifyCommitmentData.verifyInclusion(
+      const result = await verify.verifyInclusion(
         leaf1.data,
         tokenAddress,
         { start: 7, end: 10 },
@@ -197,7 +197,7 @@ describe('VerifyCommitmentData', () => {
           ]
         }
       }
-      const result = await verifyCommitmentData.verifyInclusion(
+      const result = await verify.verifyInclusion(
         leaf2.data,
         tokenAddress,
         { start: 15, end: 500 },
@@ -238,7 +238,7 @@ describe('VerifyCommitmentData', () => {
           ]
         }
       }
-      const result = await verifyCommitmentData.verifyInclusion(
+      const result = await verify.verifyInclusion(
         leaf3.data,
         tokenAddress,
         { start: 5000, end: 5010 },
@@ -250,7 +250,7 @@ describe('VerifyCommitmentData', () => {
 
     it('fail to verify inclusion because of invalid range', async () => {
       await expect(
-        verifyCommitmentData.verifyInclusion(
+        verify.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 10, end: 20 },
@@ -262,7 +262,7 @@ describe('VerifyCommitmentData', () => {
 
     it('fail to verify inclusion because of end exceeded', async () => {
       await expect(
-        verifyCommitmentData.verifyInclusion(
+        verify.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 0, end: 20 },
@@ -273,7 +273,7 @@ describe('VerifyCommitmentData', () => {
     })
 
     it('fail to verify inclusion because of invalid hash data', async () => {
-      const result = await verifyCommitmentData.verifyInclusion(
+      const result = await verify.verifyInclusion(
         leaf1.data,
         tokenAddress,
         { start: 0, end: 5 },
@@ -315,7 +315,7 @@ describe('VerifyCommitmentData', () => {
       }
 
       await expect(
-        verifyCommitmentData.verifyInclusion(
+        verify.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 0, end: 5 },
@@ -358,7 +358,7 @@ describe('VerifyCommitmentData', () => {
         }
       }
       await expect(
-        verifyCommitmentData.verifyInclusion(
+        verify.verifyInclusion(
           leaf1.data,
           tokenAddress,
           { start: 7, end: 15 },
@@ -399,7 +399,7 @@ describe('VerifyCommitmentData', () => {
         }
       }
       await expect(
-        verifyCommitmentData.verifyInclusion(
+        verify.verifyInclusion(
           leaf3.data,
           '0x0000000000000000000000000000000000000002',
           { start: 5000, end: 5010 },

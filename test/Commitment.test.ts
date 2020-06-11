@@ -12,7 +12,7 @@ chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect } = chai
 
-describe.only('Commitment', () => {
+describe('Commitment', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]

@@ -9,7 +9,6 @@ export interface InitilizationConfig {
   deployedPredicateTable: { [key: string]: CompiledPredicate }
   constantVariableTable: { [key: string]: string }
   commitment: string
-  verifyCommitmentData: string
   adjudicationContract: string
   payoutContracts: { [key: string]: string }
   PlasmaETH: string

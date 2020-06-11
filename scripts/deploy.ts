@@ -7,7 +7,7 @@ import { resolve } from 'path'
 import { link } from 'ethereum-waffle'
 
 import * as Commitment from '../build/contracts/Commitment.json'
-import * as VerifyCommitmentData from '../build/contracts/VerifyCommitmentData.json'
+import * as Verify from '../build/contracts/Verify.json'
 import * as Deserializer from '../build/contracts/Deserializer.json'
 import * as ECRecover from '../build/contracts/ECRecover.json'
 import * as UniversalAdjudicationContract from '../build/contracts/UniversalAdjudicationContract.json'
@@ -381,8 +381,8 @@ const deployContracts = async (
   )
   console.log('Commitment Deployed')
 
-  const verifyCommitmentData = await deployContract(
-    VerifyCommitmentData,
+  const verify = await deployContract(
+    Verify,
     wallet,
     commitment.address
   )
@@ -471,10 +471,9 @@ const deployContracts = async (
     constantVariableTable: {
       secp256k1: encodeString('secp256k1'),
       txAddress: txAddress,
-      commitment: encodeAddress(commitment.address)
+      verify: encodeAddress(verify.address)
     },
     commitment: commitment.address,
-    verifyCommitmentData: verifyCommitmentData.address,
     adjudicationContract: adjudicationContract.address,
     payoutContracts: {
       DepositContract: depositContract.address,

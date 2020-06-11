@@ -3,22 +3,22 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../../DataTypes.sol";
 import "./BaseAtomicPredicate.sol";
-import "../../VerifyCommitmentData.sol";
+import "../../Verify.sol";
 
 contract VerifyInclusionPredicate is BaseAtomicPredicate {
-    VerifyCommitmentData verifyCommitmentData;
+    Verify verify;
 
     constructor(
         address _uacAddress,
         address _utilsAddress,
-        address _verifyCommitmentData
+        address _verify
     ) public BaseAtomicPredicate(_uacAddress, _utilsAddress) {
-        verifyCommitmentData = VerifyCommitmentData(_verifyCommitmentData);
+        verify = Verify(_verify);
     }
 
     function decide(bytes[] memory _inputs) public view returns (bool) {
         return
-            verifyCommitmentData.verifyInclusionWithRoot(
+            verify.verifyInclusionWithRoot(
                 keccak256(_inputs[0]),
                 utils.bytesToAddress(_inputs[1]),
                 abi.decode(_inputs[2], (types.Range)),
