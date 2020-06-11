@@ -2,9 +2,9 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {DataTypes as types} from "./DataTypes.sol";
+import {DataTypes as types} from "../DataTypes.sol";
 import "./MockToken.sol";
-import "./Library/Deserializer.sol";
+import "../Library/Deserializer.sol";
 
 contract MockDepositContract {
     ERC20 public erc20;
