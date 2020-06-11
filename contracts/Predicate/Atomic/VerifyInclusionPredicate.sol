@@ -8,11 +8,10 @@ import "../../Verify.sol";
 contract VerifyInclusionPredicate is BaseAtomicPredicate {
     Verify verify;
 
-    constructor(
-        address _uacAddress,
-        address _utilsAddress,
-        address _verify
-    ) public BaseAtomicPredicate(_uacAddress, _utilsAddress) {
+    constructor(address _uacAddress, address _utilsAddress, address _verify)
+        public
+        BaseAtomicPredicate(_uacAddress, _utilsAddress)
+    {
         verify = Verify(_verify);
     }
 
