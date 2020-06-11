@@ -19,7 +19,7 @@ jobs:
 
     - name: build
       run: |
-        npm i -g np@latest
+        npm i -g npm@latest
         npm install --frozen-lockfile
         npm run build
   test:
@@ -30,6 +30,6 @@ jobs:
 
     - name: test
       run: |
-        npm i -g np@latest
+        npm i -g npm@latest
         npm install --frozen-lockfile
         npm run test
