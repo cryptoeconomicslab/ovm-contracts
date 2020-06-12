@@ -97,4 +97,64 @@ contract DepositStorage is UsingStorage {
     function getExitDepositPredicateKey() private pure returns (bytes32) {
         return keccak256(abi.encodePacked("_exitDepositPredicate"));
     }
+
+    function setCheckPoints(bytes32 key) external isDeposit {
+        eternalStorage().setBool(key, true);
+    }
+
+    function getCheckPoints(bytes32 key) external view returns (bool) {
+        return eternalStorage().getBool(key);
+    }
+
+    function setTotalDeposited(uint256 _value) external isDeposit {
+        bytes32 key = getTotalDepositedKey();
+        eternalStorage().setUint(key, _value);
+    }
+
+    function getTotalDeposited() external view returns (uint256) {
+        bytes32 key = getTotalDepositedKey();
+        return eternalStorage().getUint(key);
+    }
+
+    function getTotalDepositedKey() private pure returns (bytes32) {
+        return keccak256(abi.encodePacked("_totalDeposited"));
+    }
+
+    function setRangeStart(uint256 _key, uint256 _value) external isDeposit {
+        bytes32 key = getRangeStartKey(_key);
+        eternalStorage().setUint(key, _value);
+    }
+
+    function getRangeStart(uint256 _key) external view returns (uint256) {
+        bytes32 key = getRangeStartKey(_key);
+        return eternalStorage().getUint(key);
+    }
+
+    function deleteRangeStart(uint256 _key) external {
+        bytes32 key = getRangeStartKey(_key);
+        return eternalStorage().deleteUint(key);
+    }
+
+    function getRangeStartKey(uint256 _key) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked("_rangeStart", _key));
+    }
+
+    function setRangeEnd(uint256 _key, uint256 _value) external isDeposit {
+        bytes32 key = getRangeEndKey(_key);
+        eternalStorage().setUint(key, _value);
+    }
+
+    function getRangeEnd(uint256 _key) external view returns (uint256) {
+        bytes32 key = getRangeEndKey(_key);
+        return eternalStorage().getUint(key);
+    }
+
+    function deleteRangeEnd(uint256 _key) external {
+        bytes32 key = getRangeEndKey(_key);
+        return eternalStorage().deleteUint(key);
+    }
+
+    function getRangeEndKey(uint256 _key) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked("_rangeEnd", _key));
+    }
 }

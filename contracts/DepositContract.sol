@@ -53,12 +53,6 @@ contract DepositContract is Ownable {
      */
     event DepositedRangeRemoved(types.Range removedRange);
 
-    // totalDeposited is the most right coin id which has been deposited
-    uint256 public totalDeposited;
-    // depositedRanges are currently deposited ranges
-    mapping(uint256 => types.Range) public depositedRanges;
-    mapping(bytes32 => bool) public checkpoints;
-
     address private depositStorage;
 
     constructor(address _depositStorage) public {
@@ -66,7 +60,11 @@ contract DepositContract is Ownable {
     }
 
     function setDepositStorage(address _address) external onlyOwner {
-        depositStorage = _depositStorage;
+        depositStorage = _address;
+    }
+
+    function getDepositStorage() external view returns (address) {
+        return depositStorage;
     }
 
     function setErc20(address _address) external onlyOwner {
@@ -103,7 +101,7 @@ contract DepositContract is Ownable {
         public
     {
         require(
-            totalDeposited < 2**256 - 1 - _amount,
+            DepositStorage(depositStorage).getTotalDeposited() < 2**256 - 1 - _amount,
             "DepositContract: totalDeposited exceed max uint256"
         );
         ERC20 erc20 = ERC20(DepositStorage(depositStorage).getErc20());
@@ -112,8 +110,8 @@ contract DepositContract is Ownable {
             "must approved"
         );
         types.Range memory depositRange = types.Range({
-            start: totalDeposited,
-            end: totalDeposited.add(_amount)
+            start: DepositStorage(depositStorage).getTotalDeposited(),
+            end: DepositStorage(depositStorage).getTotalDeposited().add(_amount)
         });
         bytes[] memory inputs = new bytes[](4);
         inputs[0] = abi.encode(address(this));
@@ -131,26 +129,28 @@ contract DepositContract is Ownable {
         extendDepositedRanges(_amount);
         bytes32 checkpointId = getCheckpointId(checkpoint);
         // store the checkpoint
-        checkpoints[checkpointId] = true;
+        DepositStorage(depositStorage).setCheckPoints(checkpointId);
         emit CheckpointFinalized(checkpointId, checkpoint);
     }
 
     // TODO: make this private
     function extendDepositedRanges(uint256 _amount) public {
-        uint256 oldStart = depositedRanges[totalDeposited].start;
-        uint256 oldEnd = depositedRanges[totalDeposited].end;
+        types.Range memory range = getDepositedRange(DepositStorage(depositStorage).getTotalDeposited());
+        uint256 oldStart = range.start;
+        uint256 oldEnd = range.end;
         uint256 newStart;
         if (oldStart == 0 && oldEnd == 0) {
             // Creat a new range when the rightmost range has been removed
-            newStart = totalDeposited;
+            newStart = DepositStorage(depositStorage).getTotalDeposited();
         } else {
             // Delete the old range and make a new one with the total length
-            delete depositedRanges[oldEnd];
+            deleteDepositedRange(oldEnd);
             newStart = oldStart;
         }
-        uint256 newEnd = totalDeposited.add(_amount);
-        depositedRanges[newEnd] = types.Range({start: newStart, end: newEnd});
-        totalDeposited = totalDeposited.add(_amount);
+        uint256 newEnd = DepositStorage(depositStorage).getTotalDeposited().add(_amount);
+        setDepositedRange(newEnd, types.Range({start: newStart, end: newEnd}));
+        uint256 totalDeposited = DepositStorage(depositStorage).getTotalDeposited().add(_amount);
+        DepositStorage(depositStorage).setTotalDeposited(totalDeposited);
         emit DepositedRangeExtended(
             types.Range({start: newStart, end: newEnd})
         );
@@ -162,11 +162,11 @@ contract DepositContract is Ownable {
         uint256 _depositedRangeId
     ) public {
         require(
-            isSubrange(_range, depositedRanges[_depositedRangeId]),
+            isSubrange(_range, getDepositedRange(_depositedRangeId)),
             "range must be of a depostied range (the one that has not been exited)"
         );
 
-        types.Range storage encompasingRange = depositedRanges[_depositedRangeId];
+        types.Range memory encompasingRange = getDepositedRange(_depositedRangeId);
         /*
          * depositedRanges makes O(1) checking existence of certain range.
          * Since _range is subrange of encompasingRange, we only have to check is each start and end are same or not.
@@ -179,7 +179,7 @@ contract DepositContract is Ownable {
                 start: encompasingRange.start,
                 end: _range.start
             });
-            depositedRanges[leftSplitRange.end] = leftSplitRange;
+            setDepositedRange(leftSplitRange.end, leftSplitRange);
         }
         // Check end of range
         if (_range.end == encompasingRange.end) {
@@ -187,7 +187,7 @@ contract DepositContract is Ownable {
              * Deposited range Id is end value of the range, we must remove the range from depositedRanges
              *     when range.end is changed.
              */
-            delete depositedRanges[encompasingRange.end];
+            deleteDepositedRange(encompasingRange.end);
         } else {
             encompasingRange.start = _range.end;
         }
@@ -221,7 +221,7 @@ contract DepositContract is Ownable {
 
         bytes32 checkpointId = getCheckpointId(checkpoint);
         // store the checkpoint
-        checkpoints[checkpointId] = true;
+        DepositStorage(depositStorage).setCheckPoints(checkpointId);
         emit CheckpointFinalized(checkpointId, checkpoint);
     }
 
@@ -309,7 +309,7 @@ contract DepositContract is Ownable {
             types.StateUpdate memory stateUpdate = Deserializer
                 .deserializeStateUpdate(checkpoint.stateUpdate);
             require(
-                checkpoints[getCheckpointId(checkpoint)],
+                DepositStorage(depositStorage).getCheckPoints(getCheckpointId(checkpoint)),
                 "checkpoint must be finalized"
             );
             require(
@@ -359,5 +359,25 @@ contract DepositContract is Ownable {
         return
             _subrange.start >= _surroundingRange.start &&
             _subrange.end <= _surroundingRange.end;
+    }
+
+    function setDepositedRange(uint256 _key, types.Range memory _range) private {
+        DepositStorage(depositStorage).setRangeStart(_key, _range.start);
+        DepositStorage(depositStorage).setRangeEnd(_key, _range.end);
+    }
+
+    function getDepositedRange(uint256 _key) private view returns (types.Range memory){
+        uint256 startValue = DepositStorage(depositStorage).getRangeStart(_key);
+        uint256 endValue = DepositStorage(depositStorage).getRangeEnd(_key);
+        return types.Range({start: startValue, end: endValue});
+    }
+
+    function deleteDepositedRange(uint256 _key) private {
+        DepositStorage(depositStorage).deleteRangeStart(_key);
+        DepositStorage(depositStorage).deleteRangeEnd(_key);
+    }
+
+    function erc20() external view returns(ERC20){
+        return ERC20(DepositStorage(depositStorage).getErc20());
     }
 }
