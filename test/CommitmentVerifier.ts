@@ -6,7 +6,7 @@ import {
   solidity
 } from 'ethereum-waffle'
 import * as Commitment from '../build/contracts/Commitment.json'
-import * as Verify from '../build/contracts/Verify.json'
+import * as CommitmentVerifier from '../build/contracts/CommitmentVerifier.json'
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
@@ -21,7 +21,7 @@ describe('Verify', () => {
   let wallets = getWallets(provider)
   let wallet = wallets[0]
   let commitment: any
-  let verify: any
+  let commitmentVerifier: any
   const root = ethers.utils.keccak256(
     ethers.utils.arrayify(ethers.constants.HashZero)
   )
@@ -30,7 +30,7 @@ describe('Verify', () => {
     commitment = await deployContract(wallet, Commitment, [
       wallet.address
     ])
-    verify = await deployContract(wallet, Verify, [
+    commitmentVerifier = await deployContract(wallet, CommitmentVerifier, [
       commitment.address
     ])
   })
@@ -39,7 +39,7 @@ describe('Verify', () => {
     it('succeed to retrieve root with block', async () => {
       const abi = new AbiCoder()
       await commitment.submitRoot(1, root)
-      const retrieved = await verify.retrieve(
+      const retrieved = await commitmentVerifier.retrieve(
         abi.encode(['uint256'], [1])
       )
       expect(retrieved).to.equals(root)
@@ -115,7 +115,7 @@ describe('Verify', () => {
     })
 
     it('suceed to verify inclusion of the most left leaf', async () => {
-      const result = await verify.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf0.data,
         tokenAddress,
         { start: 0, end: 5 },
@@ -156,7 +156,7 @@ describe('Verify', () => {
           ]
         }
       }
-      const result = await verify.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf1.data,
         tokenAddress,
         { start: 7, end: 10 },
@@ -197,7 +197,7 @@ describe('Verify', () => {
           ]
         }
       }
-      const result = await verify.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf2.data,
         tokenAddress,
         { start: 15, end: 500 },
@@ -238,7 +238,7 @@ describe('Verify', () => {
           ]
         }
       }
-      const result = await verify.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf3.data,
         tokenAddress,
         { start: 5000, end: 5010 },
@@ -250,7 +250,7 @@ describe('Verify', () => {
 
     it('fail to verify inclusion because of invalid range', async () => {
       await expect(
-        verify.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 10, end: 20 },
@@ -262,7 +262,7 @@ describe('Verify', () => {
 
     it('fail to verify inclusion because of end exceeded', async () => {
       await expect(
-        verify.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 0, end: 20 },
@@ -273,7 +273,7 @@ describe('Verify', () => {
     })
 
     it('fail to verify inclusion because of invalid hash data', async () => {
-      const result = await verify.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf1.data,
         tokenAddress,
         { start: 0, end: 5 },
@@ -315,7 +315,7 @@ describe('Verify', () => {
       }
 
       await expect(
-        verify.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 0, end: 5 },
@@ -358,7 +358,7 @@ describe('Verify', () => {
         }
       }
       await expect(
-        verify.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf1.data,
           tokenAddress,
           { start: 7, end: 15 },
@@ -399,7 +399,7 @@ describe('Verify', () => {
         }
       }
       await expect(
-        verify.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf3.data,
           '0x0000000000000000000000000000000000000002',
           { start: 5000, end: 5010 },

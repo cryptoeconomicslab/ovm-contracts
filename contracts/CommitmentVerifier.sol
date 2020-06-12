@@ -9,7 +9,7 @@ import "./Commitment.sol";
  * @title CommitmentChain
  * @notice This is mock commitment chain contract. Spec is http://spec.plasma.group/en/latest/src/02-contracts/commitment-contract.html
  */
-contract Verify is Storage {
+contract CommitmentVerifier is Storage {
     Commitment commitment;
 
     constructor(address _commitmentAddress) public {
