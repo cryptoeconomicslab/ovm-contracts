@@ -44,7 +44,7 @@ async function deployToken() {
     DepositContract,
     wallet,
     dummyERC20.address,
-    config.commitmentContract,
+    config.commitment,
     config.adjudicationContract,
     config.deployedPredicateTable['StateUpdatePredicate'].deployedAddress,
     config.deployedPredicateTable['ExitPredicate'].deployedAddress,

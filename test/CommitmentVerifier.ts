@@ -5,7 +5,8 @@ import {
   getWallets,
   solidity
 } from 'ethereum-waffle'
-import * as CommitmentContract from '../build/contracts/CommitmentContract.json'
+import * as Commitment from '../build/contracts/Commitment.json'
+import * as CommitmentVerifier from '../build/contracts/CommitmentVerifier.json'
 import * as ethers from 'ethers'
 import { Bytes } from '@cryptoeconomicslab/primitives'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
@@ -13,47 +14,32 @@ import { AbiCoder } from 'ethers/utils'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
-const { expect, assert } = chai
+const { expect } = chai
 
-describe('CommitmentContract', () => {
+describe('Verify', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
-  let commitmentContract: any
+  let commitment: any
+  let commitmentVerifier: any
   const root = ethers.utils.keccak256(
     ethers.utils.arrayify(ethers.constants.HashZero)
   )
 
   beforeEach(async () => {
-    commitmentContract = await deployContract(wallet, CommitmentContract, [
+    commitment = await deployContract(wallet, Commitment, [
       wallet.address
     ])
-  })
-
-  describe('submitRoot', () => {
-    it('succeed to submit root', async () => {
-      await expect(commitmentContract.submitRoot(1, root)).to.emit(
-        commitmentContract,
-        'BlockSubmitted'
-      )
-    })
-    it('fail to submit root because of unregistered operator address', async () => {
-      const commitmentContractFromOtherWallet = commitmentContract.connect(
-        wallets[1]
-      )
-      await expect(commitmentContractFromOtherWallet.submitRoot(1, root)).to.be
-        .reverted
-    })
-    it('fail to submit root because of invalid block number', async () => {
-      await expect(commitmentContract.submitRoot(0, root)).to.be.reverted
-    })
+    commitmentVerifier = await deployContract(wallet, CommitmentVerifier, [
+      commitment.address
+    ])
   })
 
   describe('retrieve', () => {
     it('succeed to retrieve root with block', async () => {
       const abi = new AbiCoder()
-      await commitmentContract.submitRoot(1, root)
-      const retrieved = await commitmentContract.retrieve(
+      await commitment.submitRoot(1, root)
+      const retrieved = await commitmentVerifier.retrieve(
         abi.encode(['uint256'], [1])
       )
       expect(retrieved).to.equals(root)
@@ -125,11 +111,11 @@ describe('CommitmentContract', () => {
     }
 
     beforeEach(async () => {
-      await commitmentContract.submitRoot(blockNumber, root)
+      await commitment.submitRoot(blockNumber, root)
     })
 
     it('suceed to verify inclusion of the most left leaf', async () => {
-      const result = await commitmentContract.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf0.data,
         tokenAddress,
         { start: 0, end: 5 },
@@ -170,7 +156,7 @@ describe('CommitmentContract', () => {
           ]
         }
       }
-      const result = await commitmentContract.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf1.data,
         tokenAddress,
         { start: 7, end: 10 },
@@ -211,7 +197,7 @@ describe('CommitmentContract', () => {
           ]
         }
       }
-      const result = await commitmentContract.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf2.data,
         tokenAddress,
         { start: 15, end: 500 },
@@ -252,7 +238,7 @@ describe('CommitmentContract', () => {
           ]
         }
       }
-      const result = await commitmentContract.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf3.data,
         tokenAddress,
         { start: 5000, end: 5010 },
@@ -264,7 +250,7 @@ describe('CommitmentContract', () => {
 
     it('fail to verify inclusion because of invalid range', async () => {
       await expect(
-        commitmentContract.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 10, end: 20 },
@@ -276,7 +262,7 @@ describe('CommitmentContract', () => {
 
     it('fail to verify inclusion because of end exceeded', async () => {
       await expect(
-        commitmentContract.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 0, end: 20 },
@@ -287,7 +273,7 @@ describe('CommitmentContract', () => {
     })
 
     it('fail to verify inclusion because of invalid hash data', async () => {
-      const result = await commitmentContract.verifyInclusion(
+      const result = await commitmentVerifier.verifyInclusion(
         leaf1.data,
         tokenAddress,
         { start: 0, end: 5 },
@@ -329,7 +315,7 @@ describe('CommitmentContract', () => {
       }
 
       await expect(
-        commitmentContract.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf0.data,
           tokenAddress,
           { start: 0, end: 5 },
@@ -372,7 +358,7 @@ describe('CommitmentContract', () => {
         }
       }
       await expect(
-        commitmentContract.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf1.data,
           tokenAddress,
           { start: 7, end: 15 },
@@ -413,7 +399,7 @@ describe('CommitmentContract', () => {
         }
       }
       await expect(
-        commitmentContract.verifyInclusion(
+        commitmentVerifier.verifyInclusion(
           leaf3.data,
           '0x0000000000000000000000000000000000000002',
           { start: 5000, end: 5010 },
@@ -423,34 +409,6 @@ describe('CommitmentContract', () => {
       ).to.be.revertedWith(
         'required address must not exceed the implicit address'
       )
-    })
-  })
-
-  describe('getCurrentBlock', () => {
-    beforeEach(async () => {
-      await expect(commitmentContract.submitRoot(1, root)).to.emit(
-        commitmentContract,
-        'BlockSubmitted'
-      )
-    })
-
-    it('suceed to get current block', async () => {
-      const currentBlock = await commitmentContract.currentBlock()
-      expect(currentBlock).to.be.equal(1)
-    })
-  })
-
-  describe('blocks', () => {
-    beforeEach(async () => {
-      await expect(commitmentContract.submitRoot(1, root)).to.emit(
-        commitmentContract,
-        'BlockSubmitted'
-      )
-    })
-
-    it('suceed to get a block', async () => {
-      const block = await commitmentContract.blocks(1)
-      expect(block).to.be.equal(root)
     })
   })
 })
