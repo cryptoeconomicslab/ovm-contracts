@@ -101,7 +101,8 @@ contract DepositContract is Ownable {
         public
     {
         require(
-            DepositStorage(depositStorage).getTotalDeposited() < 2**256 - 1 - _amount,
+            DepositStorage(depositStorage).getTotalDeposited() <
+                2**256 - 1 - _amount,
             "DepositContract: totalDeposited exceed max uint256"
         );
         ERC20 erc20 = ERC20(DepositStorage(depositStorage).getErc20());
@@ -135,7 +136,9 @@ contract DepositContract is Ownable {
 
     // TODO: make this private
     function extendDepositedRanges(uint256 _amount) public {
-        types.Range memory range = getDepositedRange(DepositStorage(depositStorage).getTotalDeposited());
+        types.Range memory range = getDepositedRange(
+            DepositStorage(depositStorage).getTotalDeposited()
+        );
         uint256 oldStart = range.start;
         uint256 oldEnd = range.end;
         uint256 newStart;
@@ -147,9 +150,13 @@ contract DepositContract is Ownable {
             deleteDepositedRange(oldEnd);
             newStart = oldStart;
         }
-        uint256 newEnd = DepositStorage(depositStorage).getTotalDeposited().add(_amount);
+        uint256 newEnd = DepositStorage(depositStorage).getTotalDeposited().add(
+            _amount
+        );
         setDepositedRange(newEnd, types.Range({start: newStart, end: newEnd}));
-        uint256 totalDeposited = DepositStorage(depositStorage).getTotalDeposited().add(_amount);
+        uint256 totalDeposited = DepositStorage(depositStorage)
+            .getTotalDeposited()
+            .add(_amount);
         DepositStorage(depositStorage).setTotalDeposited(totalDeposited);
         emit DepositedRangeExtended(
             types.Range({start: newStart, end: newEnd})
@@ -166,7 +173,9 @@ contract DepositContract is Ownable {
             "range must be of a depostied range (the one that has not been exited)"
         );
 
-        types.Range memory encompasingRange = getDepositedRange(_depositedRangeId);
+        types.Range memory encompasingRange = getDepositedRange(
+            _depositedRangeId
+        );
         /*
          * depositedRanges makes O(1) checking existence of certain range.
          * Since _range is subrange of encompasingRange, we only have to check is each start and end are same or not.
@@ -309,7 +318,9 @@ contract DepositContract is Ownable {
             types.StateUpdate memory stateUpdate = Deserializer
                 .deserializeStateUpdate(checkpoint.stateUpdate);
             require(
-                DepositStorage(depositStorage).getCheckPoints(getCheckpointId(checkpoint)),
+                DepositStorage(depositStorage).getCheckPoints(
+                    getCheckpointId(checkpoint)
+                ),
                 "checkpoint must be finalized"
             );
             require(
@@ -361,12 +372,18 @@ contract DepositContract is Ownable {
             _subrange.end <= _surroundingRange.end;
     }
 
-    function setDepositedRange(uint256 _key, types.Range memory _range) private {
+    function setDepositedRange(uint256 _key, types.Range memory _range)
+        private
+    {
         DepositStorage(depositStorage).setRangeStart(_key, _range.start);
         DepositStorage(depositStorage).setRangeEnd(_key, _range.end);
     }
 
-    function getDepositedRange(uint256 _key) private view returns (types.Range memory){
+    function getDepositedRange(uint256 _key)
+        private
+        view
+        returns (types.Range memory)
+    {
         uint256 startValue = DepositStorage(depositStorage).getRangeStart(_key);
         uint256 endValue = DepositStorage(depositStorage).getRangeEnd(_key);
         return types.Range({start: startValue, end: endValue});
@@ -377,7 +394,7 @@ contract DepositContract is Ownable {
         DepositStorage(depositStorage).deleteRangeEnd(_key);
     }
 
-    function erc20() external view returns(ERC20){
+    function erc20() external view returns (ERC20) {
         return ERC20(DepositStorage(depositStorage).getErc20());
     }
 }
