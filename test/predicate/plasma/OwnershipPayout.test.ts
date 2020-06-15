@@ -135,7 +135,20 @@ describe('OwnershipPayout', () => {
 
       expect(true).to.be.true
     })
+    it('check gas cost', async () => {
+      const stateObject = {
+        predicateAddress: mockOwnershipPredicate.address,
+        inputs: [encodeAddress(wallets[0].address)]
+      }
 
+      const gasCost = await ownershipPayout.estimate.finalizeExit(
+        mockDepositContract.address,
+        makeExitProperty(stateObject),
+        0,
+        wallet.address
+      )
+      expect(gasCost.toNumber()).to.be.lt(108000)
+    })
     it('throw exception', async () => {
       const stateObject = {
         predicateAddress: mockOwnershipPredicate.address,

@@ -155,6 +155,12 @@ describe('UniversalAdjudicationContract', () => {
       await expect(adjudicationContract.claimProperty(trueProperty)).to.be
         .reverted
     })
+    it('check gas cost', async () => {
+      let gasCost = await adjudicationContract.estimate.claimProperty(trueProperty)
+      expect(gasCost.toNumber()).to.be.lt(90000)
+      gasCost = await adjudicationContract.estimate.claimProperty(notProperty)
+      expect(gasCost.toNumber()).to.be.lt(95000)
+    })
   })
 
   describe('challenge', () => {
@@ -230,6 +236,12 @@ describe('UniversalAdjudicationContract', () => {
       const gameId = getGameIdFromProperty(notProperty)
       await expect(adjudicationContract.decideClaimToTrue(gameId)).to.be
         .reverted
+    })
+    it('check gas cost', async () => {
+      await adjudicationContract.claimProperty(notProperty)
+      const gameId = getGameIdFromProperty(notProperty)
+      const gasCost = await adjudicationContract.estimate.decideClaimToTrue(gameId)
+      expect(gasCost.toNumber()).to.be.lt(26000)
     })
   })
 
