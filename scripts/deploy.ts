@@ -336,11 +336,7 @@ const deployContracts = async (
   if (operatorAddress === undefined) {
     throw new Error('OPERATOR_ADDRESS not provided.')
   }
-  const commitment = await deployContract(
-    Commitment,
-    wallet,
-    operatorAddress
-  )
+  const commitment = await deployContract(Commitment, wallet, operatorAddress)
   console.log('Commitment Deployed')
 
   const commitmentVerifier = await deployContract(
@@ -402,8 +398,8 @@ const deployContracts = async (
   const plasmaETH = await deployContract(
     PlasmaETH,
     wallet,
-    'PETH',
     'PlasmaETH',
+    'PETH',
     18 // decimals
   )
   console.log('PlasmaETH Deployed')

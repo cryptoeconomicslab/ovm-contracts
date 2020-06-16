@@ -30,8 +30,8 @@ async function deployToken() {
   const dummyERC20 = await deployContract(
     DummyERC20,
     wallet,
-    'DUM',
     'DummyERC20',
+    'DUM',
     18,
     minterAddress
   )
