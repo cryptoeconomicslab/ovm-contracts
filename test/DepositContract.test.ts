@@ -24,9 +24,9 @@ import {
   encodeInteger
 } from './helpers/utils'
 import {
-  getTransactionEvent,
   getTransactionEvents
 } from './helpers/getTransactionEvent'
+import {gasCost as GasCost} from './GasCost.test'
 const abi = new ethers.utils.AbiCoder()
 const { MaxUint256 } = ethers.constants
 
@@ -171,6 +171,11 @@ describe('DepositContract', () => {
       await expect(depositContract.deposit(1, stateObject)).to.be.revertedWith(
         'DepositContract: totalDeposited exceed max uint256'
       )
+    })
+    it('check gas cost', async () => {
+      await mockTokenContract.approve(depositContract.address, 10)
+      const gasCost = await depositContract.estimate.deposit(1, stateObject)
+      expect(gasCost.toNumber()).to.be.lt(GasCost.DEPOSIT_CONTRACT_DEPOSIT)
     })
   })
 
@@ -424,6 +429,13 @@ describe('DepositContract', () => {
         ethers.utils.bigNumberify(0),
         ethers.utils.bigNumberify(5)
       ])
+    })
+    it('check gas cost', async () => {
+      const gasCost = await mockOwnershipPredicate.estimate.finalizeExit(
+        exitPropertyCreator([5, 10]),
+        10
+      )
+      expect(gasCost.toNumber()).to.be.lt(GasCost.DEPOSIT_CONTRACT_FINALIZE_EXIT)
     })
     it('fail to finalize exit because it is not called from ownership predicate', async () => {
       await expect(

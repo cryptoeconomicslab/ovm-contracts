@@ -21,8 +21,7 @@ import {
   encodeInteger,
   encodeAddress
 } from '../../helpers/utils'
-import { encode } from 'punycode'
-
+import {gasCost as GasCost} from './../../GasCost.test'
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect } = chai
@@ -135,7 +134,20 @@ describe('OwnershipPayout', () => {
 
       expect(true).to.be.true
     })
+    it('check gas cost', async () => {
+      const stateObject = {
+        predicateAddress: mockOwnershipPredicate.address,
+        inputs: [encodeAddress(wallets[0].address)]
+      }
 
+      const gasCost = await ownershipPayout.estimate.finalizeExit(
+        mockDepositContract.address,
+        makeExitProperty(stateObject),
+        0,
+        wallet.address
+      )
+      expect(gasCost.toNumber()).to.be.lt(GasCost.OWNERSHIP_PAYMENT_FINALIZE_EXIT)
+    })
     it('throw exception', async () => {
       const stateObject = {
         predicateAddress: mockOwnershipPredicate.address,
