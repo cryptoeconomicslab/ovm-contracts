@@ -26,7 +26,7 @@ import {
 import {
   getTransactionEvents
 } from './helpers/getTransactionEvent'
-import {GasCost} from './GasCost.test'
+import {gasCost as GasCost} from './GasCost.test'
 const abi = new ethers.utils.AbiCoder()
 const { MaxUint256 } = ethers.constants
 

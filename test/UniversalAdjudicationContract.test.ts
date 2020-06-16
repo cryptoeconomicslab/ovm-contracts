@@ -25,7 +25,7 @@ import {
   encodeString,
   encodeVariable
 } from './helpers/utils'
-import {GasCost} from './GasCost.test'
+import {gasCost as GasCost} from './GasCost.test'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
