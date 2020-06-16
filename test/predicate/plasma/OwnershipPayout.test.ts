@@ -21,8 +21,7 @@ import {
   encodeInteger,
   encodeAddress
 } from '../../helpers/utils'
-import { encode } from 'punycode'
-
+import {GasCost} from './../../GasCost.test'
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect } = chai
@@ -147,7 +146,7 @@ describe('OwnershipPayout', () => {
         0,
         wallet.address
       )
-      expect(gasCost.toNumber()).to.be.lt(108000)
+      expect(gasCost.toNumber()).to.be.lt(GasCost.OWNERSHIP_PAYMENT_FINALIZE_EXIT)
     })
     it('throw exception', async () => {
       const stateObject = {

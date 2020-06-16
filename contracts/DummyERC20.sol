@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
-
 /**
  * @dev PlasmaETH is ERC20 Token wrap ETH for Plasma
  */

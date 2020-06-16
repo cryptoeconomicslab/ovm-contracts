@@ -21,11 +21,11 @@ import { increaseBlocks } from './helpers/increaseBlocks'
 import {
   getGameIdFromProperty,
   OvmProperty,
-  randomAddress,
   encodeProperty,
   encodeString,
   encodeVariable
 } from './helpers/utils'
+import {GasCost} from './GasCost.test'
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
@@ -157,9 +157,9 @@ describe('UniversalAdjudicationContract', () => {
     })
     it('check gas cost', async () => {
       let gasCost = await adjudicationContract.estimate.claimProperty(trueProperty)
-      expect(gasCost.toNumber()).to.be.lt(90000)
+      expect(gasCost.toNumber()).to.be.lt(GasCost.UNIVERSAL_ADJUDICATION_CONTRACT_CLAIM_PROPERTY)
       gasCost = await adjudicationContract.estimate.claimProperty(notProperty)
-      expect(gasCost.toNumber()).to.be.lt(95000)
+      expect(gasCost.toNumber()).to.be.lt(GasCost.UNIVERSAL_ADJUDICATION_CONTRACT_CLAIM_PROPERTY)
     })
   })
 
@@ -241,7 +241,7 @@ describe('UniversalAdjudicationContract', () => {
       await adjudicationContract.claimProperty(notProperty)
       const gameId = getGameIdFromProperty(notProperty)
       const gasCost = await adjudicationContract.estimate.decideClaimToTrue(gameId)
-      expect(gasCost.toNumber()).to.be.lt(26000)
+      expect(gasCost.toNumber()).to.be.lt(GasCost.UNIVERSAL_ADJUDICATION_CONTRACT_DECIDE_CLAIM_TO_TRUE)
     })
   })
 
