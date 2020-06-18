@@ -29,7 +29,7 @@
     "@cryptoeconomicslab/ovm-transpiler": "0.4.0",
     "@openzeppelin/contracts": "2.5.1",
     "@types/chai": "4.2.11",
-    "@types/jest": "24.9.1",
+    "@types/jest": "26.0.0",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
     "dotenv": "8.2.0",
@@ -42,7 +42,7 @@
     "solc": "0.5.17",
     "solidity-docgen": "0.5.3",
     "ts-node": "8.10.2",
-    "typescript": "3.7.2"
+    "typescript": "3.9.5"
   },
   "dependencies": {
     "@cryptoeconomicslab/hash": "^0.4.1-alpha.0",
