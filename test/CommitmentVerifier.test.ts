@@ -16,7 +16,7 @@ chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect } = chai
 
-describe('Verify', () => {
+describe('CommitmentVerify', () => {
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
