@@ -27,7 +27,7 @@
     "@cryptoeconomicslab/ovm-ethereum-generator": "0.4.1-alpha.2",
     "@cryptoeconomicslab/ovm-parser": "0.4.0",
     "@cryptoeconomicslab/ovm-transpiler": "0.4.0",
-    "@openzeppelin/contracts": "2.5.0",
+    "@openzeppelin/contracts": "2.5.1",
     "@types/chai": "4.2.5",
     "@types/jest": "24.0.23",
     "chai": "4.2.0",
