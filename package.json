@@ -34,7 +34,7 @@
     "chai-as-promised": "7.1.1",
     "dotenv": "8.2.0",
     "ethereum-waffle": "2.1.0",
-    "ethers": "4.0.33",
+    "ethers": "4.0.47",
     "husky": "3.1.0",
     "mocha": "6.2.3",
     "prettier": "1.19.1",
@@ -46,7 +46,8 @@
   },
   "dependencies": {
     "@cryptoeconomicslab/hash": "^0.4.1-alpha.0",
-    "@cryptoeconomicslab/primitives": "^0.4.0"
+    "@cryptoeconomicslab/primitives": "^0.4.0",
+    "@types/node": "^14.0.13"
   },
   "husky": {
     "hooks": {
