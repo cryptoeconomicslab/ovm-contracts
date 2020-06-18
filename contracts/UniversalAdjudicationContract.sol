@@ -127,6 +127,7 @@ contract UniversalAdjudicationContract {
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
         types.ChallengeGame storage game = instantiatedGames[gameId];
 
+
             types.ChallengeGame memory challengingGame
          = instantiatedGames[challengingGameId];
         bool isValidChallenge = false;
@@ -190,6 +191,7 @@ contract UniversalAdjudicationContract {
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
         types.ChallengeGame storage game = instantiatedGames[gameId];
 
+
             types.ChallengeGame memory challengingGame
          = instantiatedGames[challengingGameId];
         // check _challenge is in _game.challenges
@@ -250,6 +252,7 @@ contract UniversalAdjudicationContract {
         bytes32 gameId = utils.getPropertyId(_property);
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
         types.ChallengeGame storage game = instantiatedGames[gameId];
+
 
             types.ChallengeGame memory challengingGame
          = instantiatedGames[challengingGameId];
