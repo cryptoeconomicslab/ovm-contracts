@@ -9,12 +9,15 @@ import {DataTypes as types} from "../DataTypes.sol";
  */
 contract MockAdjudicationContract {
     bool public fail;
+
     constructor(bool _fail) public {
         fail = _fail;
     }
+
     function isDecided(types.Property memory _property) public returns (bool) {
         return !fail;
     }
+
     function setPredicateDecision(
         types.Property memory _property,
         bool _decision

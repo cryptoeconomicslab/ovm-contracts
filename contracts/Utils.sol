@@ -73,11 +73,11 @@ contract Utils {
         return subBytes(target, 1, target.length);
     }
 
-    function subBytes(bytes memory target, uint256 startIndex, uint256 endIndex)
-        private
-        pure
-        returns (bytes memory)
-    {
+    function subBytes(
+        bytes memory target,
+        uint256 startIndex,
+        uint256 endIndex
+    ) private pure returns (bytes memory) {
         bytes memory result = new bytes(endIndex - startIndex);
         for (uint256 i = startIndex; i < endIndex; i++) {
             result[i - startIndex] = target[i];

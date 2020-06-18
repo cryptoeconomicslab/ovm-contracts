@@ -33,5 +33,4 @@ contract TestPredicate is BaseAtomicPredicate {
 
         emit ValueDecided(false, _inputs);
     }
-
 }

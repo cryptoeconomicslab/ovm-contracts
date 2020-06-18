@@ -213,5 +213,4 @@ contract CommitmentVerifier is Storage {
                 abi.encodePacked(_left, _leftAddress, _right, _rightAddress)
             );
     }
-
 }

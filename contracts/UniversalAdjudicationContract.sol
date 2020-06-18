@@ -126,7 +126,9 @@ contract UniversalAdjudicationContract {
         bytes32 gameId = utils.getPropertyId(_property);
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
         types.ChallengeGame storage game = instantiatedGames[gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
+
+            types.ChallengeGame memory challengingGame
+         = instantiatedGames[challengingGameId];
         bool isValidChallenge = false;
         for (uint256 i = 0; i < game.challenges.length; i++) {
             if (game.challenges[i] == challengingGameId) {
@@ -187,7 +189,9 @@ contract UniversalAdjudicationContract {
         bytes32 gameId = utils.getPropertyId(_property);
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
         types.ChallengeGame storage game = instantiatedGames[gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
+
+            types.ChallengeGame memory challengingGame
+         = instantiatedGames[challengingGameId];
         // check _challenge is in _game.challenges
         int128 challengeIndex = -1;
         for (uint256 i = 0; i < game.challenges.length; i++) {
@@ -246,7 +250,9 @@ contract UniversalAdjudicationContract {
         bytes32 gameId = utils.getPropertyId(_property);
         bytes32 challengingGameId = utils.getPropertyId(_challengingProperty);
         types.ChallengeGame storage game = instantiatedGames[gameId];
-        types.ChallengeGame memory challengingGame = instantiatedGames[challengingGameId];
+
+            types.ChallengeGame memory challengingGame
+         = instantiatedGames[challengingGameId];
         require(
             LogicalConnective(_property.predicateAddress).isValidChallenge(
                 _property.inputs,

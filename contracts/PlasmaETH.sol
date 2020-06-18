@@ -8,11 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
  * @dev PlasmaETH is ERC20 Token wrap ETH for Plasma
  */
 contract PlasmaETH is ERC20, ERC20Detailed {
-    constructor(string memory name, string memory symbol, uint8 decimals)
-        public
-        ERC20()
-        ERC20Detailed(name, symbol, decimals)
-    {}
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    ) public ERC20() ERC20Detailed(name, symbol, decimals) {}
 
     /**
      * @dev wrap ETH in PlasmaETH

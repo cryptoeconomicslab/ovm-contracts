@@ -18,14 +18,17 @@ contract MockToken is ERC20 {
         require(!isFail);
         return true;
     }
+
     function transfer(address recipient, uint256 amount) public returns (bool) {
         require(!isFail);
         return true;
     }
-    function transferFrom(address sender, address recipient, uint256 amount)
-        public
-        returns (bool)
-    {
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public returns (bool) {
         require(!isFail);
         return true;
     }

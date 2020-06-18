@@ -27,7 +27,7 @@ contract DepositContract {
      * @notice Emitted when checkpoint is finalized
      * @param checkpointId Hash of the checkpoint property
      * @param checkpoint Finalized checkpoint
-    */
+     */
     event CheckpointFinalized(
         bytes32 checkpointId,
         types.Checkpoint checkpoint
@@ -155,7 +155,9 @@ contract DepositContract {
             "range must be of a depostied range (the one that has not been exited)"
         );
 
-        types.Range storage encompasingRange = depositedRanges[_depositedRangeId];
+
+            types.Range storage encompasingRange
+         = depositedRanges[_depositedRangeId];
         /*
          * depositedRanges makes O(1) checking existence of certain range.
          * Since _range is subrange of encompasingRange, we only have to check is each start and end are same or not.
@@ -224,7 +226,7 @@ contract DepositContract {
      *     _exitProperty can be a property of either ExitPredicate or ExitDepositPredicate.
      * @param _depositedRangeId Id of deposited range
      * @return returns finalized StateUpdate of specified exit property
-    */
+     */
     function finalizeExit(
         types.Property memory _exitProperty,
         uint256 _depositedRangeId
