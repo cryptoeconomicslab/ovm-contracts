@@ -29,7 +29,7 @@
     "@cryptoeconomicslab/ovm-transpiler": "0.4.0",
     "@openzeppelin/contracts": "2.5.1",
     "@types/chai": "4.2.11",
-    "@types/jest": "24.9.1",
+    "@types/jest": "26.0.0",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
     "dotenv": "8.2.0",
