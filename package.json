@@ -35,7 +35,7 @@
     "dotenv": "8.2.0",
     "ethereum-waffle": "2.1.0",
     "ethers": "4.0.47",
-    "husky": "3.1.0",
+    "husky": "4.2.5",
     "mocha": "6.2.3",
     "prettier": "1.19.1",
     "prettier-plugin-solidity": "1.0.0-alpha.54",
