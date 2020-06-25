@@ -126,6 +126,10 @@ contract DisputeManager {
         emit ChallengeRemoved(id, challengeGameId);
     }
 
+    /**
+     * set game result to given result value.
+     * only called from dispute contract
+     */
     function setGameResult(types.Property memory _property, bool result)
         public
         onlyFromDisputeContract(_property)
@@ -141,11 +145,39 @@ contract DisputeManager {
         emit PropertyDecided(id, result);
     }
 
+    /**
+     * settle game
+     * settle started game whose dispute period has passed.
+     * if no challenge for the property exists, decide to true.
+     * if any of its challenges decided to true, decide game to false.
+     * if undecided challenge remains, revert.
+     */
     function settleGame(types.Property memory _property) public {
-        // TODO: check if dispute period have been passed
-        // TODO: check if challenge is empty
-        // TODO: set decision to True
-        // TODO: emit event
+        bytes32 id = utils.getPropertyId(_property);
+        require(started(id), "property is not claimed");
+
+        types.ChallengeGame storage game = games[id];
+        require(
+            game.createdBlock < block.number - DISPUTE_PERIOD,
+            "dispute period has not been passed"
+        );
+
+        bool undecidedChallengeExists = false;
+
+        for (uint256 i = 0; i < game.challenges.length; i++) {
+            types.Decision decision = getGame(game.challenges[i]).decision;
+            if (decision == types.Decision.True) {
+                game.decision = types.Decision.False;
+                emit PropertyDecided(id, false);
+                return;
+            } else if (decision == types.Decision.Undecided) {
+                undecidedChallengeExists = true;
+            }
+        }
+        require(!undecidedChallengeExists, "undecided challenge exists");
+
+        game.decision = types.Decision.True;
+        emit PropertyDecided(id, true);
     }
 
     function getGame(bytes32 _id)
