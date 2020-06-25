@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import {Dispute} from "./DisputeInterface.sol";
+import {DisputeManager} from "./DisputeManager.sol";
 
 /**
  * # CheckpointDispute contract
@@ -29,8 +30,14 @@ import {Dispute} from "./DisputeInterface.sol";
  * ex) ownership : [[owner, tx], [signature]]
  */
 contract CheckpointDispute is Dispute {
-    function claim(bytes[] calldata _propertyInputs, bytes[] calldata _witness)
-        external
+    DisputeManager disputeManager;
+
+    constructor(address _disputeManagerAddress) public {
+        disputeManager = DisputeManager(_disputeManagerAddress);
+    }
+
+    function claim(bytes[] memory _propertyInputs, bytes[] memory _witness)
+        public
     {
         // TODO: check property inputs
         // TODO: verify inclusion proof
@@ -38,10 +45,10 @@ contract CheckpointDispute is Dispute {
     }
 
     function challenge(
-        bytes[] calldata _propertyInputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external {
+        bytes[] memory _propertyInputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) public {
         // TODO: check property inputs
         // check challenge inputs
         // TODO: check stateUpdate blockNumber, range, depositContractAddress = equal to quantifier SU
@@ -54,10 +61,10 @@ contract CheckpointDispute is Dispute {
     }
 
     function removeChallenge(
-        bytes[] calldata _propertyInputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external {
+        bytes[] memory _propertyInputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) public {
         // TODO: check property inputs
         // TODO: check challenge inputs
         // TODO: create challenge property of challenge

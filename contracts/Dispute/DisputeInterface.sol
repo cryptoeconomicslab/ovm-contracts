@@ -28,6 +28,7 @@ interface Dispute {
      * remove challenge of a claimed statement by invalidating the challenge.
      */
     function removeChallenge(
+        bytes[] calldata _propertyInputs,
         bytes[] calldata _challengeInputs,
         bytes[] calldata _witness
     ) external;
