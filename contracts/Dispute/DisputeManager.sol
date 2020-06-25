@@ -70,7 +70,7 @@ contract DisputeManager {
     /**
      * Challenge to an existing game instance by a property.
      * challenge will be added to `challenges` field of challenged game instance.
-     * if property is not existed, revert.
+     * if property does not exist, revert.
      * if challenge with same property was made before, revert.
      */
     function challenge(
@@ -95,22 +95,52 @@ contract DisputeManager {
         emit PropertyChallenged(id, challengeGameId);
     }
 
+    /**
+     * remove challenge
+     * set challenging game decision to false and remove it from challenges field of challenged game
+     * if property does not exist, revert.
+     * if challenge property does not exist, revert.
+     */
     function removeChallenge(
         types.Property memory _property,
         types.Property memory _challengeProperty
     ) public onlyFromDisputeContract(_property) {
-        // TODO: set challenging game decision to false
-        // TODO: remove challenge from game
+        bytes32 id = utils.getPropertyId(_property);
+        require(started(id), "property is not claimed");
+
+        bytes32 challengeGameId = utils.getPropertyId(_challengeProperty);
+        require(started(challengeGameId), "challenge property is not claimed");
+
+        types.ChallengeGame storage game = games[id];
+        int128 challengeIndex = findIndex(game.challenges, challengeGameId);
+
+        require(challengeIndex >= 0, "challenge is not in the challenge list");
+
+        types.ChallengeGame memory challengeGame = games[challengeGameId];
+        require(
+            challengeGame.decision == types.Decision.False,
+            "challenge property is not decided to false"
+        );
+
+        removeChallengefromArray(game.challenges, uint256(challengeIndex));
+        emit ChallengeRemoved(id, challengeGameId);
     }
 
     function setGameResult(types.Property memory _property, bool result)
         public
         onlyFromDisputeContract(_property)
     {
+        // tmp implementation
+        bytes32 id = utils.getPropertyId(_property);
+        require(started(id), "property is not claimed");
+        types.ChallengeGame storage game = games[id];
+        game.decision = getDecision(result);
+
         // TODO: check if game is started
         // TODO: check if challenge is empty
         // TODO: set decision
         // TODO: emit event
+
     }
 
     function settleGame(types.Property memory _property) public {
@@ -131,12 +161,12 @@ contract DisputeManager {
     /**
      * check if game of given id is already started
      */
-    function started(bytes32 _id) internal view returns (bool) {
+    function started(bytes32 _id) private view returns (bool) {
         return games[_id].createdBlock != 0;
     }
 
     function createGame(bytes32 id)
-        internal
+        private
         view
         returns (types.ChallengeGame memory)
     {
@@ -147,5 +177,43 @@ contract DisputeManager {
                 types.Decision.Undecided,
                 block.number
             );
+    }
+
+    function getDecision(bool result) private pure returns (types.Decision) {
+        if (result) {
+            return types.Decision.True;
+        } else {
+            return types.Decision.False;
+        }
+    }
+
+    function findIndex(bytes32[] storage array, bytes32 item)
+        private
+        view
+        returns (int128)
+    {
+        int128 idx = -1;
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == item) {
+                idx = int128(i);
+            }
+        }
+
+        return idx;
+    }
+
+    function removeChallengefromArray(
+        bytes32[] storage challenges,
+        uint256 index
+    ) private {
+        require(
+            index < challenges.length,
+            "index must be less than challenges.length"
+        );
+        for (uint256 i = index; i < challenges.length - 1; i++) {
+            challenges[i] = challenges[i + 1];
+        }
+        delete challenges[challenges.length - 1];
+        challenges.length -= 1;
     }
 }
