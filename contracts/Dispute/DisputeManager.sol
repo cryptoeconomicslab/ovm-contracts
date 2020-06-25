@@ -19,6 +19,15 @@ contract DisputeManager {
     mapping(bytes32 => types.ChallengeGame) public games;
     Utils utils;
 
+    // EVENTS
+    event NewPropertyClaimed(
+        bytes32 gameId,
+        types.Property property,
+        uint256 createdBlock
+    );
+
+    // MODIFIERS
+
     /**
      * requires if msg.sender is dispute contract specified in the property's predicateAddress
      */
@@ -30,6 +39,7 @@ contract DisputeManager {
         _;
     }
 
+    // METHODS
     constructor(address _utilsAddress) public {
         utils = Utils(_utilsAddress);
     }
@@ -49,8 +59,7 @@ contract DisputeManager {
         );
         games[id] = game;
 
-        // TODO: emit event
-
+        emit NewPropertyClaimed(id, _property, block.number);
     }
 
     function challenge(
@@ -88,10 +97,9 @@ contract DisputeManager {
     }
 
     /**
-     * if game of given id is already started
+     * check if game of given id is already started
      */
-    function started(bytes32 _id) internal pure returns (bool) {
-        // TODO: implement
-        return false;
+    function started(bytes32 _id) internal view returns (bool) {
+        return games[_id].createdBlock != 0;
     }
 }
