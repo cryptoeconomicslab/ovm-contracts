@@ -12,12 +12,15 @@ import "../DepositContract.sol";
 contract MockOwnershipPredicate is CompiledPredicate {
     address public depositContractAddress;
     address public payoutContractAddress = address(this);
+
     constructor(address _depositContractAddress) public {
         depositContractAddress = _depositContractAddress;
     }
+
     function setPayoutContractAddress(address _payoutContractAddress) public {
         payoutContractAddress = _payoutContractAddress;
     }
+
     function isValidChallenge(
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
@@ -25,6 +28,7 @@ contract MockOwnershipPredicate is CompiledPredicate {
     ) public view returns (bool) {
         return true;
     }
+
     function decide(bytes[] memory _inputs, bytes[] memory _witness)
         public
         view
@@ -32,9 +36,11 @@ contract MockOwnershipPredicate is CompiledPredicate {
     {
         return true;
     }
+
     function decideTrue(bytes[] memory _inputs, bytes[] memory _witness)
         public
     {}
+
     function finalizeExit(
         types.Property memory _exitProperty,
         uint256 _depositedRangeId

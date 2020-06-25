@@ -1,11 +1,11 @@
 pragma solidity ^0.5.0;
 
 library ECRecover {
-    function ecverify(bytes32 hash, bytes memory sig, address signer)
-        public
-        pure
-        returns (bool)
-    {
+    function ecverify(
+        bytes32 hash,
+        bytes memory sig,
+        address signer
+    ) public pure returns (bool) {
         return signer == recover(hash, sig);
     }
 

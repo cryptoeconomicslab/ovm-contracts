@@ -45,8 +45,7 @@ contract ForAllSuchThatQuantifier is LogicalConnective, DecidablePredicate {
         require(
             keccak256(
                 replaceVariable(_inputs[2], _inputs[1], _challengeInputs[0])
-            ) ==
-                keccak256(_challnge.inputs[0]),
+            ) == keccak256(_challnge.inputs[0]),
             "must be valid inner property"
         );
         return true;

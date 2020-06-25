@@ -8,6 +8,7 @@ import "../Library/Deserializer.sol";
 
 contract MockDepositContract {
     ERC20 public erc20;
+
     constructor(address mockToken) public {
         erc20 = MockToken(mockToken);
     }
@@ -22,5 +23,4 @@ contract MockDepositContract {
     ) public returns (types.StateUpdate memory) {
         return Deserializer.deserializeExit(_exitProperty).stateUpdate;
     }
-
 }

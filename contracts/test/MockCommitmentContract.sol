@@ -9,6 +9,7 @@ import {DataTypes as types} from "../DataTypes.sol";
  */
 contract MockCommitmentContract {
     uint256 public currentBlock = 100;
+
     function verifyInclusion(
         bytes32 _leaf,
         address _tokenAddress,

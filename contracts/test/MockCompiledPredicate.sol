@@ -10,7 +10,9 @@ import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
  */
 contract MockCompiledPredicate is CompiledPredicate {
     address public payoutContractAddress = address(this);
+
     constructor() public {}
+
     function isValidChallenge(
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
@@ -18,6 +20,7 @@ contract MockCompiledPredicate is CompiledPredicate {
     ) public view returns (bool) {
         return true;
     }
+
     function decide(bytes[] memory _inputs, bytes[] memory _witness)
         public
         view
@@ -25,6 +28,7 @@ contract MockCompiledPredicate is CompiledPredicate {
     {
         return true;
     }
+
     function decideTrue(bytes[] memory _inputs, bytes[] memory _witness)
         public
     {}
