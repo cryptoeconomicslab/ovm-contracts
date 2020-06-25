@@ -133,14 +133,12 @@ contract DisputeManager {
         // tmp implementation
         bytes32 id = utils.getPropertyId(_property);
         require(started(id), "property is not claimed");
+
         types.ChallengeGame storage game = games[id];
+        require(game.challenges.length == 0, "challenge list is not empty");
+
         game.decision = getDecision(result);
-
-        // TODO: check if game is started
-        // TODO: check if challenge is empty
-        // TODO: set decision
-        // TODO: emit event
-
+        emit PropertyDecided(id, result);
     }
 
     function settleGame(types.Property memory _property) public {

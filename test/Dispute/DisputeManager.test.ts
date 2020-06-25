@@ -207,4 +207,67 @@ describe('DisputeManager', () => {
       })
     })
   })
+
+  describe('setGameResult', () => {
+    const inputs = ['0x01']
+
+    beforeEach(async () => {
+      await disputeContract.claim(inputs, [])
+    })
+
+    describe('succeed to set game result', () => {
+      it('setGameResult to true', async () => {
+        await expect(disputeContract.setGameResult(inputs, true)).to.emit(
+          disputeManager,
+          'PropertyDecided'
+        )
+        const gameId = getGameIdFromProperty({
+          predicateAddress: disputeContract.address,
+          inputs
+        })
+        const game = await disputeManager.getGame(gameId)
+        assert.equal(game.decision, DECISION.TRUE)
+      })
+
+      it('setGame result to false', async () => {
+        await expect(disputeContract.setGameResult(inputs, false)).to.emit(
+          disputeManager,
+          'PropertyDecided'
+        )
+        const gameId = getGameIdFromProperty({
+          predicateAddress: disputeContract.address,
+          inputs
+        })
+        const game = await disputeManager.getGame(gameId)
+        assert.equal(game.decision, DECISION.FALSE)
+      })
+    })
+
+    describe('fails to set game result', () => {
+      const notClaimedInputs = ['0x05']
+      const challengeInputs = ['0x02']
+      it('property is not claimed', async () => {
+        await expect(
+          disputeContract.setGameResult(notClaimedInputs, true)
+        ).to.revertedWith('property is not claimed')
+      })
+
+      it('challenge is not empty', async () => {
+        await disputeContract.challenge(inputs, challengeInputs, [])
+        await expect(
+          disputeContract.setGameResult(inputs, true)
+        ).to.revertedWith('challenge list is not empty')
+      })
+
+      it('predicate address does not match', async () => {
+        await expect(
+          disputeContract.setGameResultInvalidAddress(inputs, true)
+        ).to.revertedWith('Method must be called from dispute contract')
+      })
+    })
+  })
+
+  // describe('settleGame', () => {
+  //   //
+  // })
 })
