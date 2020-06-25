@@ -134,7 +134,6 @@ contract DisputeManager {
         public
         onlyFromDisputeContract(_property)
     {
-        // tmp implementation
         bytes32 id = utils.getPropertyId(_property);
         require(started(id), "property is not claimed");
 
