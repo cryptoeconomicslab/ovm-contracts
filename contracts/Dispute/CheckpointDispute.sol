@@ -31,47 +31,38 @@ import {Dispute} from "./DisputeInterface.sol";
 contract CheckpointDispute is Dispute {
     function claim(bytes[] calldata _propertyInputs, bytes[] calldata _witness)
         external
-        view
-        returns (bool)
     {
         // TODO: check property inputs
         // TODO: verify inclusion proof
         // TODO: DisputeManager.claim(property)
-        return false;
     }
 
     function challenge(
         bytes[] calldata _propertyInputs,
         bytes[] calldata _challengeInputs,
         bytes[] calldata _witness
-    ) external view returns (bool) {
+    ) external {
         // TODO: check property inputs
         // check challenge inputs
         // TODO: check stateUpdate blockNumber, range, depositContractAddress = equal to quantifier SU
         // TODO: verify inclusion proof = equal to quantifier IncludedAt
         // TODO: DisputeManager.claim(challengeProperty)
         // TODO: DisputeManager.challenge()
-
         // if challenge property is immediately decidable property (ex. Exit),
         // DisputeManager.decideToTrue(challengeProperty)
         // DisputeManager.decideToFalse(challengedProperty)
-
-        return false;
     }
 
     function removeChallenge(
         bytes[] calldata _propertyInputs,
         bytes[] calldata _challengeInputs,
         bytes[] calldata _witness
-    ) external view returns (bool) {
+    ) external {
         // TODO: check property inputs
         // TODO: check challenge inputs
         // TODO: create challenge property of challenge
         // TODO: decideWithWitness
-
         // TODO: DisputeManager.decideToFalse(challengeProperty)
         // TODO: DisputeManager.removeChallenge(property, challengeProperty.id)
-
-        return false;
     }
 }
