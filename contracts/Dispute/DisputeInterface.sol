@@ -12,14 +12,14 @@ interface Dispute {
     /**
      * claim a statement.
      */
-    function claim(bytes[] calldata _propertyInputs, bytes[] calldata _witness)
+    function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
         external;
 
     /**
      * challenge to a claimed statement.
      */
     function challenge(
-        bytes[] calldata _propertyInputs,
+        bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,
         bytes[] calldata _witness
     ) external;
@@ -28,8 +28,13 @@ interface Dispute {
      * remove challenge of a claimed statement by invalidating the challenge.
      */
     function removeChallenge(
-        bytes[] calldata _propertyInputs,
+        bytes[] calldata _inputs,
         bytes[] calldata _challengeInputs,
         bytes[] calldata _witness
     ) external;
+
+    /**
+     * settle checkpoint claim
+     */
+    function settle(bytes[] calldata _inputs) external;
 }

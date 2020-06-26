@@ -116,4 +116,21 @@ contract MockDisputeContract is Dispute {
         );
         disputeManager.setGameResult(property, result);
     }
+
+    function settle(bytes[] memory _propertyInputs) public {
+        types.Property memory property = types.Property(
+            address(this),
+            _propertyInputs
+        );
+        disputeManager.settleGame(property);
+    }
+
+    function settleInvalidAddress(bytes[] memory _propertyInputs) public {
+        types.Property memory property = types.Property(
+            address(0),
+            _propertyInputs
+        );
+        disputeManager.settleGame(property);
+    }
+
 }

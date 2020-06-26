@@ -151,7 +151,10 @@ contract DisputeManager {
      * if any of its challenges decided to true, decide game to false.
      * if undecided challenge remains, revert.
      */
-    function settleGame(types.Property memory _property) public {
+    function settleGame(types.Property memory _property)
+        public
+        onlyFromDisputeContract(_property)
+    {
         bytes32 id = utils.getPropertyId(_property);
         require(started(id), "property is not claimed");
 

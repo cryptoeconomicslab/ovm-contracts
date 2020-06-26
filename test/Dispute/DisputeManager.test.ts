@@ -277,14 +277,9 @@ describe('DisputeManager', () => {
 
     describe('succeed to settle game', () => {
       it('settle to true', async () => {
-        const property = {
-          predicateAddress: disputeContract.address,
-          inputs
-        }
-
         await increaseBlocks(wallets, 10)
 
-        await expect(disputeManager.settleGame(property)).to.emit(
+        await expect(disputeContract.settle(inputs)).to.emit(
           disputeManager,
           'PropertyDecided'
         )
@@ -297,16 +292,12 @@ describe('DisputeManager', () => {
       })
 
       it('settle to false', async () => {
-        const property = {
-          predicateAddress: disputeContract.address,
-          inputs
-        }
         await disputeContract.challenge(inputs, challengeInputs, [])
         await disputeContract.setGameResult(challengeInputs, true)
 
         await increaseBlocks(wallets, 10)
 
-        await expect(disputeManager.settleGame(property)).to.emit(
+        await expect(disputeContract.settle(inputs)).to.emit(
           disputeManager,
           'PropertyDecided'
         )
@@ -322,37 +313,31 @@ describe('DisputeManager', () => {
     describe('fails to settle game', () => {
       it('property is not claimed', async () => {
         const notClaimedInputs = ['0x05']
-        const property = {
-          predicateAddress: disputeContract.address,
-          inputs: notClaimedInputs
-        }
 
-        await expect(disputeManager.settleGame(property)).to.revertedWith(
+        await expect(disputeContract.settle(notClaimedInputs)).to.revertedWith(
           'property is not claimed'
         )
       })
 
       it('dispute period has not been passed', async () => {
-        const property = {
-          predicateAddress: disputeContract.address,
-          inputs
-        }
-        await expect(disputeManager.settleGame(property)).to.revertedWith(
+        await expect(disputeContract.settle(inputs)).to.revertedWith(
           'dispute period has not been passed'
         )
       })
 
       it('challenge list is not empty', async () => {
-        const property = {
-          predicateAddress: disputeContract.address,
-          inputs
-        }
         await disputeContract.challenge(inputs, challengeInputs, [])
         await increaseBlocks(wallets, 7)
 
-        await expect(disputeManager.settleGame(property)).to.revertedWith(
+        await expect(disputeContract.settle(inputs)).to.revertedWith(
           'undecided challenge exists'
         )
+      })
+
+      it('predicate address does not match', async () => {
+        await expect(
+          disputeContract.settleInvalidAddress(inputs)
+        ).to.revertedWith('Method must be called from dispute contract')
       })
     })
   })
