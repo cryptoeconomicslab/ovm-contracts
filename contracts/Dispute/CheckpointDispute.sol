@@ -4,6 +4,9 @@ pragma experimental ABIEncoderV2;
 import {DataTypes as types} from "../DataTypes.sol";
 import {Dispute} from "./DisputeInterface.sol";
 import {DisputeManager} from "./DisputeManager.sol";
+import {CommitmentVerifier} from "../CommitmentVerifier.sol";
+import {Utils} from "../Utils.sol";
+import "../Library/Deserializer.sol";
 
 /**
  * # CheckpointDispute contract
@@ -31,21 +34,83 @@ import {DisputeManager} from "./DisputeManager.sol";
  */
 contract CheckpointDispute is Dispute {
     DisputeManager disputeManager;
+    CommitmentVerifier commitmentVerifier;
+    Utils utils;
+    bytes CHECKPOINT_CLAIM = bytes("CHECKPOINT_CLAIM");
+    bytes CHECKPOINT_CHALLENGE = bytes("CHECKPOINT_CHALLENGE");
 
-    constructor(address _disputeManagerAddress) public {
+    event CheckpointClaimed(
+        types.StateUpdate stateUpdate,
+        types.InclusionProof inclusionProof
+    );
+
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentContractAddress,
+        address _utilsAddress
+    ) public {
         disputeManager = DisputeManager(_disputeManagerAddress);
+        commitmentVerifier = CommitmentVerifier(_commitmentContractAddress);
+        utils = Utils(_utilsAddress);
     }
 
-    function claim(bytes[] memory _propertyInputs, bytes[] memory _witness)
-        public
-    {
-        // TODO: check property inputs
-        // TODO: verify inclusion proof
-        // TODO: DisputeManager.claim(property)
+    /**
+     * claim checkpoint
+     * _propertyInputs: [encode(stateUpdate)]
+     * _witness: [encode(inclusionProof)]
+     * NOTE: might be possible to define concrete argument type but bytes[]
+     */
+    function claim(bytes[] memory _inputs, bytes[] memory _witness) public {
+        // validate inputs
+        require(
+            _inputs.length == 1,
+            "inputs length does not match. expected 1"
+        );
+        require(
+            _witness.length == 1,
+            "witness length does not match. expected 1"
+        );
+        types.Property memory suProperty = abi.decode(
+            _inputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory stateUpdate = Deserializer
+            .deserializeStateUpdate(suProperty);
+        types.InclusionProof memory inclusionProof = abi.decode(
+            _witness[0],
+            (types.InclusionProof)
+        );
+
+        // verify inclusion proof
+        bytes memory blockNumberBytes = abi.encode(stateUpdate.blockNumber);
+        bytes32 root = utils.bytesToBytes32(
+            commitmentVerifier.retrieve(blockNumberBytes)
+        );
+        require(
+            commitmentVerifier.verifyInclusionWithRoot(
+                keccak256(abi.encode(stateUpdate.stateObject)),
+                stateUpdate.depositContractAddress,
+                stateUpdate.range,
+                inclusionProof,
+                root
+            ),
+            "Inclusion verification failed"
+        );
+
+        // claim property to DisputeManager
+        bytes[] memory inputs = new bytes[](3);
+        inputs[0] = CHECKPOINT_CLAIM;
+        inputs[1] = _inputs[0];
+        inputs[2] = _witness[0];
+
+        types.Property memory property = types.Property(address(this), inputs);
+        disputeManager.claim(property);
+
+        emit CheckpointClaimed(stateUpdate, inclusionProof);
     }
 
     function challenge(
-        bytes[] memory _propertyInputs,
+        bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
     ) public {
@@ -61,7 +126,7 @@ contract CheckpointDispute is Dispute {
     }
 
     function removeChallenge(
-        bytes[] memory _propertyInputs,
+        bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
     ) public {
@@ -72,4 +137,6 @@ contract CheckpointDispute is Dispute {
         // TODO: DisputeManager.decideToFalse(challengeProperty)
         // TODO: DisputeManager.removeChallenge(property, challengeProperty.id)
     }
+
+    function settle(bytes[] memory _inputs) public {}
 }
