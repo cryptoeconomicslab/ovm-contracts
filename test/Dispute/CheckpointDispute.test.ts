@@ -32,9 +32,8 @@ import { StateUpdate } from '@cryptoeconomicslab/plasma'
 import { Property } from '@cryptoeconomicslab/ovm'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
+import { Suite } from 'mocha'
 setupContext({ coder: EthCoder })
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
@@ -162,17 +161,39 @@ describe('CheckpointDispute', () => {
     owner: Address,
     blockNumber: number,
     start: number,
-    end: number
+    end: number,
+    falsy?: boolean
   ) {
+    const predicate = falsy ? falsyCompiledPredicate : truthyCompiledPredicate
     return new StateUpdate(
       Address.default(),
       Address.default(),
       new Range(BigNumber.from(start), BigNumber.from(end)),
       BigNumber.from(blockNumber),
-      new Property(Address.from(truthyCompiledPredicate.address), [
-        EthCoder.encode(owner)
-      ])
+      new Property(Address.from(predicate.address), [EthCoder.encode(owner)])
     )
+  }
+
+  function prepareBlock(owner: string, blockNumber: number, falsy?: boolean) {
+    const su = ownershipStateUpdate(
+      Address.from(owner),
+      blockNumber,
+      0,
+      5,
+      falsy
+    )
+    const falsySU = ownershipStateUpdate(
+      Address.from(owner),
+      blockNumber,
+      10,
+      20
+    )
+    const tree = generateTree(su, falsySU)
+    return {
+      stateUpdate: su,
+      falsySU,
+      ...tree
+    }
   }
 
   describe('claim', () => {
@@ -260,22 +281,6 @@ describe('CheckpointDispute', () => {
   })
 
   describe('challenge', () => {
-    function prepareBlock(owner: string, blockNumber: number) {
-      const su = ownershipStateUpdate(Address.from(owner), blockNumber, 0, 5)
-      const falsySU = ownershipStateUpdate(
-        Address.from(owner),
-        blockNumber,
-        10,
-        20
-      )
-      const tree = generateTree(su, falsySU)
-      return {
-        stateUpdate: su,
-        falsySU,
-        ...tree
-      }
-    }
-
     describe('succeed to challeng echeckpoint', () => {
       it('succeed to challenge invalid history', async () => {
         // prepare blocks
@@ -623,5 +628,130 @@ describe('CheckpointDispute', () => {
     })
   })
 
-  describe.skip('remove challenge', () => {})
+  describe('remove challenge', () => {
+    async function prepareChallenge(falsy?: boolean) {
+      const currentBlockNumber = await commitment.currentBlock()
+      const nextBlockNumber = currentBlockNumber.toNumber() + 1
+      const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber, falsy)
+      await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+      const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+      await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+      const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+      const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+      await checkpointDispute.claim(inputs, witness, {
+        gasLimit: 1200000
+      })
+
+      // prepare challenge
+      const challengeInputs = [
+        encodeStructable(firstBlockInfo.stateUpdate.property)
+      ]
+      const challengeWitness = [encodeStructable(firstBlockInfo.inclusionProof)]
+
+      await checkpointDispute.challenge(
+        inputs,
+        challengeInputs,
+        challengeWitness,
+        {
+          gasLimit: 1200000
+        }
+      )
+      return {
+        inputs,
+        challengeInputs
+      }
+    }
+
+    describe('succeed to remove challenge', () => {
+      it('remove challenge', async () => {
+        // state object of challengeInputs is always truthy when passing no arguments to `prepareChallenge`
+        const { inputs, challengeInputs } = await prepareChallenge()
+
+        await expect(
+          checkpointDispute.removeChallenge(inputs, challengeInputs, [])
+        ).to.emit(checkpointDispute, 'ChallengeRemoved')
+      }).timeout(5000)
+    })
+
+    describe('fail to remove challenge', () => {
+      it('cannot decide', async () => {
+        // state object of challengeInputs is always truthy when passing no arguments to `prepareChallenge`
+        const { inputs, challengeInputs } = await prepareChallenge(true)
+
+        await expect(
+          checkpointDispute.removeChallenge(inputs, challengeInputs, [])
+        ).to.revertedWith('State object decided to false')
+      }).timeout(5000)
+
+      it('invalid inputs length', async () => {
+        const { inputs, challengeInputs } = await prepareChallenge()
+        await expect(
+          checkpointDispute.removeChallenge(
+            [...inputs, ...inputs],
+            challengeInputs,
+            [],
+            {
+              gasLimit: 120000
+            }
+          )
+        ).to.be.reverted
+      })
+
+      it('invalid challengeInputs length', async () => {
+        const { inputs, challengeInputs } = await prepareChallenge()
+        await expect(
+          checkpointDispute.removeChallenge(
+            inputs,
+            [...challengeInputs, ...challengeInputs],
+            [],
+            {
+              gasLimit: 120000
+            }
+          )
+        ).to.be.reverted
+      })
+
+      it('invalid inputs, stateUpdate bytes', async () => {
+        const { challengeInputs } = await prepareChallenge()
+        await expect(
+          checkpointDispute.removeChallenge(['0x01'], challengeInputs, [], {
+            gasLimit: 120000
+          })
+        ).to.be.reverted
+      })
+
+      it('invalid challengeInputs, stateUpdate bytes', async () => {
+        const { inputs } = await prepareChallenge()
+        await expect(
+          checkpointDispute.removeChallenge(inputs, ['0x01'], [], {
+            gasLimit: 120000
+          })
+        ).to.be.reverted
+      })
+
+      it('invalid challenge', async () => {
+        const { inputs } = await prepareChallenge()
+        const su = ownershipStateUpdate(
+          Address.from(BOB_ADDRESS),
+          1,
+          0,
+          5,
+          true
+        )
+        await expect(
+          checkpointDispute.removeChallenge(
+            inputs,
+            [encodeStructable(su.property)],
+            [],
+            {
+              gasLimit: 120000
+            }
+          )
+        ).to.be.reverted
+      })
+    })
+  })
 })

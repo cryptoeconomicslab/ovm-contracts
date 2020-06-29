@@ -197,6 +197,25 @@ contract DisputeManager {
         return games[_id].createdBlock != 0;
     }
 
+    function isChallengeOf(
+        types.Property memory _property,
+        types.Property memory _challengeProperty
+    ) public view returns (bool) {
+        types.ChallengeGame memory game = getGame(
+            utils.getPropertyId(_property)
+        );
+        if (
+            findIndex(
+                game.challenges,
+                utils.getPropertyId(_challengeProperty)
+            ) >=
+            0
+        ) {
+            return true;
+        }
+        return false;
+    }
+
     function createGame(bytes32 id)
         private
         view
@@ -219,9 +238,9 @@ contract DisputeManager {
         }
     }
 
-    function findIndex(bytes32[] storage array, bytes32 item)
+    function findIndex(bytes32[] memory array, bytes32 item)
         private
-        view
+        pure
         returns (int128)
     {
         int128 idx = -1;
@@ -248,4 +267,5 @@ contract DisputeManager {
         delete challenges[challenges.length - 1];
         challenges.length -= 1;
     }
+
 }

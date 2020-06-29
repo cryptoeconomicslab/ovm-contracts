@@ -6,6 +6,7 @@ import {Dispute} from "./DisputeInterface.sol";
 import {DisputeManager} from "./DisputeManager.sol";
 import {CommitmentVerifier} from "../CommitmentVerifier.sol";
 import {Utils} from "../Utils.sol";
+import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 import "../Library/Deserializer.sol";
 
 /**
@@ -48,6 +49,11 @@ contract CheckpointDispute is Dispute {
         types.StateUpdate stateUpdate,
         types.StateUpdate challengingStateUpdate,
         types.InclusionProof inclusionProof
+    );
+
+    event ChallengeRemoved(
+        types.StateUpdate stateUpdate,
+        types.StateUpdate challengingStateUpdate
     );
 
     constructor(
@@ -112,9 +118,9 @@ contract CheckpointDispute is Dispute {
 
     /**
      * challenge checkpiont
-     * _inputs: [encode(stateUpdate)]
-     * _challengeInputs: [encode(stateUpdate)]
-     * _witness: [encode(inclusionProof)]
+     * _inputs: [encode(stateUpdate)] challenged state update
+     * _challengeInputs: [encode(stateUpdate)] challenging state update
+     * _witness: [encode(inclusionProof)] inclusionProof of challenging state update
      */
     function challenge(
         bytes[] memory _inputs,
@@ -202,20 +208,77 @@ contract CheckpointDispute is Dispute {
         );
     }
 
+    /**
+     * challenge checkpiont
+     * _inputs: [encode(stateUpdate)] challenged state update
+     * _challengeInputs: [encode(stateUpdate)] challenging state update
+     * _witness: [*] witness to decide challenging state object to true
+     */
     function removeChallenge(
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
     ) public {
-        // TODO: check property inputs
-        // TODO: check challenge inputs
-        // TODO: create challenge property of challenge
-        // TODO: decideWithWitness
-        // TODO: DisputeManager.decideToFalse(challengeProperty)
-        // TODO: DisputeManager.removeChallenge(property, challengeProperty.id)
+        require(
+            _inputs.length == 1,
+            "inputs length does not match. expected 1"
+        );
+        require(
+            _challengeInputs.length == 1,
+            "challenge inputs length does not match. expected 1"
+        );
+        types.Property memory suProperty = abi.decode(
+            _inputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory stateUpdate = Deserializer
+            .deserializeStateUpdate(suProperty);
+
+        types.Property memory property = createClaimProperty(_inputs[0]);
+
+        types.Property memory challengeSuProperty = abi.decode(
+            _challengeInputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory challengeStateUpdate = Deserializer
+            .deserializeStateUpdate(challengeSuProperty);
+
+        types.Property memory challengeProperty = createChallengeProperty(
+            _challengeInputs[0]
+        );
+
+        require(
+            disputeManager.isChallengeOf(property, challengeProperty),
+            "Invalid challenge"
+        );
+
+        // TODO: is it okay to use CompiledPredicate interface here?
+        CompiledPredicate predicate = CompiledPredicate(
+            challengeStateUpdate.stateObject.predicateAddress
+        );
+
+        require(
+            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+            "State object decided to false"
+        );
+
+        disputeManager.setGameResult(challengeProperty, false);
+        disputeManager.removeChallenge(property, challengeProperty);
+
+        emit ChallengeRemoved(stateUpdate, challengeStateUpdate);
     }
 
-    function settle(bytes[] memory _inputs) public {}
+    /**
+     * settle checkpoint claim
+     */
+    function settle(bytes[] memory _inputs) public {
+        require(
+            _inputs.length == 1,
+            "inputs length does not match. expected 1"
+        );
+        types.Property memory property = createClaimProperty(_inputs[0]);
+        disputeManager.settleGame(property);
+    }
 
     // create checkpoint claim passed to dispute manager
     // TODO: do we need this in property?
