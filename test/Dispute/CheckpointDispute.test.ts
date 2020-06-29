@@ -15,14 +15,14 @@ import * as CheckpointDispute from '../../build/contracts/CheckpointDispute.json
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 import * as MockFalsyCompiledPredicate from '../../build/contracts/MockFalsyCompiledPredicate.json'
 import * as ethers from 'ethers'
-import { OvmProperty, encodeProperty } from '../helpers/utils'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
 import {
   Address,
   BigNumber,
   Bytes,
   FixedBytes,
-  Range
+  Range,
+  Struct
 } from '@cryptoeconomicslab/primitives'
 import {
   DoubleLayerTree,
@@ -34,13 +34,18 @@ import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
 setupContext({ coder: EthCoder })
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
 // generate merkle tree.
 // returns its root and encoded inclusionProof of given state update.
-function generateTree(stateUpdate: StateUpdate) {
+function generateTree(
+  stateUpdate: StateUpdate,
+  falsyStateUpdate?: StateUpdate
+) {
   function generateDoubleLayerTreeLeaf(
     address: Address,
     bn: number,
@@ -65,7 +70,18 @@ function generateTree(stateUpdate: StateUpdate) {
   )
 
   // random leaf for merkle tree
-  const leaf1 = generateDoubleLayerTreeLeaf(tokenAddress, 7, 'leaf1')
+  const leaf1 = falsyStateUpdate
+    ? new DoubleLayerTreeLeaf(
+        falsyStateUpdate.depositContractAddress,
+        falsyStateUpdate.range.start,
+        FixedBytes.from(
+          32,
+          Keccak256.hash(
+            EthCoder.encode(falsyStateUpdate.stateObject.toStruct())
+          ).data
+        )
+      )
+    : generateDoubleLayerTreeLeaf(tokenAddress, 7, 'leaf1')
   const leaf2 = generateDoubleLayerTreeLeaf(tokenAddress, 16, 'leaf2')
   const leaf3 = generateDoubleLayerTreeLeaf(tokenAddress, 100, 'leaf3')
 
@@ -81,11 +97,16 @@ function generateTree(stateUpdate: StateUpdate) {
   }
 }
 
+function encodeStructable(structable: { toStruct: () => Struct }) {
+  return EthCoder.encode(structable.toStruct())
+}
+
 describe('CheckpointDispute', () => {
-  let provider = createMockProvider()
-  let wallets = getWallets(provider)
-  let wallet = wallets[0]
-  let ALICE_ADDRESS = wallets[1].address
+  const provider = createMockProvider()
+  const wallets = getWallets(provider)
+  const wallet = wallets[0]
+  const ALICE_ADDRESS = wallets[1].address
+  const BOB_ADDRESS = wallets[2].address
   let utils: ethers.Contract,
     deserializer: ethers.Contract,
     disputeManager: ethers.Contract,
@@ -169,8 +190,8 @@ describe('CheckpointDispute', () => {
         const { root, inclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [EthCoder.encode(stateUpdate.property.toStruct())]
-        const witness = [EthCoder.encode(inclusionProof.toStruct())]
+        const inputs = [encodeStructable(stateUpdate.property)]
+        const witness = [encodeStructable(inclusionProof)]
 
         await expect(
           checkpointDispute.claim(inputs, witness, {
@@ -203,7 +224,7 @@ describe('CheckpointDispute', () => {
         const { root } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [EthCoder.encode(stateUpdate.property.toStruct())]
+        const inputs = [encodeStructable(stateUpdate.property)]
         const witness = ['0x01']
 
         await expect(
@@ -226,8 +247,8 @@ describe('CheckpointDispute', () => {
         const { root, falsyInclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [EthCoder.encode(stateUpdate.property.toStruct())]
-        const witness = [EthCoder.encode(falsyInclusionProof.toStruct())]
+        const inputs = [encodeStructable(stateUpdate.property)]
+        const witness = [encodeStructable(falsyInclusionProof)]
 
         await expect(
           checkpointDispute.claim(inputs, witness, {
@@ -238,7 +259,369 @@ describe('CheckpointDispute', () => {
     })
   })
 
-  describe.skip('challenge', () => {})
+  describe('challenge', () => {
+    function prepareBlock(owner: string, blockNumber: number) {
+      const su = ownershipStateUpdate(Address.from(owner), blockNumber, 0, 5)
+      const falsySU = ownershipStateUpdate(
+        Address.from(owner),
+        blockNumber,
+        10,
+        20
+      )
+      const tree = generateTree(su, falsySU)
+      return {
+        stateUpdate: su,
+        falsySU,
+        ...tree
+      }
+    }
+
+    describe('succeed to challeng echeckpoint', () => {
+      it('succeed to challenge invalid history', async () => {
+        // prepare blocks
+        const currentBlockNumber = await commitment.currentBlock()
+        const nextBlockNumber = currentBlockNumber.toNumber() + 1
+        const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+        await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+        const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+        await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+        const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+        const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+        await checkpointDispute.claim(inputs, witness, {
+          gasLimit: 1200000
+        })
+
+        // prepare challenge
+        const challengeInputs = [
+          encodeStructable(firstBlockInfo.stateUpdate.property)
+        ]
+        const challengeWitness = [
+          encodeStructable(firstBlockInfo.inclusionProof)
+        ]
+
+        await expect(
+          checkpointDispute.challenge(
+            inputs,
+            challengeInputs,
+            challengeWitness,
+            {
+              gasLimit: 1200000
+            }
+          )
+        ).to.emit(checkpointDispute, 'CheckpointChallenged')
+      })
+    })
+
+    describe('fail to challenge', async () => {
+      describe('input validation', () => {
+        async function prepareInputs() {
+          const currentBlockNumber = await commitment.currentBlock()
+          const blockInfo = prepareBlock(
+            ALICE_ADDRESS,
+            currentBlockNumber.toNumber() + 1
+          )
+          const inputs = [encodeStructable(blockInfo.stateUpdate.property)]
+          const challengeInputs = [
+            encodeStructable(blockInfo.stateUpdate.property)
+          ]
+          const challengeWitness = [encodeStructable(blockInfo.inclusionProof)]
+          return {
+            inputs,
+            challengeInputs,
+            challengeWitness
+          }
+        }
+
+        it('invalid inputs length', async () => {
+          const {
+            inputs,
+            challengeInputs,
+            challengeWitness
+          } = await prepareInputs()
+          await expect(
+            checkpointDispute.challenge(
+              [...inputs, ...inputs],
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 120000
+              }
+            )
+          ).to.be.reverted
+        })
+
+        it('invalid challengeInputs length', async () => {
+          const {
+            inputs,
+            challengeInputs,
+            challengeWitness
+          } = await prepareInputs()
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              [...challengeInputs, ...challengeInputs],
+              challengeWitness,
+              {
+                gasLimit: 120000
+              }
+            )
+          ).to.be.reverted
+        })
+
+        it('invalid challengeWitness length', async () => {
+          const {
+            inputs,
+            challengeInputs,
+            challengeWitness
+          } = await prepareInputs()
+
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              challengeInputs,
+              [...challengeWitness, ...challengeWitness],
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.be.reverted
+        })
+
+        it('invalid inputs, stateUpdate bytes', async () => {
+          const { challengeInputs, challengeWitness } = await prepareInputs()
+
+          await expect(
+            checkpointDispute.challenge(
+              ['0x01'],
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.be.reverted
+        })
+
+        it('invalid challengeInputs, stateUpdate bytes', async () => {
+          const { inputs, challengeWitness } = await prepareInputs()
+
+          await expect(
+            checkpointDispute.challenge(inputs, ['0x01'], challengeWitness, {
+              gasLimit: 1200000
+            })
+          ).to.be.reverted
+        })
+
+        it('invalid witness, inclusionProof bytes', async () => {
+          const { inputs, challengeInputs } = await prepareInputs()
+          await expect(
+            checkpointDispute.challenge(inputs, challengeInputs, ['0x01'], {
+              gasLimit: 1200000
+            })
+          ).to.be.reverted
+        })
+      })
+
+      describe('invalid inputs contents', () => {
+        it('claim does not exists', async () => {
+          // prepare blocks
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber.toNumber() + 1
+          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+          const inputs = [
+            encodeStructable(secondBlockInfo.stateUpdate.property)
+          ]
+          const challengeInputs = [
+            encodeStructable(firstBlockInfo.stateUpdate.property)
+          ]
+          const challengeWitness = [
+            encodeStructable(firstBlockInfo.inclusionProof)
+          ]
+
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.revertedWith('Claim does not exist')
+        })
+
+        it('Falsy inclusion proof', async () => {
+          // prepare blocks
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber.toNumber() + 1
+          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+          const inputs = [
+            encodeStructable(secondBlockInfo.stateUpdate.property)
+          ]
+          const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+          await checkpointDispute.claim(inputs, witness, {
+            gasLimit: 1200000
+          })
+
+          // prepare challenge
+          const challengeInputs = [
+            encodeStructable(firstBlockInfo.stateUpdate.property)
+          ]
+          const challengeWitness = [
+            encodeStructable(firstBlockInfo.falsyInclusionProof)
+          ]
+
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.be.reverted
+        })
+
+        it('block number is greater', async () => {
+          // prepare blocks
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber.toNumber() + 1
+          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+          const inputs = [encodeStructable(firstBlockInfo.stateUpdate.property)]
+          const witness = [encodeStructable(firstBlockInfo.inclusionProof)]
+
+          await checkpointDispute.claim(inputs, witness, {
+            gasLimit: 1200000
+          })
+
+          // prepare challenge
+          const challengeInputs = [
+            encodeStructable(secondBlockInfo.stateUpdate.property)
+          ]
+          const challengeWitness = [
+            encodeStructable(secondBlockInfo.falsyInclusionProof)
+          ]
+
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.revertedWith('BlockNumber must be smaller than challenged state')
+        })
+
+        it('range is not subrange', async () => {
+          // prepare blocks
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber.toNumber() + 1
+          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+          const inputs = [
+            encodeStructable(secondBlockInfo.stateUpdate.property)
+          ]
+          const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+          await checkpointDispute.claim(inputs, witness, {
+            gasLimit: 1200000
+          })
+
+          // prepare challenge
+          const challengeInputs = [
+            encodeStructable(firstBlockInfo.falsySU.property)
+          ]
+          const challengeWitness = [
+            encodeStructable(firstBlockInfo.falsyInclusionProof)
+          ]
+
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.revertedWith('Range must be subrange of stateUpdate')
+        })
+
+        it('deposit contract address is different', async () => {
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber.toNumber() + 1
+          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+          const inputs = [
+            encodeStructable(secondBlockInfo.stateUpdate.property)
+          ]
+          const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+          await checkpointDispute.claim(inputs, witness, {
+            gasLimit: 1200000
+          })
+
+          const suWithDifferentAddress = new StateUpdate(
+            Address.default(),
+            Address.from(ALICE_ADDRESS),
+            new Range(BigNumber.from(0), BigNumber.from(5)),
+            BigNumber.from(nextBlockNumber),
+            new Property(Address.from(truthyCompiledPredicate.address), [
+              EthCoder.encode(Address.from(ALICE_ADDRESS))
+            ])
+          )
+          // prepare challenge
+          const challengeInputs = [
+            encodeStructable(suWithDifferentAddress.property)
+          ]
+          const challengeWitness = [
+            encodeStructable(firstBlockInfo.falsyInclusionProof)
+          ]
+
+          await expect(
+            checkpointDispute.challenge(
+              inputs,
+              challengeInputs,
+              challengeWitness,
+              {
+                gasLimit: 1200000
+              }
+            )
+          ).to.revertedWith('DepositContractAddress is invalid')
+        })
+      })
+    })
+  })
 
   describe.skip('remove challenge', () => {})
 })

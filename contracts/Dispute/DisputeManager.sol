@@ -193,7 +193,7 @@ contract DisputeManager {
     /**
      * check if game of given id is already started
      */
-    function started(bytes32 _id) private view returns (bool) {
+    function started(bytes32 _id) public view returns (bool) {
         return games[_id].createdBlock != 0;
     }
 

@@ -44,6 +44,12 @@ contract CheckpointDispute is Dispute {
         types.InclusionProof inclusionProof
     );
 
+    event CheckpointChallenged(
+        types.StateUpdate stateUpdate,
+        types.StateUpdate challengingStateUpdate,
+        types.InclusionProof inclusionProof
+    );
+
     constructor(
         address _disputeManagerAddress,
         address _commitmentContractAddress,
@@ -98,31 +104,102 @@ contract CheckpointDispute is Dispute {
         );
 
         // claim property to DisputeManager
-        bytes[] memory inputs = new bytes[](3);
-        inputs[0] = CHECKPOINT_CLAIM;
-        inputs[1] = _inputs[0];
-        inputs[2] = _witness[0];
-
-        types.Property memory property = types.Property(address(this), inputs);
+        types.Property memory property = createClaimProperty(_inputs[0]);
         disputeManager.claim(property);
 
         emit CheckpointClaimed(stateUpdate, inclusionProof);
     }
 
+    /**
+     * challenge checkpiont
+     * _inputs: [encode(stateUpdate)]
+     * _challengeInputs: [encode(stateUpdate)]
+     * _witness: [encode(inclusionProof)]
+     */
     function challenge(
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
     ) public {
-        // TODO: check property inputs
-        // check challenge inputs
-        // TODO: check stateUpdate blockNumber, range, depositContractAddress = equal to quantifier SU
-        // TODO: verify inclusion proof = equal to quantifier IncludedAt
-        // TODO: DisputeManager.claim(challengeProperty)
-        // TODO: DisputeManager.challenge()
-        // if challenge property is immediately decidable property (ex. Exit),
-        // DisputeManager.decideToTrue(challengeProperty)
-        // DisputeManager.decideToFalse(challengedProperty)
+        require(
+            _inputs.length == 1,
+            "inputs length does not match. expected 1"
+        );
+        require(
+            _challengeInputs.length == 1,
+            "challenge inputs length does not match. expected 1"
+        );
+        require(
+            _witness.length == 1,
+            "witness length does not match. expected 1"
+        );
+        types.Property memory suProperty = abi.decode(
+            _inputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory stateUpdate = Deserializer
+            .deserializeStateUpdate(suProperty);
+
+        types.Property memory challengeSuProperty = abi.decode(
+            _challengeInputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory challengeStateUpdate = Deserializer
+            .deserializeStateUpdate(challengeSuProperty);
+
+        types.InclusionProof memory inclusionProof = abi.decode(
+            _witness[0],
+            (types.InclusionProof)
+        );
+
+        types.Property memory claimedProperty = createClaimProperty(_inputs[0]);
+        require(
+            stateUpdate.depositContractAddress ==
+                challengeStateUpdate.depositContractAddress,
+            "DepositContractAddress is invalid"
+        );
+        require(
+            stateUpdate.blockNumber > challengeStateUpdate.blockNumber,
+            "BlockNumber must be smaller than challenged state"
+        );
+        require(
+            isSubrange(challengeStateUpdate.range, stateUpdate.range), // TODO: is this right?
+            "Range must be subrange of stateUpdate"
+        );
+        require(
+            disputeManager.started(utils.getPropertyId(claimedProperty)),
+            "Claim does not exist"
+        );
+
+        // verify inclusion proof
+        bytes memory blockNumberBytes = abi.encode(
+            challengeStateUpdate.blockNumber
+        );
+        bytes32 root = utils.bytesToBytes32(
+            commitmentVerifier.retrieve(blockNumberBytes)
+        );
+        require(
+            commitmentVerifier.verifyInclusionWithRoot(
+                keccak256(abi.encode(challengeStateUpdate.stateObject)),
+                challengeStateUpdate.depositContractAddress,
+                challengeStateUpdate.range,
+                inclusionProof,
+                root
+            ),
+            "Inclusion verification failed"
+        );
+
+        types.Property memory claimProperty = createClaimProperty(_inputs[0]);
+        types.Property memory challengeProperty = createChallengeProperty(
+            _challengeInputs[0]
+        );
+        disputeManager.challenge(claimProperty, challengeProperty);
+
+        emit CheckpointChallenged(
+            stateUpdate,
+            challengeStateUpdate,
+            inclusionProof
+        );
     }
 
     function removeChallenge(
@@ -139,4 +216,38 @@ contract CheckpointDispute is Dispute {
     }
 
     function settle(bytes[] memory _inputs) public {}
+
+    // create checkpoint claim passed to dispute manager
+    // TODO: do we need this in property?
+    function createClaimProperty(bytes memory suBytes)
+        private
+        view
+        returns (types.Property memory)
+    {
+        bytes[] memory inputs = new bytes[](2);
+        inputs[0] = CHECKPOINT_CLAIM;
+        inputs[1] = suBytes;
+        return types.Property(address(this), inputs);
+    }
+
+    function createChallengeProperty(bytes memory challengeSuBytes)
+        private
+        view
+        returns (types.Property memory)
+    {
+        bytes[] memory inputs = new bytes[](2);
+        inputs[0] = CHECKPOINT_CHALLENGE;
+        inputs[1] = challengeSuBytes;
+        return types.Property(address(this), inputs);
+
+    }
+
+    function isSubrange(
+        types.Range memory _subrange,
+        types.Range memory _surroundingRange
+    ) private pure returns (bool) {
+        return
+            _subrange.start >= _surroundingRange.start &&
+            _subrange.end <= _surroundingRange.end;
+    }
 }
