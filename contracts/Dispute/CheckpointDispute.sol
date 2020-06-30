@@ -169,7 +169,7 @@ contract CheckpointDispute is Dispute {
             "BlockNumber must be smaller than challenged state"
         );
         require(
-            isSubrange(challengeStateUpdate.range, stateUpdate.range), // TODO: is this right?
+            isSubrange(challengeStateUpdate.range, stateUpdate.range),
             "Range must be subrange of stateUpdate"
         );
         require(
@@ -252,7 +252,7 @@ contract CheckpointDispute is Dispute {
             "Invalid challenge"
         );
 
-        // TODO: is it okay to use CompiledPredicate interface here?
+        // TODO: need to use stateUpdate predicate instead of stateObject to check validity of transaction?
         CompiledPredicate predicate = CompiledPredicate(
             challengeStateUpdate.stateObject.predicateAddress
         );
@@ -281,7 +281,6 @@ contract CheckpointDispute is Dispute {
     }
 
     // create checkpoint claim passed to dispute manager
-    // TODO: do we need this in property?
     function createClaimProperty(bytes memory suBytes)
         private
         view
