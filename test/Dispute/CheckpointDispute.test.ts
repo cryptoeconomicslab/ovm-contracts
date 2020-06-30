@@ -215,7 +215,7 @@ describe('CheckpointDispute', () => {
 
         await expect(
           checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
         ).to.emit(checkpointDispute, 'CheckpointClaimed')
       })
@@ -226,7 +226,7 @@ describe('CheckpointDispute', () => {
         const inputs = ['0x01']
         await expect(
           checkpointDispute.claim(inputs, [], {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
         ).to.be.reverted
       })
@@ -249,7 +249,7 @@ describe('CheckpointDispute', () => {
 
         await expect(
           checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
         ).to.be.reverted
       })
@@ -272,7 +272,7 @@ describe('CheckpointDispute', () => {
 
         await expect(
           checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
         ).to.be.reverted
       })
@@ -280,7 +280,7 @@ describe('CheckpointDispute', () => {
   })
 
   describe('challenge', () => {
-    describe('succeed to challeng echeckpoint', () => {
+    describe('succeed to challeng checkpoint', () => {
       it('succeed to challenge invalid history', async () => {
         // prepare blocks
         const currentBlockNumber = await commitment.currentBlock()
@@ -295,7 +295,7 @@ describe('CheckpointDispute', () => {
         const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
         await checkpointDispute.claim(inputs, witness, {
-          gasLimit: 1200000
+          gasLimit: 800000
         })
 
         // prepare challenge
@@ -312,7 +312,7 @@ describe('CheckpointDispute', () => {
             challengeInputs,
             challengeWitness,
             {
-              gasLimit: 1200000
+              gasLimit: 800000
             }
           )
         ).to.emit(checkpointDispute, 'CheckpointChallenged')
@@ -351,7 +351,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 120000
+                gasLimit: 800000
               }
             )
           ).to.be.reverted
@@ -369,7 +369,7 @@ describe('CheckpointDispute', () => {
               [...challengeInputs, ...challengeInputs],
               challengeWitness,
               {
-                gasLimit: 120000
+                gasLimit: 800000
               }
             )
           ).to.be.reverted
@@ -388,7 +388,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               [...challengeWitness, ...challengeWitness],
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.be.reverted
@@ -403,7 +403,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.be.reverted
@@ -414,7 +414,7 @@ describe('CheckpointDispute', () => {
 
           await expect(
             checkpointDispute.challenge(inputs, ['0x01'], challengeWitness, {
-              gasLimit: 1200000
+              gasLimit: 800000
             })
           ).to.be.reverted
         })
@@ -423,7 +423,7 @@ describe('CheckpointDispute', () => {
           const { inputs, challengeInputs } = await prepareInputs()
           await expect(
             checkpointDispute.challenge(inputs, challengeInputs, ['0x01'], {
-              gasLimit: 1200000
+              gasLimit: 800000
             })
           ).to.be.reverted
         })
@@ -456,7 +456,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.revertedWith('Claim does not exist')
@@ -478,7 +478,7 @@ describe('CheckpointDispute', () => {
           const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
 
           // prepare challenge
@@ -495,7 +495,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.be.reverted
@@ -515,7 +515,7 @@ describe('CheckpointDispute', () => {
           const witness = [encodeStructable(firstBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
 
           // prepare challenge
@@ -532,7 +532,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.revertedWith('BlockNumber must be smaller than challenged state')
@@ -554,7 +554,7 @@ describe('CheckpointDispute', () => {
           const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
 
           // prepare challenge
@@ -571,7 +571,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.revertedWith('Range must be subrange of stateUpdate')
@@ -592,7 +592,7 @@ describe('CheckpointDispute', () => {
           const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
-            gasLimit: 1200000
+            gasLimit: 800000
           })
 
           const suWithDifferentAddress = new StateUpdate(
@@ -618,7 +618,7 @@ describe('CheckpointDispute', () => {
               challengeInputs,
               challengeWitness,
               {
-                gasLimit: 1200000
+                gasLimit: 800000
               }
             )
           ).to.revertedWith('DepositContractAddress is invalid')
@@ -641,7 +641,7 @@ describe('CheckpointDispute', () => {
       const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
       await checkpointDispute.claim(inputs, witness, {
-        gasLimit: 1200000
+        gasLimit: 800000
       })
 
       // prepare challenge
@@ -655,7 +655,7 @@ describe('CheckpointDispute', () => {
         challengeInputs,
         challengeWitness,
         {
-          gasLimit: 1200000
+          gasLimit: 800000
         }
       )
       return {
@@ -693,7 +693,7 @@ describe('CheckpointDispute', () => {
             challengeInputs,
             [],
             {
-              gasLimit: 120000
+              gasLimit: 800000
             }
           )
         ).to.be.reverted
@@ -707,7 +707,7 @@ describe('CheckpointDispute', () => {
             [...challengeInputs, ...challengeInputs],
             [],
             {
-              gasLimit: 120000
+              gasLimit: 800000
             }
           )
         ).to.be.reverted
@@ -717,7 +717,7 @@ describe('CheckpointDispute', () => {
         const { challengeInputs } = await prepareChallenge()
         await expect(
           checkpointDispute.removeChallenge(['0x01'], challengeInputs, [], {
-            gasLimit: 120000
+            gasLimit: 800000
           })
         ).to.be.reverted
       })
@@ -726,7 +726,7 @@ describe('CheckpointDispute', () => {
         const { inputs } = await prepareChallenge()
         await expect(
           checkpointDispute.removeChallenge(inputs, ['0x01'], [], {
-            gasLimit: 120000
+            gasLimit: 800000
           })
         ).to.be.reverted
       })
@@ -746,7 +746,7 @@ describe('CheckpointDispute', () => {
             [encodeStructable(su.property)],
             [],
             {
-              gasLimit: 120000
+              gasLimit: 800000
             }
           )
         ).to.be.reverted
