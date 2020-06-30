@@ -56,6 +56,8 @@ contract CheckpointDispute is Dispute {
         types.StateUpdate challengingStateUpdate
     );
 
+    event CheckpointSettled(types.StateUpdate);
+
     constructor(
         address _disputeManagerAddress,
         address _commitmentContractAddress,
@@ -278,6 +280,15 @@ contract CheckpointDispute is Dispute {
         );
         types.Property memory property = createClaimProperty(_inputs[0]);
         disputeManager.settleGame(property);
+
+        types.Property memory suProperty = abi.decode(
+            _inputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory stateUpdate = Deserializer
+            .deserializeStateUpdate(suProperty);
+
+        emit CheckpointSettled(stateUpdate);
     }
 
     // create checkpoint claim passed to dispute manager
