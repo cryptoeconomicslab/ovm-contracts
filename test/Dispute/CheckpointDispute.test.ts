@@ -32,7 +32,6 @@ import { StateUpdate } from '@cryptoeconomicslab/plasma'
 import { Property } from '@cryptoeconomicslab/ovm'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
-import { Suite } from 'mocha'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
