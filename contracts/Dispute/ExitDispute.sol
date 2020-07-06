@@ -81,6 +81,27 @@ contract ExitDispute is  Dispute {
             _challengeInputs[0],
             (types.Transaction)
         );
+
+        require(
+            stateUpdate.depositContractAddress ==
+                challengeTransaction.depositContractAddress,
+            "DepositContractAddress is invalid"
+        );
+
+        bool a = challengeTransaction.start >= stateUpdate.start && challengeTransaction.start < stateUpdate.end;
+        bool b = stateUpdate.start >= challengeTransaction.start && stateUpdate.start < challengeTransaction.end;
+
+        require(a || b, "range must have intersection");
+
+
+        require(
+            stateUpdate.blockNumber < challengeTransaction.maxBlockNumber,
+            "BlockNumber must be smaller than challenged state"
+        );
+
+
+        // *******ここから******************************************
+        //
         // stateUpdateをchallengeTransactionがspentしてるかチェック
         // depositContractAddressとrangeを比較して、同じかどうかチェックする
         // types.StateUpdate memory challengeStateUpdate = Deserializer
@@ -89,6 +110,8 @@ contract ExitDispute is  Dispute {
         // ここは
         // witnesses[0]はsignatureです。signatureがchallengeTransactionに対するもので、
         // かつsignerはstateUpdate.stateObject.inputs[0]のownerと一致するか
+        //
+        // *******ここまで、メモ。マージされるまでに削除すること
 
         CompiledPredicate predicate = CompiledPredicate(
             stateUpdate.stateObject.predicateAddress
