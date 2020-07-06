@@ -1,5 +1,11 @@
-import {Dispute} from './DisputeInterface';
-import {DisputeManager} from './DisputeManager';
+pragma solidity ^0.5.0;
+pragma experimental ABIEncoderV2;
+ 
+import {DataTypes as types} from "../DataTypes.sol";
+import {Dispute} from './DisputeInterface.sol';
+import {DisputeManager} from './DisputeManager.sol';
+import "../Library/Deserializer.sol";
+import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 
 /**
  * # ExitDispute contract
@@ -88,8 +94,8 @@ contract ExitDispute is  Dispute {
             "DepositContractAddress is invalid"
         );
 
-        bool a = challengeTransaction.start >= stateUpdate.start && challengeTransaction.start < stateUpdate.end;
-        bool b = stateUpdate.start >= challengeTransaction.start && stateUpdate.start < challengeTransaction.end;
+        bool a = challengeTransaction.range.start >= stateUpdate.range.start && challengeTransaction.range.start < stateUpdate.range.end;
+        bool b = stateUpdate.range.start >= challengeTransaction.range.start && stateUpdate.range.start < challengeTransaction.range.end;
 
         require(a || b, "range must have intersection");
 
@@ -124,12 +130,10 @@ contract ExitDispute is  Dispute {
 
         //後処理
 
-        disputeManager.challenge(claimProperty, challengeProperty);
+        disputeManager.challenge(stateUpdate.stateObject, challengeTransaction.nextStateObject);
 
         emit ExitChallenged(
-            stateUpdate,
-            challengeStateUpdate,
-            inclusionProof
+            stateUpdate
         );
     }
 
