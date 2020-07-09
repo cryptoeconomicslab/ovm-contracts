@@ -73,15 +73,21 @@ describe('ExitDispute', () => {
   })
 
 
-  describe('claim', () => {
+  describe.skip('claim', () => {
+    // Checkpointと同様のtest case
+  })
+
+  describe.skip('challenge', () => {
+    // 正常系1件くらい
+    // 引数のvalidationのtest
+    // 正しいchallengeContractが呼ばれているかのtest
+  })
+  
+  describe.skip('removeChallenge', () => {
 
   })
 
-  describe('challenge', () => {
-
-    })
-
-  describe('settle', () => {
+  describe.skip('settle', () => {
 
   })
 })
