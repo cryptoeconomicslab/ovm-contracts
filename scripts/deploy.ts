@@ -427,7 +427,7 @@ const deployContracts = async (
     atomicPredicateAddressTable: atomicPredicates,
     deployedPredicateTable: deployedPredicateTable,
     constantVariableTable: {
-      secp256k1: encodeString('secp256k1'),
+      typedData: encodeString('typedData'),
       txAddress: txAddress,
       commitmentContract: encodeAddress(commitmentVerifier.address)
     },

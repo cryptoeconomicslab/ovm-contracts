@@ -22,14 +22,14 @@ import {
   Bytes,
   FixedBytes,
   Range,
-  Struct
+  Struct,
+  Property
 } from '@cryptoeconomicslab/primitives'
 import {
   DoubleLayerTree,
   DoubleLayerTreeLeaf
 } from '@cryptoeconomicslab/merkle-tree'
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
-import { Property } from '@cryptoeconomicslab/ovm'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
 setupContext({ coder: EthCoder })
