@@ -1,1 +1,1 @@
-def exitDeposit(su, checkpoint) := !su()
+def exitDeposit(su: Bytes, checkpoint: Bytes) := !su()

@@ -1,4 +1,4 @@
 @library
 @quantifier("range,NUMBER,${zero}-${upper_bound}")
-def LessThan(n, upper_bound) :=
+def LessThan(n: BigNumber, upper_bound: BigNumber) :=
   IsLessThan(n, upper_bound)

@@ -1,1 +1,1 @@
-def exit(su, proof) := !su() and Checkpoint(su, proof)
+def exit(su: Bytes, proof: Bytes) := !su() and Checkpoint(su, proof)

@@ -1,8 +1,8 @@
 @library
 @quantifier("stored.${contract},KEY,${key}")
-def Stored(value, contract, key) := IsStored(contract, key, value)
+def Stored(value: Bytes, contract: Address, key: Bytes) := IsStored(contract, key, value)
 
-def IncludedAt(proof, leaf, token, range, b, commitmentContract) :=
+def IncludedAt(proof: Bytes, leaf: Bytes, token: Address, range: Bytes, b: BigNumber, commitmentContract: Address) :=
   Stored(commitmentContract, b).any(root ->
     VerifyInclusion(leaf, token, range, proof, root)
   )

@@ -3,10 +3,10 @@ from lib import IncludedAt
 
 @library
 @quantifier("su.block${b}.range${token},RANGE,${range}")
-def SU(su, token, range, b) :=
+def SU(su: Bytes, token: Address, range: Bytes, b: BigNumber) :=
   IncludedAt(su.3, token, range, b, $commitmentContract).any()
 
-def checkpoint(su, proof) :=
+def checkpoint(su: Bytes, proof: Bytes) :=
   Stored($commitmentContract, su.2).any(root ->
     VerifyInclusion(su.3, su.0, su.1, proof, root)
   )
