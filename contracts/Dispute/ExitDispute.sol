@@ -40,11 +40,11 @@ contract ExitDispute is Dispute {
 
     constructor(
         address _disputeManagerAddress,
-        address _commitmentContractAddress,
+        address _commitmentVerifierAddress,
         address _utilsAddress
     ) public {
         disputeManager = DisputeManager(_disputeManagerAddress);
-        commitmentVerifier = CommitmentVerifier(_commitmentContractAddress);
+        commitmentVerifier = CommitmentVerifier(_commitmentVerifierAddress);
         utils = Utils(_utilsAddress);
     }
 
@@ -54,6 +54,10 @@ contract ExitDispute is Dispute {
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
+        );
+        require(
+            _witness.length == 1,
+            "witness length does not match. expected 1"
         );
         types.Property memory suProperty = abi.decode(
             _inputs[0],
