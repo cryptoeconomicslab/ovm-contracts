@@ -1,5 +1,5 @@
 @library
-def IsValidTx(tx, token, range, block_number) :=
+def IsValidTx(tx: Bytes, token: Address, range: Bytes, block_number: BigNumber) :=
   Equal(tx.address, $txAddress)
   and Equal(tx.0, token)
   and HasIntersection(range, tx.1)
@@ -7,10 +7,10 @@ def IsValidTx(tx, token, range, block_number) :=
 
 @library
 @quantifier("tx.block${b}.range${token},RANGE,${range}")
-def Tx(tx, token, range, b) :=
+def Tx(tx: Bytes, token: Address, range: Bytes, b: BigNumber) :=
   IsValidTx(tx, token, range, b)
 
-def stateUpdate(token, range, block_number, so) :=
+def stateUpdate(token: Address, range: Bytes, block_number: BigNumber, so: Bytes) :=
   Tx(token, range, block_number).any(tx ->
     so(tx)
   )

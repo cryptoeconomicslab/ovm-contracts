@@ -23,7 +23,7 @@ import {
   Struct
 } from '@cryptoeconomicslab/primitives'
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
-import { Property } from '@cryptoeconomicslab/ovm'
+//import { Property } from '@cryptoeconomicslab/ovm'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
 import {DisputeTestSupport, generateTree, encodeStructable} from './utils'
@@ -40,6 +40,7 @@ describe('ExitDispute', () => {
   const wallets = getWallets(provider)
   const wallet = wallets[0]
   const ALICE_ADDRESS = wallets[1].address
+  const BOB_ADDRESS = wallets[2].address
   const support = new DisputeTestSupport(wallet)
   let deserializer: ethers.Contract
   let utils: ethers.Contract
@@ -51,7 +52,7 @@ describe('ExitDispute', () => {
   before(async () => {
     utils = await deployContract(wallet, Utils, [])
     deserializer = await deployContract(wallet, Deserializer, [])
-    support.setup()
+    await support.setup()
   })
 
   beforeEach(async () => {
@@ -76,6 +77,7 @@ describe('ExitDispute', () => {
       commitmentVerifier.address,
       utils.address
     ])
+
   })
 
 
@@ -164,31 +166,43 @@ describe('ExitDispute', () => {
   })
 
   describe('challenge', () => {
-    describe('succeed to claim a exit', () => {
-      it('create a new exit claim', async () => {
+    describe('succeed to exit challenge', () => {
+      it('create a new exit challenge', async () => {
         const currentBlockNumber = await commitment.currentBlock()
-        const nextBlockNumber = currentBlockNumber + 1
+        const nextBlockNumber = currentBlockNumber.toNumber() + 1
+        const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+        await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-        const stateUpdate = support.ownershipStateUpdate(
-          Address.from(ALICE_ADDRESS),
-          nextBlockNumber,
-          0,
-          5
-        )
-        const { root, inclusionProof } = generateTree(stateUpdate)
-        await commitment.submitRoot(nextBlockNumber, root)
+        const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+        await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
-        const witness = [encodeStructable(inclusionProof)]
+        const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+        const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+        await exitDispute.claim(inputs, witness, {
+          gasLimit: 800000
+        })
+
+        // prepare challenge
+        const challengeInputs = [
+          encodeStructable(firstBlockInfo.stateUpdate.property)
+        ]
+        const challengeWitness = [
+          encodeStructable(firstBlockInfo.inclusionProof)
+        ]
 
         await expect(
-          exitDispute.claim(inputs, witness, {
-            gasLimit: 800000
-          })
-        ).to.emit(exitDispute, 'ExitClaimed')
+          exitDispute.challenge(
+            inputs,
+            challengeInputs,
+            challengeWitness,
+            {
+              gasLimit: 800000
+            }
+          )
+        ).to.emit(exitDispute, 'CheckpointChallenged')
       })
     })
-    // 正常系1件くらい
     // 引数のvalidationのtest
     // 正しいchallengeContractが呼ばれているかのtest
   })

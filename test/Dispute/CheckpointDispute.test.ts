@@ -16,10 +16,10 @@ import * as ethers from 'ethers'
 import {
   Address,
   BigNumber,
-  Range
+  Range,
+  Property
 } from '@cryptoeconomicslab/primitives'
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
-import { Property } from '@cryptoeconomicslab/ovm'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
 import {DisputeTestSupport, generateTree, encodeStructable} from './utils'

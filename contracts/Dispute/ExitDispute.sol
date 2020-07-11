@@ -114,9 +114,9 @@ contract ExitDispute is Dispute {
         );
 
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
-            new SpentChallenge().verify(_inputs, _challengeInputs, _witness);
+            new SpentChallenge().verify(_inputs, _witness);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
-            new CheckpointChallenge().verify(_inputs, _challengeInputs, _witness);
+            new CheckpointChallenge().verify(_inputs, _witness);
         } else {
             revert("illegal challenge type");
         }
@@ -166,7 +166,7 @@ contract ExitDispute is Dispute {
         returns (types.Property memory)
     {
         bytes[] memory inputs = new bytes[](2);
-        inputs[0] = EXIT_CLAIM;
+        inputs[0] = kind;
         inputs[1] = suBytes;
         return types.Property(address(this), inputs);
     }

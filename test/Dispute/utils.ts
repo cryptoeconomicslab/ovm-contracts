@@ -12,7 +12,8 @@ import {
     Bytes,
     FixedBytes,
     Range,
-    Struct
+    Struct,
+    Property
   } from '@cryptoeconomicslab/primitives'
   import {
     DoubleLayerTree,
@@ -20,7 +21,7 @@ import {
   } from '@cryptoeconomicslab/merkle-tree'
   import { Keccak256 } from '@cryptoeconomicslab/hash'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
-import { Property } from '@cryptoeconomicslab/ovm'
+//import { Property } from '@cryptoeconomicslab/ovm'
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
 import * as MockFalsyCompiledPredicate from '../../build/contracts/MockFalsyCompiledPredicate.json'
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'

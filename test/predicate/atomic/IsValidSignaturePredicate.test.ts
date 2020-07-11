@@ -10,13 +10,49 @@ import * as MockAdjudicationContract from '../../../build/contracts/MockAdjudica
 import * as Utils from '../../../build/contracts/Utils.json'
 import * as ECRecover from '../../../build/contracts/ECRecover.json'
 import * as IsValidSignaturePredicate from '../../../build/contracts/IsValidSignaturePredicate.json'
+import * as MockOwnershipPredicate from '../../../build/contracts/MockOwnershipPredicate.json'
 import * as ethers from 'ethers'
-import { hexlify, toUtf8Bytes } from 'ethers/utils'
-import { encodeConstant, encodeAddress } from '../../helpers/utils'
+import { hexlify, toUtf8Bytes, bigNumberify, arrayify } from 'ethers/utils'
+import {
+  encodeConstant,
+  encodeAddress,
+  randomAddress,
+  encodeProperty,
+  encodeInteger,
+  encodeString
+} from '../../helpers/utils'
+import { signTypedDataLegacy } from 'eth-sig-util'
+import { Bytes } from '@cryptoeconomicslab/primitives'
+import { createTypedParams } from '@cryptoeconomicslab/ovm'
+import { setupContext } from '@cryptoeconomicslab/context'
+import { EthCoder } from '@cryptoeconomicslab/eth-coder'
+setupContext({ coder: EthCoder })
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
+const abi = new ethers.utils.AbiCoder()
+
+let config = {
+  deployedPredicateTable: {
+    OwnershipPredicate: {
+      deployedAddress: '0x13274fe19c0178208bcbee397af8167a7be27f6f',
+      source: [
+        {
+          type: 'CompiledPredicate',
+          name: 'Ownership',
+          inputDefs: [
+            { name: 'owner', type: 'Address' },
+            { name: 'tx', type: 'Property' }
+          ],
+          contracts: [],
+          entryPoint: 'OwnershipT',
+          constants: [{ varType: 'bytes', name: 'verifierType' }]
+        }
+      ]
+    }
+  }
+}
 
 describe('IsValidSignaturePredicate', () => {
   let provider = createMockProvider()
@@ -24,6 +60,7 @@ describe('IsValidSignaturePredicate', () => {
   let wallet = wallets[0]
   let isValidSignaturePredicate: ethers.Contract
   let adjudicationContract: ethers.Contract
+  let ownershipPredicate: ethers.Contract
 
   beforeEach(async () => {
     const ecRecover = await deployContract(wallet, ECRecover, [])
@@ -47,6 +84,11 @@ describe('IsValidSignaturePredicate', () => {
       IsValidSignaturePredicate,
       [adjudicationContract.address, utils.address]
     )
+    ownershipPredicate = await deployContract(wallet, MockOwnershipPredicate, [
+      randomAddress()
+    ])
+    config.deployedPredicateTable.OwnershipPredicate.deployedAddress =
+      ownershipPredicate.address
   })
 
   describe('decideTrue', () => {
@@ -85,6 +127,62 @@ describe('IsValidSignaturePredicate', () => {
           verifierType
         ])
       ).to.be.reverted
+    })
+    it('decide with typedData', async () => {
+      const txAddress = ethers.constants.AddressZero
+      const depositContractAddress = encodeAddress(
+        '0x4e71920b7330515faf5ea0c690f1ad06a85fb60c'
+      )
+      const range = abi.encode(
+        ['tuple(uint256, uint256)'],
+        [[0, bigNumberify('100000000000000000')]]
+      )
+      const maxBlockNumber = encodeInteger(0)
+      const owner = encodeAddress(ethers.constants.AddressZero)
+      const tx = encodeProperty({
+        predicateAddress: txAddress,
+        inputs: [
+          depositContractAddress,
+          range,
+          maxBlockNumber,
+          encodeProperty({
+            predicateAddress: ownershipPredicate.address,
+            inputs: [owner]
+          })
+        ]
+      })
+      const signature = signTypedDataLegacy(
+        Buffer.from(arrayify(wallet.privateKey)),
+        { data: createTypedParams(config as any, Bytes.fromHexString(tx)) }
+      )
+
+      const result = await isValidSignaturePredicate.decide([
+        tx,
+        signature,
+        encodeAddress(wallet.address),
+        encodeString('typedData')
+      ])
+      expect(result).to.true
+    })
+    it('fail to decide with verifier type because of invalid transaction', async () => {
+      await expect(
+        isValidSignaturePredicate.decideTrue([
+          message,
+          signature,
+          address,
+          encodeString('typedData')
+        ])
+      ).to.be.reverted
+    })
+    it('fail to decide with unknown verifier type', async () => {
+      await expect(
+        isValidSignaturePredicate.decideTrue([
+          message,
+          signature,
+          encodeAddress(address),
+          encodeString('unknown')
+        ])
+      ).to.be.revertedWith('unknown verifier type')
     })
   })
 })
