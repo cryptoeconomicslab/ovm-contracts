@@ -62,6 +62,27 @@ export class DisputeTestSupport{
           new Property(Address.from(predicate.address), [EthCoder.encode(owner)])
         )
     }
+    public prepareBlock(owner: string, blockNumber: number, falsy?: boolean) {
+        const su = this.ownershipStateUpdate(
+          Address.from(owner),
+          blockNumber,
+          0,
+          5,
+          falsy
+        )
+        const falsySU = this.ownershipStateUpdate(
+          Address.from(owner),
+          blockNumber,
+          10,
+          20
+        )
+        const tree = generateTree(su, falsySU)
+        return {
+          stateUpdate: su,
+          falsySU,
+          ...tree
+        }
+      }
 }
 export function generateTree(
     stateUpdate: StateUpdate,

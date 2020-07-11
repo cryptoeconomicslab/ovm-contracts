@@ -163,14 +163,38 @@ describe('ExitDispute', () => {
     })
   })
 
-  describe.skip('challenge', () => {
+  describe('challenge', () => {
+    describe('succeed to claim a exit', () => {
+      it('create a new exit claim', async () => {
+        const currentBlockNumber = await commitment.currentBlock()
+        const nextBlockNumber = currentBlockNumber + 1
+
+        const stateUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          nextBlockNumber,
+          0,
+          5
+        )
+        const { root, inclusionProof } = generateTree(stateUpdate)
+        await commitment.submitRoot(nextBlockNumber, root)
+
+        const inputs = [encodeStructable(stateUpdate.property)]
+        const witness = [encodeStructable(inclusionProof)]
+
+        await expect(
+          exitDispute.claim(inputs, witness, {
+            gasLimit: 800000
+          })
+        ).to.emit(exitDispute, 'ExitClaimed')
+      })
+    })
     // 正常系1件くらい
     // 引数のvalidationのtest
     // 正しいchallengeContractが呼ばれているかのtest
   })
   
   describe.skip('removeChallenge', () => {
-
+    // not implemented
   })
 
   describe.skip('settle', () => {
