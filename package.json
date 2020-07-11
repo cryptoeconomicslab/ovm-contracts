@@ -1,6 +1,6 @@
 {
   "name": "ovm-contracts",
-  "version": "0.1.0",
+  "version": "v1.1.0-alpha.1",
   "description": "OVM contracts",
   "main": "index.js",
   "directories": {
