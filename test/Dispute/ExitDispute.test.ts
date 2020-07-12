@@ -13,17 +13,10 @@ import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.js
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as ExitDispute from '../../build/contracts/ExitDispute.json'
 import * as ethers from 'ethers'
-import { Keccak256 } from '@cryptoeconomicslab/hash'
 import {
   Address,
-  BigNumber,
   Bytes,
-  FixedBytes,
-  Range,
-  Struct
 } from '@cryptoeconomicslab/primitives'
-import { StateUpdate } from '@cryptoeconomicslab/plasma'
-//import { Property } from '@cryptoeconomicslab/ovm'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
 import {DisputeTestSupport, generateTree, encodeStructable} from './utils'
@@ -166,31 +159,34 @@ describe('ExitDispute', () => {
   })
 
   describe('challenge', () => {
+    const init = async (): Promise<[Bytes[], Bytes[], Bytes[]]> => {
+      const currentBlockNumber = await commitment.currentBlock()
+      const nextBlockNumber = currentBlockNumber.toNumber() + 1
+      const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+      await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+      const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+      await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+      const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+      const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+
+      await exitDispute.claim(inputs, witness, {
+        gasLimit: 800000
+      })
+
+      // prepare challenge
+      const challengeInputs = [
+        Bytes.fromString('EXIT_SPENT_CHALLENGE')
+      ]
+      const challengeWitness = [
+        encodeStructable(firstBlockInfo.inclusionProof)
+      ]
+      return [inputs, challengeInputs, challengeWitness]
+    }
     describe('succeed to exit challenge', () => {
       it('create a new exit challenge', async () => {
-        const currentBlockNumber = await commitment.currentBlock()
-        const nextBlockNumber = currentBlockNumber.toNumber() + 1
-        const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
-        await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
-
-        const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
-        await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
-
-        const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
-        const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
-
-        await exitDispute.claim(inputs, witness, {
-          gasLimit: 800000
-        })
-
-        // prepare challenge
-        const challengeInputs = [
-          encodeStructable(firstBlockInfo.stateUpdate.property)
-        ]
-        const challengeWitness = [
-          encodeStructable(firstBlockInfo.inclusionProof)
-        ]
-
+        const [inputs, challengeInputs, challengeWitness] = await init()
         await expect(
           exitDispute.challenge(
             inputs,
@@ -200,11 +196,50 @@ describe('ExitDispute', () => {
               gasLimit: 800000
             }
           )
-        ).to.emit(exitDispute, 'CheckpointChallenged')
+        ).to.emit(exitDispute, 'ExitChallenged')
+      }).timeout(15000)
+    })
+    describe('failer to exit challenge', () => {
+      it('check ', async () => {
+        const [, challengeInputs, challengeWitness] = await init()
+        await expect(
+          exitDispute.challenge(
+            [],
+            challengeInputs,
+            challengeWitness,
+            {
+              gasLimit: 800000
+            }
+          )
+        ).to.be.reverted
+      })
+      it('check ', async () => {
+        const [inputs, , challengeWitness] = await init()
+        await expect(
+          exitDispute.challenge(
+            inputs,
+            [],
+            challengeWitness,
+            {
+              gasLimit: 800000
+            }
+          )
+        ).to.be.reverted
+      })
+      it('check ', async () => {
+        const [inputs, challengeInputs, ] = await init()
+        await expect(
+          exitDispute.challenge(
+            inputs,
+            challengeInputs,
+            [],
+            {
+              gasLimit: 800000
+            }
+          )
+        ).to.be.reverted
       })
     })
-    // 引数のvalidationのtest
-    // 正しいchallengeContractが呼ばれているかのtest
   })
   
   describe.skip('removeChallenge', () => {
