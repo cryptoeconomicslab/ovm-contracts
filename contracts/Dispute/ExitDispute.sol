@@ -105,22 +105,28 @@ contract ExitDispute is Dispute {
             "inputs length does not match. expected 1"
         );
         require(
-            _challengeInputs.length == 1,
-            "challenge inputs length does not match. expected 1"
-        );
-        require(
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
-
+        types.Property memory challengeProperty;
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
+            require(
+                _challengeInputs.length == 1,
+                "challenge inputs length does not match. expected 1"
+            );
             new SpentChallenge().verify(_inputs, _witness);
+            challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
+            require(
+                _challengeInputs.length == 2,
+                "challenge inputs length does not match. expected 2"
+            );
             new CheckpointChallenge().verify(_inputs, _witness);
+            challengeProperty = createProperty(_challengeInputs[0], _challengeInputs[1]);
         } else {
             revert("illegal challenge type");
         }
-        disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), createProperty(_challengeInputs[0], _challengeInputs[0]));
+        disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty;
         types.Property memory suProperty = abi.decode(
             _inputs[0],
             (types.Property)
