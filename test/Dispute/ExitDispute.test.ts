@@ -75,8 +75,8 @@ describe('ExitDispute', () => {
 
 
   describe('claim', () => {
-    describe('succeed to claim a checkpoint', () => {
-      it('create a new checkpoint claim', async () => {
+    describe('succeed to claim a exit', () => {
+      it('create a new exit claim', async () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
@@ -100,7 +100,7 @@ describe('ExitDispute', () => {
       })
     })
 
-    describe('fail to claim a checkpoint', () => {
+    describe('fail to claim a exit', () => {
       it('cannot decode stateUpdate', async () => {
         const inputs = ['0x01']
         await expect(
@@ -240,13 +240,5 @@ describe('ExitDispute', () => {
         ).to.be.reverted
       })
     })
-  })
-  
-  describe.skip('removeChallenge', () => {
-    // not implemented
-  })
-
-  describe.skip('settle', () => {
-
   })
 })
