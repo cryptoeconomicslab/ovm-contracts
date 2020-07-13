@@ -22,6 +22,8 @@ contract ExitDispute is Dispute {
     DisputeManager disputeManager;
     CommitmentVerifier commitmentVerifier;
     Utils utils;
+    SpentChallenge spentChallenge;
+    CheckpointChallenge checkpointChallenge;
 
     bytes EXIT_CLAIM = bytes("EXIT_CLAIM");
     bytes EXIT_SPENT_CHALLENTE = bytes("EXIT_SPENT_CHALLENGE");
@@ -41,11 +43,15 @@ contract ExitDispute is Dispute {
     constructor(
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
-        address _utilsAddress
+        address _utilsAddress,
+        address _spentChallenge,
+        address _checkpointChallenge
     ) public {
         disputeManager = DisputeManager(_disputeManagerAddress);
         commitmentVerifier = CommitmentVerifier(_commitmentVerifierAddress);
         utils = Utils(_utilsAddress);
+        spentChallenge = SpentChallenge(_spentChallenge);
+        checkpointChallenge = CheckpointChallenge(_checkpointChallenge);
     }
 
     function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
@@ -114,14 +120,14 @@ contract ExitDispute is Dispute {
                 _challengeInputs.length == 1,
                 "challenge inputs length does not match. expected 1"
             );
-            new SpentChallenge().verify(_inputs, _witness);
+            spentChallenge.verify(_inputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
             require(
                 _challengeInputs.length == 2,
                 "challenge inputs length does not match. expected 2"
             );
-            new CheckpointChallenge().verify(_inputs, _witness);
+            checkpointChallenge.verify(_inputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], _challengeInputs[1]);
         } else {
             revert("illegal challenge type");
