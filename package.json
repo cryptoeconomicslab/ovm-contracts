@@ -13,7 +13,7 @@
     "deploy:dev": "npm run build && node build/scripts/scripts/deploy.js local",
     "deploy:kovan": "npm run build && node build/scripts/scripts/deploy.js kovan",
     "deployToken:dev": "node build/scripts/scripts/deployToken.js local",
-    "test": "npm run build && mocha --require ts-node/register 'test/**/*.test.ts'",
+    "test": "npm run build && mocha --require ts-node/register 'test/**/*.test.ts' --parallel --timeout 5000",
     "test:specify": "npm run build && mocha --require ts-node/register",
     "compileProperties": "node build/scripts/scripts/compileProperties.js",
     "docgen": "solidity-docgen --solc-module ./node_modules/solc -t doc-templates"
