@@ -126,7 +126,7 @@ contract ExitDispute is Dispute {
         } else {
             revert("illegal challenge type");
         }
-        disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty;
+        disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty);
         types.Property memory suProperty = abi.decode(
             _inputs[0],
             (types.Property)
