@@ -200,7 +200,7 @@ describe('ExitDispute', () => {
       }).timeout(15000)
     })
     describe('failer to exit challenge', () => {
-      it('check ', async () => {
+      it('If the first argument length is not 1, an error occurs.', async () => {
         const [, challengeInputs, challengeWitness] = await init()
         await expect(
           exitDispute.challenge(
@@ -213,7 +213,7 @@ describe('ExitDispute', () => {
           )
         ).to.be.reverted
       })
-      it('check ', async () => {
+      it('If the second argument is an empty array, an error occurs', async () => {
         const [inputs, , challengeWitness] = await init()
         await expect(
           exitDispute.challenge(
@@ -226,7 +226,7 @@ describe('ExitDispute', () => {
           )
         ).to.be.reverted
       })
-      it('check ', async () => {
+      it('If the third argument length is not 1, an error occurs. ', async () => {
         const [inputs, challengeInputs, ] = await init()
         await expect(
           exitDispute.challenge(
