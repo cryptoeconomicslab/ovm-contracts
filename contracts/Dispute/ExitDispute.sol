@@ -120,14 +120,14 @@ contract ExitDispute is Dispute {
                 _challengeInputs.length == 1,
                 "challenge inputs length does not match. expected 1"
             );
-            spentChallenge.verify(_inputs, _witness);
+            spentChallenge.verify(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
             require(
                 _challengeInputs.length == 2,
                 "challenge inputs length does not match. expected 2"
             );
-            checkpointChallenge.verify(_inputs, _witness);
+            checkpointChallenge.verify(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], _challengeInputs[1]);
         } else {
             revert("illegal challenge type");
