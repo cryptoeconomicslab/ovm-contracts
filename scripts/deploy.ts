@@ -381,14 +381,14 @@ const deployContracts = async (
     wallet,
     adjudicationContract.address,
     utils.address,
-    commitment.address
+    commitmentVerifier.address
   )
   const payoutContracts = await deployPayoutContracts(wallet, utils.address)
   const deployedPredicateTable = await deployCompiledPredicates(
     wallet,
     adjudicationContract.address,
     utils.address,
-    commitment.address,
+    commitmentVerifier.address,
     logicalConnectives,
     atomicPredicates,
     payoutContracts
