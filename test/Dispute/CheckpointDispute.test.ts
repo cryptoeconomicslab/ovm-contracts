@@ -551,7 +551,7 @@ describe('CheckpointDispute', () => {
         await expect(
           checkpointDispute.removeChallenge(inputs, challengeInputs, [])
         ).to.emit(checkpointDispute, 'ChallengeRemoved')
-      }).timeout(5000)
+      }).timeout(15000)
     })
 
     describe('fail to remove challenge', () => {
@@ -562,7 +562,7 @@ describe('CheckpointDispute', () => {
         await expect(
           checkpointDispute.removeChallenge(inputs, challengeInputs, [])
         ).to.revertedWith('State object decided to false')
-      }).timeout(5000)
+      }).timeout(10000)
 
       it('invalid inputs length', async () => {
         const { inputs, challengeInputs } = await prepareChallenge()
