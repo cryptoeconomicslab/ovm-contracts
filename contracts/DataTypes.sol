@@ -27,6 +27,12 @@ library DataTypes {
         uint256 blockNumber;
         Property stateObject;
     }
+    struct Transaction {
+        address depositContractAddress;
+        Range range;
+        uint256 maxBlockNumber;
+        Property nextStateObject;
+    }
     struct Checkpoint {
         Property stateUpdate;
     }

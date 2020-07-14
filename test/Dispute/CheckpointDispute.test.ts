@@ -12,97 +12,28 @@ import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as CheckpointDispute from '../../build/contracts/CheckpointDispute.json'
-import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
-import * as MockFalsyCompiledPredicate from '../../build/contracts/MockFalsyCompiledPredicate.json'
 import * as ethers from 'ethers'
-import { Keccak256 } from '@cryptoeconomicslab/hash'
 import {
   Address,
   BigNumber,
-  Bytes,
-  FixedBytes,
   Range,
-  Struct,
   Property
 } from '@cryptoeconomicslab/primitives'
-import {
-  DoubleLayerTree,
-  DoubleLayerTreeLeaf
-} from '@cryptoeconomicslab/merkle-tree'
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
+import {DisputeTestSupport, generateTree, encodeStructable} from './utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
-// generate merkle tree.
-// returns its root and encoded inclusionProof of given state update.
-function generateTree(
-  stateUpdate: StateUpdate,
-  falsyStateUpdate?: StateUpdate
-) {
-  function generateDoubleLayerTreeLeaf(
-    address: Address,
-    bn: number,
-    data: string
-  ) {
-    return new DoubleLayerTreeLeaf(
-      address,
-      BigNumber.from(bn),
-      FixedBytes.from(32, Keccak256.hash(Bytes.fromString(data)).data)
-    )
-  }
-  const tokenAddress = Address.default()
-
-  // leaf0 : include given state object
-  const leaf0 = new DoubleLayerTreeLeaf(
-    stateUpdate.depositContractAddress,
-    stateUpdate.range.start,
-    FixedBytes.from(
-      32,
-      Keccak256.hash(EthCoder.encode(stateUpdate.stateObject.toStruct())).data
-    )
-  )
-
-  // random leaf for merkle tree
-  const leaf1 = falsyStateUpdate
-    ? new DoubleLayerTreeLeaf(
-        falsyStateUpdate.depositContractAddress,
-        falsyStateUpdate.range.start,
-        FixedBytes.from(
-          32,
-          Keccak256.hash(
-            EthCoder.encode(falsyStateUpdate.stateObject.toStruct())
-          ).data
-        )
-      )
-    : generateDoubleLayerTreeLeaf(tokenAddress, 7, 'leaf1')
-  const leaf2 = generateDoubleLayerTreeLeaf(tokenAddress, 16, 'leaf2')
-  const leaf3 = generateDoubleLayerTreeLeaf(tokenAddress, 100, 'leaf3')
-
-  const tree = new DoubleLayerTree([leaf0, leaf1, leaf2, leaf3])
-
-  return {
-    root: tree.getRoot().toHexString(),
-    inclusionProof: tree.getInclusionProofByAddressAndIndex(tokenAddress, 0),
-    falsyInclusionProof: tree.getInclusionProofByAddressAndIndex(
-      tokenAddress,
-      1
-    )
-  }
-}
-
-function encodeStructable(structable: { toStruct: () => Struct }) {
-  return EthCoder.encode(structable.toStruct())
-}
-
 describe('CheckpointDispute', () => {
   const provider = createMockProvider()
   const wallets = getWallets(provider)
   const wallet = wallets[0]
+  const support = new DisputeTestSupport(wallet)
   const ALICE_ADDRESS = wallets[1].address
   const BOB_ADDRESS = wallets[2].address
   let utils: ethers.Contract,
@@ -110,26 +41,13 @@ describe('CheckpointDispute', () => {
     disputeManager: ethers.Contract,
     checkpointDispute: ethers.Contract,
     commitment: ethers.Contract,
-    commitmentVerifier: ethers.Contract,
-    truthyCompiledPredicate: ethers.Contract,
-    falsyCompiledPredicate: ethers.Contract
+    commitmentVerifier: ethers.Contract
 
   before(async () => {
     utils = await deployContract(wallet, Utils, [])
     deserializer = await deployContract(wallet, Deserializer, [])
 
-    // mock always decide to true
-    truthyCompiledPredicate = await deployContract(
-      wallet,
-      MockCompiledPredicate,
-      []
-    )
-    // mock always decide to false
-    falsyCompiledPredicate = await deployContract(
-      wallet,
-      MockFalsyCompiledPredicate,
-      []
-    )
+    await support.setup()
   })
 
   beforeEach(async () => {
@@ -156,52 +74,13 @@ describe('CheckpointDispute', () => {
     ])
   })
 
-  function ownershipStateUpdate(
-    owner: Address,
-    blockNumber: number,
-    start: number,
-    end: number,
-    falsy?: boolean
-  ) {
-    const predicate = falsy ? falsyCompiledPredicate : truthyCompiledPredicate
-    return new StateUpdate(
-      Address.default(),
-      Address.default(),
-      new Range(BigNumber.from(start), BigNumber.from(end)),
-      BigNumber.from(blockNumber),
-      new Property(Address.from(predicate.address), [EthCoder.encode(owner)])
-    )
-  }
-
-  function prepareBlock(owner: string, blockNumber: number, falsy?: boolean) {
-    const su = ownershipStateUpdate(
-      Address.from(owner),
-      blockNumber,
-      0,
-      5,
-      falsy
-    )
-    const falsySU = ownershipStateUpdate(
-      Address.from(owner),
-      blockNumber,
-      10,
-      20
-    )
-    const tree = generateTree(su, falsySU)
-    return {
-      stateUpdate: su,
-      falsySU,
-      ...tree
-    }
-  }
-
   describe('claim', () => {
     describe('succeed to claim a checkpoint', () => {
       it('create a new checkpoint claim', async () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
-        const stateUpdate = ownershipStateUpdate(
+        const stateUpdate = support.ownershipStateUpdate(
           Address.from(ALICE_ADDRESS),
           nextBlockNumber,
           0,
@@ -235,7 +114,7 @@ describe('CheckpointDispute', () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
-        const stateUpdate = ownershipStateUpdate(
+        const stateUpdate = support.ownershipStateUpdate(
           Address.from(ALICE_ADDRESS),
           nextBlockNumber,
           0,
@@ -258,7 +137,7 @@ describe('CheckpointDispute', () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
-        const stateUpdate = ownershipStateUpdate(
+        const stateUpdate = support.ownershipStateUpdate(
           Address.from(ALICE_ADDRESS),
           nextBlockNumber,
           0,
@@ -285,10 +164,10 @@ describe('CheckpointDispute', () => {
         // prepare blocks
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber.toNumber() + 1
-        const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+        const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
         await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-        const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+        const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
         await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
         const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
@@ -323,7 +202,7 @@ describe('CheckpointDispute', () => {
       describe('input validation', () => {
         async function prepareInputs() {
           const currentBlockNumber = await commitment.currentBlock()
-          const blockInfo = prepareBlock(
+          const blockInfo = support.prepareBlock(
             ALICE_ADDRESS,
             currentBlockNumber.toNumber() + 1
           )
@@ -434,10 +313,10 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
           const inputs = [
@@ -466,10 +345,10 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
           const inputs = [
@@ -505,10 +384,10 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
           const inputs = [encodeStructable(firstBlockInfo.stateUpdate.property)]
@@ -542,10 +421,10 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
           const inputs = [
@@ -580,10 +459,10 @@ describe('CheckpointDispute', () => {
         it('deposit contract address is different', async () => {
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
           const inputs = [
@@ -600,7 +479,7 @@ describe('CheckpointDispute', () => {
             Address.from(ALICE_ADDRESS),
             new Range(BigNumber.from(0), BigNumber.from(5)),
             BigNumber.from(nextBlockNumber),
-            new Property(Address.from(truthyCompiledPredicate.address), [
+            new Property(Address.from(support.truthyCompiledPredicate.address), [
               EthCoder.encode(Address.from(ALICE_ADDRESS))
             ])
           )
@@ -631,10 +510,10 @@ describe('CheckpointDispute', () => {
     async function prepareChallenge(falsy?: boolean) {
       const currentBlockNumber = await commitment.currentBlock()
       const nextBlockNumber = currentBlockNumber.toNumber() + 1
-      const firstBlockInfo = prepareBlock(ALICE_ADDRESS, nextBlockNumber, falsy)
+      const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber, falsy)
       await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-      const secondBlockInfo = prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+      const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
       await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
       const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
@@ -733,7 +612,7 @@ describe('CheckpointDispute', () => {
 
       it('invalid challenge', async () => {
         const { inputs } = await prepareChallenge()
-        const su = ownershipStateUpdate(
+        const su = support.ownershipStateUpdate(
           Address.from(BOB_ADDRESS),
           1,
           0,
