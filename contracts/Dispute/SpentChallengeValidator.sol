@@ -7,10 +7,10 @@ contract SpentChallengeValidator {
      * _challengeInputs: [encode(transaction)]
      * _witness: [signature]
      */
-    function validateChallenge(
-        bytes[] calldata _inputs,
-        bytes[] calldata _witness
-    ) external {
+    function validateSpentChallenge(
+        bytes[] memory _inputs,
+        bytes[] memory _witness
+    ) internal {
         // TODO
         // TransactionがStateUpdateを更新するようなTransactionであることの確認
         // range, depositContractAddressのcheck
