@@ -5,6 +5,7 @@ import {DataTypes as types} from "../DataTypes.sol";
 import "../Library/Deserializer.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {DisputeKind} from "./DisputeKind.sol";
+import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 
 /**
  * Called from DisputeContracts' `challenge` method and `removeChallenge` method.
@@ -20,7 +21,7 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
-    ) internal returns (types.StateUpdate memory, types.StateUpdate memory, types.InclusionProof memory){
+    ) internal view returns (types.StateUpdate memory, types.StateUpdate memory, types.InclusionProof memory){
         types.Property memory suProperty = abi.decode(
             _inputs[0],
             (types.Property)
@@ -79,7 +80,48 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         return (stateUpdate, challengeStateUpdate, inclusionProof);
     }
 
-    function validateChallengeRemoval() external {}
+    function validateChallengeRemoval(
+                bytes[] memory _inputs,
+                bytes[] memory _challengeInputs,
+                bytes[] memory _witness
+        ) internal view returns (types.Property memory, types.Property memory, types.StateUpdate memory, types.StateUpdate memory) {
+        types.Property memory suProperty = abi.decode(
+            _inputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory stateUpdate = Deserializer
+            .deserializeStateUpdate(suProperty);
+
+        types.Property memory property = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+
+        types.Property memory challengeSuProperty = abi.decode(
+            _challengeInputs[0],
+            (types.Property)
+        );
+        types.StateUpdate memory challengeStateUpdate = Deserializer
+            .deserializeStateUpdate(challengeSuProperty);
+
+        types.Property memory challengeProperty = createProperty(
+            _challengeInputs[0],
+            CHECKPOINT_CHALLENGE
+        );
+
+        require(
+            disputeManager.isChallengeOf(property, challengeProperty),
+            "Invalid challenge"
+        );
+
+        // TODO: need to use stateUpdate predicate instead of stateObject to check validity of transaction?
+        CompiledPredicate predicate = CompiledPredicate(
+            challengeStateUpdate.stateObject.predicateAddress
+        );
+
+        require(
+            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+            "State object decided to false"
+        );
+        return (challengeProperty, property, stateUpdate, challengeStateUpdate);
+    }
 
     function isSubrange(
         types.Range memory _subrange,

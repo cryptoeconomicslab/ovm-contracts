@@ -165,41 +165,12 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
             _challengeInputs.length == 1,
             "challenge inputs length does not match. expected 1"
         );
-        types.Property memory suProperty = abi.decode(
-            _inputs[0],
-            (types.Property)
-        );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
-
-        types.Property memory property = createProperty(_inputs[0], CHECKPOINT_CLAIM);
-
-        types.Property memory challengeSuProperty = abi.decode(
-            _challengeInputs[0],
-            (types.Property)
-        );
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(challengeSuProperty);
-
-        types.Property memory challengeProperty = createProperty(
-            _challengeInputs[0],
-            CHECKPOINT_CHALLENGE
-        );
-
-        require(
-            disputeManager.isChallengeOf(property, challengeProperty),
-            "Invalid challenge"
-        );
-
-        // TODO: need to use stateUpdate predicate instead of stateObject to check validity of transaction?
-        CompiledPredicate predicate = CompiledPredicate(
-            challengeStateUpdate.stateObject.predicateAddress
-        );
-
-        require(
-            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
-            "State object decided to false"
-        );
+        (
+            types.Property memory challengeProperty,
+            types.Property memory property,
+            types.StateUpdate memory stateUpdate,
+            types.StateUpdate memory challengeStateUpdate
+        ) = validateChallengeRemoval(_inputs, _challengeInputs, _witness);
 
         disputeManager.setGameResult(challengeProperty, false);
         disputeManager.removeChallenge(property, challengeProperty);

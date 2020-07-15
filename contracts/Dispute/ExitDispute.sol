@@ -17,7 +17,7 @@ import {DisputeKind} from "./DisputeKind.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is Dispute, CheckpointChallengeValidator, SpentChallengeValidator {
+contract ExitDispute is Dispute, CheckpointChallengeValidator {
     event ExitClaimed(
         types.StateUpdate stateUpdate
     );
@@ -28,6 +28,16 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator, SpentChallengeVal
     );
 
     event ExitSettled(types.StateUpdate);
+
+    SpentChallengeValidator private spentChallengeValidator;
+
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentContractAddress,
+        address _utilsAddress
+    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentContractAddress, _utilsAddress){
+        spentChallengeValidator = new SpentChallengeValidator(_utilsAddress);
+    }
 
 
     function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
@@ -96,6 +106,7 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator, SpentChallengeVal
                 _challengeInputs.length == 1,
                 "challenge inputs length does not match. expected 1"
             );
+            // ここの第２引数に何を指定すればいいのかわからない
             validateSpentChallenge(_inputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
