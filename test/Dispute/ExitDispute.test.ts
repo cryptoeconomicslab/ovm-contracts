@@ -76,9 +76,7 @@ describe('ExitDispute', () => {
     exitDispute = await deployContract(wallet, ExitDispute, [
       disputeManager.address,
       commitmentVerifier.address,
-      utils.address,
-      spentChallenge.address,
-      checkpointChallenge.address
+      utils.address
     ])
 
   })

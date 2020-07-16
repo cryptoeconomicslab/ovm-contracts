@@ -29,6 +29,12 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
 
     event ExitSettled(types.StateUpdate);
 
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentVerifierAddress,
+        address _utilsAddress
+    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+
     function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
         external{
         // validate inputs
@@ -91,7 +97,7 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
         );
         require(
             _challengeInputs.length == 2,
-            "challenge inputs length does not match. expected 1"
+            "challenge inputs length does not match. expected 2"
         );
         types.Property memory challengeProperty;
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
