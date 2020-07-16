@@ -106,8 +106,7 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
                 _challengeInputs.length == 1,
                 "challenge inputs length does not match. expected 1"
             );
-            // ここの第２引数に何を指定すればいいのかわからない
-            validateSpentChallenge(_inputs, _witness);
+            spentChallengeValidator.validateSpentChallenge(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
             require(

@@ -3,7 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import {Utils} from "../Utils.sol";
-import "../Library/ECRecover.sol";
+import "../Library/Deserializer.sol";
+import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 
 contract SpentChallengeValidator {
     Utils private utils;
@@ -27,7 +28,7 @@ contract SpentChallengeValidator {
         // TransactionがStateUpdateを更新するようなTransactionであることの確認
         // range, depositContractAddressのcheck
         // isValidStateTransactionPredocate.dicedeを参考に
-        types.Property memory previousStateUpdate = abi.decode(
+        types.Property memory stateUpdate = abi.decode(
             _inputs[0],
             (types.Property)
         );
@@ -37,12 +38,11 @@ contract SpentChallengeValidator {
         );
         require(
             keccak256(transaction.inputs[0]) ==
-                keccak256(previousStateUpdate.inputs[0]),
+                keccak256(stateUpdate.inputs[0]),
             "token must be same"
         );
-        // 下記の_inputs[0]、_inputs[1]に何を指定すればいいのかわからない
-        types.Range memory range = utils.bytesToRange(_inputs[0]);
-        types.Range memory subrange = utils.bytesToRange(_inputs[1]);
+        types.Range memory range = utils.bytesToRange(transaction.range);
+        types.Range memory subrange = utils.bytesToRange(stateUpdate.range);
         require(
             range.start <= subrange.start && subrange.end <= range.end,
             "range must contain subrange"
@@ -51,15 +51,14 @@ contract SpentChallengeValidator {
         // signatureのcheck
         // IsValidSignaturePredicate.disideを参考に
 
-        // 下記の第２引数、第3引数に何を指定すればいいのかわからない
-        bytes32 hashedMessage = keccak256(_witness[0]);
+        types.StateUpdate memory challengeStateUpdate = Deserializer
+            .deserializeStateUpdate(transaction);
+        CompiledPredicate predicate = CompiledPredicate(
+            challengeStateUpdate.stateObject.predicateAddress
+        );
         require(
-            ECRecover.ecverify(
-                hashedMessage,
-                _inputs[1],
-                utils.bytesToAddress(_inputs[2])
-            ),
-            "_inputs[1] must be signature of _inputs[0] by _inputs[2]"
+            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+            "State object decided to false"
         );
     }
 }

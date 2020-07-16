@@ -6,11 +6,25 @@ import "../Library/Deserializer.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {DisputeKind} from "./DisputeKind.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
+import {DisputeManager} from "./DisputeManager.sol";
+import {CommitmentVerifier} from "../CommitmentVerifier.sol";
+import {Utils} from "../Utils.sol";
 
 /**
  * Called from DisputeContracts' `challenge` method and `removeChallenge` method.
  */
 contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
+
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentContractAddress,
+        address _utilsAddress
+    ) public {
+        disputeManager = DisputeManager(_disputeManagerAddress);
+        commitmentVerifier = CommitmentVerifier(_commitmentContractAddress);
+        utils = Utils(_utilsAddress);
+    }
+
     /**
      * challenge checkpiont
      * _inputs: [encode(stateUpdate)] challenged state update
