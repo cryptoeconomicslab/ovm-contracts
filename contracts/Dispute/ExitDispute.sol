@@ -29,17 +29,6 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
 
     event ExitSettled(types.StateUpdate);
 
-    SpentChallengeValidator private spentChallengeValidator;
-
-    constructor(
-        address _disputeManagerAddress,
-        address _commitmentContractAddress,
-        address _utilsAddress
-    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentContractAddress, _utilsAddress){
-        spentChallengeValidator = new SpentChallengeValidator(_utilsAddress);
-    }
-
-
     function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
         external{
         // validate inputs
@@ -100,19 +89,17 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
+        require(
+            _challengeInputs.length == 2,
+            "challenge inputs length does not match. expected 1"
+        );
         types.Property memory challengeProperty;
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
-            require(
-                _challengeInputs.length == 1,
-                "challenge inputs length does not match. expected 1"
-            );
-            spentChallengeValidator.validateSpentChallenge(_inputs, _challengeInputs, _witness);
+            bytes[] memory spentChallengeInputs = new bytes[](1);
+            spentChallengeInputs[0] = _challengeInputs[1];
+            new SpentChallengeValidator().validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
-            require(
-                _challengeInputs.length == 2,
-                "challenge inputs length does not match. expected 2"
-            );
             validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], _challengeInputs[1]);
         } else {

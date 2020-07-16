@@ -7,42 +7,35 @@ import "../Library/Deserializer.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 
 contract SpentChallengeValidator {
-    Utils private utils;
-
-    constructor(
-        address _utilsAddress
-    ) public {
-        utils = Utils(_utilsAddress);
-    }
     /**
      * _inputs: [encode(stateUpdate)]
      * _challengeInputs: [encode(transaction)]
      * _witness: [signature]
      */
     function validateSpentChallenge(
-        bytes[] memory _inputs,
-        bytes[] memory _challengeInputs,
-        bytes[] memory _witness
-    ) internal {
+        bytes[] calldata _inputs,
+        bytes[] calldata _challengeInputs,
+        bytes[] calldata _witness
+    ) external view {
         // TODO
         // TransactionがStateUpdateを更新するようなTransactionであることの確認
         // range, depositContractAddressのcheck
         // isValidStateTransactionPredocate.dicedeを参考に
-        types.Property memory stateUpdate = abi.decode(
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.Property memory transaction = abi.decode(
+        types.Transaction memory transaction = abi.decode(
             _challengeInputs[0],
-            (types.Property)
+            (types.Transaction)
         );
         require(
-            keccak256(transaction.inputs[0]) ==
-                keccak256(stateUpdate.inputs[0]),
+            keccak256(transaction.nextStateObject.inputs[0]) ==
+                keccak256(stateUpdate.stateObject.inputs[0]),
             "token must be same"
         );
-        types.Range memory range = utils.bytesToRange(transaction.range);
-        types.Range memory subrange = utils.bytesToRange(stateUpdate.range);
+        types.Range memory range = transaction.range;
+        types.Range memory subrange = stateUpdate.range;
         require(
             range.start <= subrange.start && subrange.end <= range.end,
             "range must contain subrange"
@@ -52,7 +45,7 @@ contract SpentChallengeValidator {
         // IsValidSignaturePredicate.disideを参考に
 
         types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(transaction);
+            .deserializeStateUpdate(transaction.nextStateObject);
         CompiledPredicate predicate = CompiledPredicate(
             challengeStateUpdate.stateObject.predicateAddress
         );
