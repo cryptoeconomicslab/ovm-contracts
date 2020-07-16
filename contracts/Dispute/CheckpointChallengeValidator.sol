@@ -14,6 +14,11 @@ import {Utils} from "../Utils.sol";
  * Called from DisputeContracts' `challenge` method and `removeChallenge` method.
  */
 contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentVerifierAddress,
+        address _utilsAddress
+    ) public DisputeHelper(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
     /**
      * challenge checkpiont
      * _inputs: [encode(stateUpdate)] challenged state update

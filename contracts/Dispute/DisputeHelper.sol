@@ -12,11 +12,11 @@ contract DisputeHelper {
 
     constructor(
         address _disputeManagerAddress,
-        address _commitmentContractAddress,
+        address _commitmentVerifierAddress,
         address _utilsAddress
     ) public {
         disputeManager = DisputeManager(_disputeManagerAddress);
-        commitmentVerifier = CommitmentVerifier(_commitmentContractAddress);
+        commitmentVerifier = CommitmentVerifier(_commitmentVerifierAddress);
         utils = Utils(_utilsAddress);
     }
 

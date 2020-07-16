@@ -52,6 +52,12 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
 
     event CheckpointSettled(types.StateUpdate);
 
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentVerifierAddress,
+        address _utilsAddress
+    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+
     /**
      * claim checkpoint
      * _propertyInputs: [encode(stateUpdate)]

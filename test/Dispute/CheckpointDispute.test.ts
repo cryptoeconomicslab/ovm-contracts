@@ -71,7 +71,9 @@ describe('CheckpointDispute', () => {
       disputeManager.address,
       commitmentVerifier.address,
       utils.address
-    ])
+    ], {
+      gasLimit: 5000000
+    })
   })
 
   describe('claim', () => {
@@ -629,7 +631,7 @@ describe('CheckpointDispute', () => {
             }
           )
         ).to.be.reverted
-      })
+      }).timeout(5000)
     })
   })
 })
