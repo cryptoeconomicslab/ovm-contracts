@@ -18,6 +18,12 @@ import {DisputeKind} from "./DisputeKind.sol";
  * and StateUpdate at which checkpoint decides.
  */
 contract ExitDispute is Dispute, CheckpointChallengeValidator {
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentVerifierAddress,
+        address _utilsAddress
+    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+
     event ExitClaimed(
         types.StateUpdate stateUpdate
     );
@@ -28,12 +34,6 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
     );
 
     event ExitSettled(types.StateUpdate);
-
-    constructor(
-        address _disputeManagerAddress,
-        address _commitmentVerifierAddress,
-        address _utilsAddress
-    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
 
     function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
         external{
