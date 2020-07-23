@@ -17,41 +17,34 @@ contract SpentChallengeValidator {
         bytes[] calldata _challengeInputs,
         bytes[] calldata _witness
     ) external view {
-        // TODO
-        // TransactionがStateUpdateを更新するようなTransactionであることの確認
-        // range, depositContractAddressのcheck
-        // isValidStateTransactionPredocate.dicedeを参考に
         types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
             (types.StateUpdate)
         );
-        types.Transaction memory transaction = abi.decode(
-            _challengeInputs[0],
-            (types.Transaction)
-        );
-        require(
-            keccak256(transaction.nextStateObject.inputs[0]) ==
-                keccak256(stateUpdate.stateObject.inputs[0]),
-            "token must be same"
-        );
-        types.Range memory range = transaction.range;
-        types.Range memory subrange = stateUpdate.range;
-        require(
-            range.start <= subrange.start && subrange.end <= range.end,
-            "range must contain subrange"
-        );
+        // types.Transaction memory transaction = abi.decode(
+        //     _challengeInputs[0],
+        //     (types.Transaction)
+        // );
+        // require(
+        //     keccak256(transaction.nextStateObject.inputs[0]) ==
+        //         keccak256(stateUpdate.stateObject.inputs[0]),
+        //     "token must be same"
+        // );
+        // types.Range memory range = transaction.range;
+        // types.Range memory subrange = stateUpdate.range;
+        // require(
+        //     range.start <= subrange.start && subrange.end <= range.end,
+        //     "range must contain subrange"
+        // );
 
-        // signatureのcheck
-        // IsValidSignaturePredicate.disideを参考に
-
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(transaction.nextStateObject);
-        CompiledPredicate predicate = CompiledPredicate(
-            challengeStateUpdate.stateObject.predicateAddress
-        );
-        require(
-            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
-            "State object decided to false"
-        );
+        // types.StateUpdate memory challengeStateUpdate = Deserializer
+        //     .deserializeStateUpdate(transaction.nextStateObject);
+        // CompiledPredicate predicate = CompiledPredicate(
+        //     challengeStateUpdate.stateObject.predicateAddress
+        // );
+        // require(
+        //     predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+        //     "State object decided to false"
+        // );
     }
 }

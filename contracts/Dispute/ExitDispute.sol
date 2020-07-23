@@ -35,8 +35,8 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
 
     event ExitSettled(types.StateUpdate);
 
-    function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
-        external{
+    function claim(bytes[] memory _inputs, bytes[] memory _witness)
+        public{
         // validate inputs
         require(
             _inputs.length == 1,
@@ -83,10 +83,10 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
      * bytes("EXIT_SPENT_CHALLENGE") or bytes("EXIT_CHECKPOINT_CHALLENGE")
      */
     function challenge(
-        bytes[] calldata _inputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external{
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) public{
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
@@ -124,16 +124,16 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
     }
 
     function removeChallenge(
-        bytes[] calldata _inputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external{}
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) public{}
 
     /**
      * prove exit is coin which hasn't been spent.
      * check checkpoint
      */
-    function settle(bytes[] calldata _inputs) external{
+    function settle(bytes[] memory _inputs) public{
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
