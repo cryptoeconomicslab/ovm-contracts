@@ -6,23 +6,17 @@ import {
   solidity,
   link
 } from 'ethereum-waffle'
-import * as Utils from '../../build/contracts/Utils.json'
 import * as Deserializer from '../../build/contracts/Deserializer.json'
-import * as Commitment from '../../build/contracts/Commitment.json'
-import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
-import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 import * as SpentChallengeValidator from '../../build/contracts/SpentChallengeValidator.json'
 import * as ethers from 'ethers'
 import {
   Address,
-  Bytes,
-  BigNumber,
   Struct,
 } from '@cryptoeconomicslab/primitives'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
-import {DisputeTestSupport, generateTree, encodeStructable, toStateUpdateStruct, toTransactionStruct} from './utils'
+import {DisputeTestSupport, toStateUpdateStruct, toTransactionStruct} from './utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
