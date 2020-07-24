@@ -10,6 +10,7 @@ import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
  */
 contract MockCompiledPredicate is CompiledPredicate {
     address public payoutContractAddress = address(this);
+    bool public dicideReturn = true;
     constructor() public {}
     function isValidChallenge(
         bytes[] memory _inputs,
@@ -23,7 +24,7 @@ contract MockCompiledPredicate is CompiledPredicate {
         view
         returns (bool)
     {
-        return true;
+        return dicideReturn;
     }
     function decideTrue(bytes[] memory _inputs, bytes[] memory _witness)
         public
@@ -43,5 +44,9 @@ contract MockCompiledPredicate is CompiledPredicate {
     {
         return
             types.Property({predicateAddress: address(this), inputs: inputs});
+    }
+
+    function setDicideReturn(bool _return) public {
+        dicideReturn = _return;
     }
 }

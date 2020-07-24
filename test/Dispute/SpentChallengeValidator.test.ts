@@ -11,13 +11,14 @@ import * as Deserializer from '../../build/contracts/Deserializer.json'
 import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
-import * as ExitDispute from '../../build/contracts/ExitDispute.json'
+import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 import * as SpentChallengeValidator from '../../build/contracts/SpentChallengeValidator.json'
 import * as ethers from 'ethers'
 import {
   Address,
   Bytes,
   BigNumber,
+  Struct,
 } from '@cryptoeconomicslab/primitives'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
@@ -37,15 +38,13 @@ describe('SpentChallengeValidator', () => {
   const ALICE_ADDRESS = wallets[1].address
   const BOB_ADDRESS = wallets[2].address
   const support = new DisputeTestSupport(wallet)
-  let deserializer: ethers.Contract
+  let mockCompiledPredicate: ethers.Contract
   let spentChallengeValidator: ethers.Contract
-  let disputeManager: ethers.Contract
-  let exitDispute: ethers.Contract
-  let commitment: ethers.Contract
-  let commitmentVerifier: ethers.Contract
+  let deserializer: ethers.Contract
 
   before(async () => {
     deserializer = await deployContract(wallet, Deserializer, [])
+    mockCompiledPredicate = await deployContract(wallet, MockCompiledPredicate, [])
     await support.setup()
   })
 
@@ -64,33 +63,98 @@ describe('SpentChallengeValidator', () => {
 
 
   describe('validateSpentChallenge', () => {
-    const init = async (): Promise<[Bytes[], Bytes[], Bytes[]]> => {
-        const nextBlockNumber = 1000000
-        const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
-        const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
-        const inputs = [EthCoder.encode(toStateUpdateStruct(secondBlockInfo.stateUpdate))]
+    it('succeed', async () => {
+      await mockCompiledPredicate.setDicideReturn(true)
+        const statusUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          1000000,
+          0,
+          5
+        )
 
+        const inputs = [EthCoder.encode(toStateUpdateStruct(statusUpdate))]
         const transaction = support.ownershipTransaction(
             Address.from(ALICE_ADDRESS),
             1000000,
             0,
-            5
+            5,
+            Address.from(mockCompiledPredicate.address)
           )
         const challengeInputs = [EthCoder.encode(toTransactionStruct(transaction))]
-        const challengeWitness = [
-          encodeStructable(firstBlockInfo.inclusionProof)
-        ]
-        return [inputs, challengeInputs, challengeWitness]
-      }
-    it.only('succeed', async () => {
-        const [inputs, challengeInputs, witness] = await init()
+        const witness = [EthCoder.encode(new Struct([]))]
         await spentChallengeValidator.validateSpentChallenge(inputs, challengeInputs, witness)
     })
 
     describe('failed', () => {
-      it('token must be same', async () => {})
-      it('range must contain subrange', async () => {})
-      it('State object decided to false', async () => {})
+      it('token must be same', async () => {
+        await mockCompiledPredicate.setDicideReturn(true)
+        const statusUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          1000000,
+          0,
+          5
+        )
+
+        const inputs = [EthCoder.encode(toStateUpdateStruct(statusUpdate))]
+        const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            0,
+            5,
+            Address.from(mockCompiledPredicate.address)
+          )
+        const challengeInputs = [EthCoder.encode(toTransactionStruct(transaction))]
+        const witness = [EthCoder.encode(new Struct([]))]
+        await expect(
+          spentChallengeValidator.validateSpentChallenge(inputs, challengeInputs, witness)
+        ).to.be.reverted
+      })
+      it('range must contain subrange', async () => {
+        await mockCompiledPredicate.setDicideReturn(true)
+        const statusUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          1000000,
+          0,
+          5
+        )
+
+        const inputs = [EthCoder.encode(toStateUpdateStruct(statusUpdate))]
+        const transaction = support.ownershipTransaction(
+            Address.from(ALICE_ADDRESS),
+            1000000,
+            1,
+            5,
+            Address.from(mockCompiledPredicate.address)
+          )
+        const challengeInputs = [EthCoder.encode(toTransactionStruct(transaction))]
+        const witness = [EthCoder.encode(new Struct([]))]
+        await expect(
+          spentChallengeValidator.validateSpentChallenge(inputs, challengeInputs, witness)
+        ).to.be.reverted
+      })
+      it('State object decided to false', async () => {
+        await mockCompiledPredicate.setDicideReturn(false)
+        const statusUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          1000000,
+          0,
+          5
+        )
+
+        const inputs = [EthCoder.encode(toStateUpdateStruct(statusUpdate))]
+        const transaction = support.ownershipTransaction(
+            Address.from(ALICE_ADDRESS),
+            1000000,
+            0,
+            5,
+            Address.from(mockCompiledPredicate.address)
+          )
+        const challengeInputs = [EthCoder.encode(toTransactionStruct(transaction))]
+        const witness = [EthCoder.encode(new Struct([]))]
+        await expect(
+          spentChallengeValidator.validateSpentChallenge(inputs, challengeInputs, witness)
+        ).to.be.reverted
+      })
     })
   })
 

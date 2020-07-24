@@ -63,15 +63,18 @@ export class DisputeTestSupport{
       blockNumber: number,
       start: number,
       end: number,
+      compiledPredicate: Address, 
       falsy?: boolean
-
   ) {
       const predicate = falsy ? this.falsyCompiledPredicate : this.truthyCompiledPredicate
+      const range = new Range(BigNumber.from(start), BigNumber.from(end))
+      const block = BigNumber.from(blockNumber)
+      const property = new Property(compiledPredicate, [])
       return new Transaction(
         Address.default(),
-        new Range(BigNumber.from(start), BigNumber.from(end)),
-        BigNumber.from(blockNumber),
-        new Property(Address.from(predicate.address), [EthCoder.encode(owner)]),
+        range,
+        block,
+        new Property(Address.from(predicate.address), [EthCoder.encode(owner), range.toBytes(), EthCoder.encode(block), EthCoder.encode(property.toStruct())]),
         Address.default()
       )
   }
@@ -158,7 +161,6 @@ export function generateTree(
 
   export function toStateUpdateStruct(data: StateUpdate) : Struct {
     return new Struct([
-      { key: 'deciderAddress', value: data.deciderAddress },
       { key: 'depositContractAddress', value: data.depositContractAddress },
       { key: 'range', value: data.range.toStruct() },
       { key: 'blockNumber', value: data.blockNumber },
