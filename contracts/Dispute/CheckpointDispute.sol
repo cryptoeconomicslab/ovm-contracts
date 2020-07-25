@@ -2,12 +2,13 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
+import {Deposit} from "../DepositInterface.sol";
 import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 import {DisputeKind} from "./DisputeKind.sol";
 import "../Library/Deserializer.sol";
-import {CheckpointChallengeValidator} from './CheckpointChallengeValidator.sol';
+import {CheckpointChallengeValidator} from "./CheckpointChallengeValidator.sol";
 
 /**
  * # CheckpointDispute contract
@@ -56,7 +57,14 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
         address _utilsAddress
-    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+    )
+        public
+        CheckpointChallengeValidator(
+            _disputeManagerAddress,
+            _commitmentVerifierAddress,
+            _utilsAddress
+        )
+    {}
 
     /**
      * claim checkpoint
@@ -74,12 +82,10 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
-        types.Property memory suProperty = abi.decode(
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         types.InclusionProof memory inclusionProof = abi.decode(
             _witness[0],
             (types.InclusionProof)
@@ -102,7 +108,10 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
         );
 
         // claim property to DisputeManager
-        types.Property memory property = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+        types.Property memory property = createProperty(
+            _inputs[0],
+            CHECKPOINT_CLAIM
+        );
         disputeManager.claim(property);
 
         emit CheckpointClaimed(stateUpdate, inclusionProof);
@@ -138,7 +147,10 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
             types.InclusionProof memory inclusionProof
         ) = validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
 
-        types.Property memory claimProperty = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+        types.Property memory claimProperty = createProperty(
+            _inputs[0],
+            CHECKPOINT_CLAIM
+        );
         types.Property memory challengeProperty = createProperty(
             _challengeInputs[0],
             CHECKPOINT_CHALLENGE
@@ -192,16 +204,23 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
             _inputs.length == 1,
             "inputs length does not match. expected 1"
         );
-        types.Property memory property = createProperty(_inputs[0], CHECKPOINT_CLAIM);
-        disputeManager.settleGame(property);
-
-        types.Property memory suProperty = abi.decode(
+        types.Property memory property = createProperty(
             _inputs[0],
-            (types.Property)
+            CHECKPOINT_CLAIM
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
+        bool result = disputeManager.settleGame(property);
+
+        types.StateUpdate memory stateUpdate = abi.decode(
+            _inputs[0],
+            (types.StateUpdate)
+        );
 
         emit CheckpointSettled(stateUpdate);
+        if (result) {
+            Deposit depositContract = Deposit(
+                stateUpdate.depositContractAddress
+            );
+            depositContract.finalizeCheckpoint(stateUpdate);
+        }
     }
 }

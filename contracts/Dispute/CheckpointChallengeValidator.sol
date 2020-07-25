@@ -18,7 +18,15 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
         address _utilsAddress
-    ) public DisputeHelper(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+    )
+        public
+        DisputeHelper(
+            _disputeManagerAddress,
+            _commitmentVerifierAddress,
+            _utilsAddress
+        )
+    {}
+
     /**
      * challenge checkpiont
      * _inputs: [encode(stateUpdate)] challenged state update
@@ -29,27 +37,34 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
-    ) internal view returns (types.StateUpdate memory, types.StateUpdate memory, types.InclusionProof memory){
-        types.Property memory suProperty = abi.decode(
+    )
+        internal
+        view
+        returns (
+            types.StateUpdate memory,
+            types.StateUpdate memory,
+            types.InclusionProof memory
+        )
+    {
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
 
-        types.Property memory challengeSuProperty = abi.decode(
+        types.StateUpdate memory challengeStateUpdate = abi.decode(
             _challengeInputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(challengeSuProperty);
 
         types.InclusionProof memory inclusionProof = abi.decode(
             _witness[0],
             (types.InclusionProof)
         );
 
-        types.Property memory claimedProperty = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+        types.Property memory claimedProperty = createProperty(
+            _inputs[0],
+            CHECKPOINT_CLAIM
+        );
         require(
             stateUpdate.depositContractAddress ==
                 challengeStateUpdate.depositContractAddress,
@@ -89,25 +104,33 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
     }
 
     function validateChallengeRemoval(
-                bytes[] memory _inputs,
-                bytes[] memory _challengeInputs,
-                bytes[] memory _witness
-        ) internal view returns (types.Property memory, types.Property memory, types.StateUpdate memory, types.StateUpdate memory) {
-        types.Property memory suProperty = abi.decode(
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    )
+        internal
+        view
+        returns (
+            types.Property memory,
+            types.Property memory,
+            types.StateUpdate memory,
+            types.StateUpdate memory
+        )
+    {
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
 
-        types.Property memory property = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+        types.Property memory property = createProperty(
+            _inputs[0],
+            CHECKPOINT_CLAIM
+        );
 
-        types.Property memory challengeSuProperty = abi.decode(
+        types.StateUpdate memory challengeStateUpdate = abi.decode(
             _challengeInputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(challengeSuProperty);
 
         types.Property memory challengeProperty = createProperty(
             _challengeInputs[0],
@@ -139,5 +162,4 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             _subrange.start >= _surroundingRange.start &&
             _subrange.end <= _surroundingRange.end;
     }
-
 }

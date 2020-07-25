@@ -154,6 +154,7 @@ contract DisputeManager {
     function settleGame(types.Property memory _property)
         public
         onlyFromDisputeContract(_property)
+        returns (bool)
     {
         bytes32 id = utils.getPropertyId(_property);
         require(started(id), "property is not claimed");
@@ -171,7 +172,7 @@ contract DisputeManager {
             if (decision == types.Decision.True) {
                 game.decision = types.Decision.False;
                 emit PropertyDecided(id, false);
-                return;
+                return false;
             } else if (decision == types.Decision.Undecided) {
                 undecidedChallengeExists = true;
             }
@@ -180,6 +181,7 @@ contract DisputeManager {
 
         game.decision = types.Decision.True;
         emit PropertyDecided(id, true);
+        return true;
     }
 
     function getGame(bytes32 _id)
@@ -208,8 +210,7 @@ contract DisputeManager {
             findIndex(
                 game.challenges,
                 utils.getPropertyId(_challengeProperty)
-            ) >=
-            0
+            ) >= 0
         ) {
             return true;
         }
@@ -267,5 +268,4 @@ contract DisputeManager {
         delete challenges[challenges.length - 1];
         challenges.length -= 1;
     }
-
 }
