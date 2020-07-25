@@ -46,12 +46,10 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
-        types.Property memory suProperty = abi.decode(
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         types.InclusionProof memory inclusionProof = abi.decode(
             _witness[0],
             (types.InclusionProof)
@@ -111,13 +109,8 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
         } else {
             revert("illegal challenge type");
         }
+        types.StateUpdate memory stateUpdate = abi.decode(_inputs[0], (types.StateUpdate));
         disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty);
-        types.Property memory suProperty = abi.decode(
-            _inputs[0],
-            (types.Property)
-        );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         emit ExitChallenged(
             stateUpdate, _challengeInputs[0]
         );

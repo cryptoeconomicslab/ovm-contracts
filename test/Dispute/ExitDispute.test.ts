@@ -10,6 +10,7 @@ import * as Utils from '../../build/contracts/Utils.json'
 import * as Deserializer from '../../build/contracts/Deserializer.json'
 import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
+import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as ExitDispute from '../../build/contracts/ExitDispute.json'
 import * as ethers from 'ethers'
@@ -20,7 +21,7 @@ import {
 } from '@cryptoeconomicslab/primitives'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
-import {DisputeTestSupport, generateTree, encodeStructable} from './utils'
+import {DisputeTestSupport, generateTree, encodeStructable, toStateUpdateStruct, toTransactionStruct} from './utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -42,11 +43,13 @@ describe('ExitDispute', () => {
   let exitDispute: ethers.Contract
   let commitment: ethers.Contract
   let commitmentVerifier: ethers.Contract
+  let mockCompiledPredicate: ethers.Contract
 
   before(async () => {
     utils = await deployContract(wallet, Utils, [])
     deserializer = await deployContract(wallet, Deserializer, [])
     await support.setup()
+    mockCompiledPredicate = await deployContract(wallet, MockCompiledPredicate, [])
   })
 
   beforeEach(async () => {
@@ -66,15 +69,13 @@ describe('ExitDispute', () => {
     disputeManager = await deployContract(wallet, DisputeManager, [
       utils.address
     ])
-
     exitDispute = await deployContract(wallet, ExitDispute, [
       disputeManager.address,
       commitmentVerifier.address,
       utils.address
     ], {
-      gasLimit: 5000000
+      gasLimit: 6000000
     })
-
   })
 
 
@@ -93,7 +94,7 @@ describe('ExitDispute', () => {
         const { root, inclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
         const witness = [encodeStructable(inclusionProof)]
 
         await expect(
@@ -127,7 +128,7 @@ describe('ExitDispute', () => {
         const { root } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
         const witness = ['0x01']
 
         await expect(
@@ -150,7 +151,7 @@ describe('ExitDispute', () => {
         const { root, falsyInclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
         const witness = [encodeStructable(falsyInclusionProof)]
 
         await expect(
@@ -172,13 +173,11 @@ describe('ExitDispute', () => {
       const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
       await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-      const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+      const inputs = [EthCoder.encode(toStateUpdateStruct(secondBlockInfo.stateUpdate))]
       const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
-
       await exitDispute.claim(inputs, witness, {
         gasLimit: 800000
       })
-
       // prepare challenge
       let challengeInputs
       if (challengeType === 'EXIT_SPENT_CHALLENGE') {
@@ -187,8 +186,7 @@ describe('ExitDispute', () => {
         ]
       } else {
         challengeInputs = [
-          Bytes.fromString(challengeType),
-          Bytes.fromString('dummy')
+          Bytes.fromString(challengeType)
         ]
       }
       const challengeWitness = [
@@ -197,8 +195,17 @@ describe('ExitDispute', () => {
       return [inputs, challengeInputs, challengeWitness]
     }
     describe('succeed to exit challenge', () => {
-      it('create a new exit challenge(spent)', async () => {
+      it.only('create a new exit challenge(spent)', async () => {
         const [inputs, challengeInputs, challengeWitness] = await init()
+        await mockCompiledPredicate.setDicideReturn(true)
+        const transaction = support.ownershipTransaction(
+          Address.from(ALICE_ADDRESS),
+          1000000,
+          0,
+          5,
+          Address.from(mockCompiledPredicate.address)
+        )
+        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
         await expect(
           exitDispute.challenge(
             inputs,
