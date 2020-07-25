@@ -17,7 +17,7 @@ import {DisputeKind} from "./DisputeKind.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is Dispute, CheckpointChallengeValidator {
+contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeValidator {
     constructor(
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
@@ -101,7 +101,7 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
             bytes[] memory spentChallengeInputs = new bytes[](1);
             spentChallengeInputs[0] = _challengeInputs[1];
-            new SpentChallengeValidator().validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
+            validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
             validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
