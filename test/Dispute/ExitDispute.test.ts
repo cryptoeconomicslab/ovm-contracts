@@ -199,7 +199,7 @@ describe('ExitDispute', () => {
         const [inputs, challengeInputs, challengeWitness] = await init()
         await mockCompiledPredicate.setDicideReturn(true)
         const transaction = support.ownershipTransaction(
-          Address.from(ALICE_ADDRESS),
+          Address.from(BOB_ADDRESS),
           1000000,
           0,
           5,
