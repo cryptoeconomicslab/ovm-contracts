@@ -177,12 +177,10 @@ contract ExitDispute is
         types.Property memory property = createProperty(_inputs[0], EXIT_CLAIM);
         disputeManager.settleGame(property);
 
-        types.Property memory suProperty = abi.decode(
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
 
         emit ExitSettled(stateUpdate);
     }
