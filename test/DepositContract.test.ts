@@ -14,26 +14,26 @@ import * as MockOwnershipPredicate from '../build/contracts/MockOwnershipPredica
 import * as TestPredicate from '../build/contracts/TestPredicate.json'
 import * as MockAdjudicationContract from '../build/contracts/MockAdjudicationContract.json'
 import * as Deserializer from '../build/contracts/Deserializer.json'
-import * as MockCheckpointDispute from '../build/contracts/MockExitDispute.json'
+import * as MockCheckpointDispute from '../build/contracts/MockCheckpointDispute.json'
 import * as MockExitDispute from '../build/contracts/MockExitDispute.json'
 import * as ethers from 'ethers'
-import {
-  OvmProperty,
-  encodeAddress,
-  encodeProperty,
-  encodeRange,
-  encodeInteger
-} from './helpers/utils'
+import { OvmProperty, encodeStateUpdate } from './helpers/utils'
 import { getTransactionEvents } from './helpers/getTransactionEvent'
 import { gasCost as GasCost } from './GasCost.test'
 const abi = new ethers.utils.AbiCoder()
 const { MaxUint256 } = ethers.constants
+const { bigNumberify } = ethers.utils
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
+function range(start: number, end: number) {
+  return [bigNumberify(start), bigNumberify(end)]
+}
+
 describe('DepositContract', () => {
+  let utils: ethers.Contract, deserializer: ethers.Contract
   let provider = createMockProvider()
   let wallets = getWallets(provider)
   let wallet = wallets[0]
@@ -42,14 +42,17 @@ describe('DepositContract', () => {
     mockOwnershipPredicate: ethers.Contract
   // mock adjudicator contracts
   let mockAdjudicationContract: ethers.Contract,
-    mockFailingAdjudicationContract: ethers.Contract
-  let mockCommitmentContract: ethers.Contract
-  let depositContract: ethers.Contract,
+    mockCommitmentContract: ethers.Contract,
+    depositContract: ethers.Contract,
     mockCheckpointDispute: ethers.Contract,
     mockExitDispute: ethers.Contract
 
+  before(async () => {
+    deserializer = await deployContract(wallet, Deserializer, [])
+    utils = await deployContract(wallet, Utils, [])
+  })
+
   beforeEach(async () => {
-    const deserializer = await deployContract(wallet, Deserializer, [])
     try {
       link(
         DepositContract,
@@ -59,7 +62,6 @@ describe('DepositContract', () => {
     } catch (e) {
       // link fail in second time.
     }
-    const utils = await deployContract(wallet, Utils, [])
     mockCommitmentContract = await deployContract(
       wallet,
       MockCommitmentContract,
@@ -70,12 +72,6 @@ describe('DepositContract', () => {
       MockAdjudicationContract,
       [false]
     )
-    mockFailingAdjudicationContract = await deployContract(
-      wallet,
-      MockAdjudicationContract,
-      [true]
-    )
-
     testPredicate = await deployContract(wallet, TestPredicate, [
       mockAdjudicationContract.address,
       utils.address
@@ -91,16 +87,23 @@ describe('DepositContract', () => {
       mockCheckpointDispute.address,
       mockExitDispute.address
     ])
+
+    mockOwnershipPredicate = await deployContract(
+      wallet,
+      MockOwnershipPredicate,
+      [depositContract.address]
+    )
   })
 
   describe('deposit', () => {
     let stateObject: OvmProperty
-    beforeEach(async () => {
+    beforeEach(() => {
       stateObject = {
         predicateAddress: testPredicate.address,
         inputs: ['0x01']
       }
     })
+
     it('succeed to deposit 1 MockToken', async () => {
       await mockTokenContract.approve(depositContract.address, 10)
       const tx = await depositContract.deposit(1, stateObject, {
@@ -108,47 +111,35 @@ describe('DepositContract', () => {
       })
       const events = await getTransactionEvents(provider, tx, depositContract)
       const depositedRangeExtended = events[0]
-      assert.deepEqual(depositedRangeExtended.values.newRange, [
-        ethers.utils.bigNumberify(0),
-        ethers.utils.bigNumberify(1)
-      ])
+      assert.deepEqual(depositedRangeExtended.values.newRange, range(0, 1))
 
       const checkpointFinalized = events[1]
-      assert.equal(
-        checkpointFinalized.values.checkpointId,
-        '0xe65405928ab9ebe13ff81bf8e639bec386bef715969e9d5e00a62a1647a22b8a'
-      )
       assert.deepEqual(checkpointFinalized.values.checkpoint, [
-        [
-          encodeAddress(depositContract.address),
-          encodeRange(0, 1),
-          encodeInteger(100),
-          encodeProperty(stateObject)
-        ]
+        depositContract.address,
+        range(0, 1),
+        bigNumberify(100),
+        [stateObject.predicateAddress, stateObject.inputs]
       ])
 
       const tx2 = await depositContract.deposit(2, stateObject)
       const events2 = await getTransactionEvents(provider, tx2, depositContract)
       const depositedRangeExtended2 = events2[0]
-      assert.deepEqual(depositedRangeExtended2.values.newRange, [
-        ethers.utils.bigNumberify(0),
-        ethers.utils.bigNumberify(3)
-      ])
+      assert.deepEqual(depositedRangeExtended2.values.newRange, range(0, 3))
 
       const checkpointFinalized2 = events2[1]
       assert.deepEqual(checkpointFinalized2.values.checkpoint, [
-        [
-          encodeAddress(depositContract.address),
-          encodeRange(1, 3),
-          encodeInteger(100),
-          encodeProperty(stateObject)
-        ]
+        depositContract.address,
+        range(1, 3),
+        bigNumberify(100),
+        [stateObject.predicateAddress, stateObject.inputs]
       ])
     })
+
     it('fail to deposit 1 MockToken because of not approved', async () => {
       await mockTokenContract.setFailingMode(true)
       await expect(depositContract.deposit(1, stateObject)).to.be.reverted
     })
+
     it('Total deposited amount does not overflow', async () => {
       const amount = MaxUint256.sub(1)
       await mockTokenContract.approve(depositContract.address, amount)
@@ -160,6 +151,7 @@ describe('DepositContract', () => {
         'DepositContract: totalDeposited exceed max uint256'
       )
     })
+
     it('check gas cost', async () => {
       await mockTokenContract.approve(depositContract.address, 10)
       const gasCost = await depositContract.estimate.deposit(1, stateObject)
@@ -168,70 +160,43 @@ describe('DepositContract', () => {
   })
 
   describe('finalizeCheckpoint', () => {
-    let checkpointProperty: OvmProperty
-    beforeEach(async () => {
-      const stateObject = abi.encode(
-        ['tuple(address, bytes[])'],
-        [[testPredicate.address, ['0x01']]]
-      )
-
-      checkpointProperty = {
+    it('succeed to finalize checkpoint called by CheckpointDispute', async () => {
+      const su = encodeStateUpdate(depositContract.address, [0, 10], 5, {
         predicateAddress: testPredicate.address,
-        inputs: [
-          abi.encode(['tuple(uint256, uint256)'], [[0, 10]]),
-          stateObject
-        ]
-      }
+        inputs: ['0x01']
+      })
+      await expect(mockCheckpointDispute.settle([su])).to.emit(
+        depositContract,
+        'CheckpointFinalized'
+      )
     })
 
-    it('succeed to finalize checkpoint', async () => {
+    it('fail to finalize checkpoint msg.sender is not checkpointDispute', async () => {
       await expect(
-        depositContract.finalizeCheckpoint(checkpointProperty)
-      ).to.emit(depositContract, 'CheckpointFinalized')
-    })
-    it('fail to finalize checkpoint because checkpoint claim not decided true', async () => {
-      const depositContract = await deployContract(wallet, DepositContract, [
-        mockTokenContract.address,
-        mockCommitmentContract.address,
-        mockCheckpointDispute.address,
-        mockExitDispute.address
-      ])
-
-      await expect(depositContract.finalizeCheckpoint(checkpointProperty)).to.be
-        .reverted
+        depositContract.finalizeCheckpoint([
+          depositContract.address,
+          range(0, 10),
+          5,
+          [testPredicate.address, ['0x01']]
+        ])
+      ).to.be.reverted
     })
   })
 
   describe('finalizeExit', () => {
-    let stateUpdateAddress = ethers.constants.AddressZero
-    let ownershipStateObject: string
     // mock StateObject to deposit
-    let stateObject
+    let stateObject: OvmProperty
 
     function su(range: number[], depositContractAddress?: string) {
       return [
-        encodeAddress(depositContractAddress || depositContract.address),
-        abi.encode(['tuple(uint256, uint256)'], [range]),
-        encodeInteger(100),
-        ownershipStateObject
+        depositContractAddress || depositContract.address,
+        range,
+        100,
+        [stateObject.predicateAddress, stateObject.inputs]
       ]
     }
 
     beforeEach(async () => {
-      mockOwnershipPredicate = await deployContract(
-        wallet,
-        MockOwnershipPredicate,
-        [depositContract.address]
-      )
-      ownershipStateObject = abi.encode(
-        ['tuple(address, bytes[])'],
-        [
-          [
-            mockOwnershipPredicate.address,
-            [abi.encode(['address'], [wallet.address])]
-          ]
-        ]
-      )
       stateObject = {
         predicateAddress: mockOwnershipPredicate.address,
         inputs: [abi.encode(['address'], [wallet.address])]
@@ -245,6 +210,7 @@ describe('DepositContract', () => {
         gasLimit: 1000000
       })
       await expect(tx).to.emit(depositContract, 'ExitFinalized')
+
       const events = await getTransactionEvents(
         provider,
         await tx,
@@ -257,19 +223,20 @@ describe('DepositContract', () => {
       ])
     })
 
-    it.skip('finalize ExitDeposit property and ExitFinalized event should be fired', async () => {
+    it('finalize ExitDeposit property and ExitFinalized event should be fired', async () => {
       const tx = mockOwnershipPredicate.finalizeExit(su([0, 7]), 10, {
         gasLimit: 1000000
       })
       await expect(tx).to.emit(depositContract, 'ExitFinalized')
     })
 
-    it.skip('finalize ExitDeposit property throw checkpoint must be finalized exception', async () => {
+    it('finalize ExitDeposit property throw exit claim must be settled exception', async () => {
+      await mockExitDispute.setClaimDecision(false, { gasLimit: 100000 })
       await expect(
         mockOwnershipPredicate.finalizeExit(su([0, 7]), 10, {
           gasLimit: 1000000
         })
-      ).to.be.revertedWith('checkpoint must be finalized')
+      ).to.be.revertedWith('exit claim must be settled to true')
     })
 
     it('finalize Exit property and depositedId should be changed', async () => {

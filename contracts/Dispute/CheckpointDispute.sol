@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
-import {Deposit} from "../DepositInterface.sol";
+import {DepositContract} from "../DepositContract.sol";
 import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
@@ -217,7 +217,7 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
 
         emit CheckpointSettled(stateUpdate);
         if (result) {
-            Deposit depositContract = Deposit(
+            DepositContract depositContract = DepositContract(
                 stateUpdate.depositContractAddress
             );
             depositContract.finalizeCheckpoint(stateUpdate);

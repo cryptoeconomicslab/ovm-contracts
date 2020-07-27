@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 /* Internal Imports */
 import {DataTypes as types} from "./DataTypes.sol";
 import {Commitment} from "./Commitment.sol";
+import {DisputeKind} from "./Dispute/DisputeKind.sol";
+import {ExitDispute} from "./Dispute/ExitDispute.sol";
 import "./Predicate/CompiledPredicate.sol";
 import "./Library/Deserializer.sol";
 
@@ -51,8 +53,8 @@ contract DepositContract {
     /* Public Variables and Mappings*/
     ERC20 public erc20;
     Commitment public commitment;
-    address public checkpointDispute;
-    address public exitDispute;
+    address public checkpointDisputeAddress;
+    address public exitDisputeAddress;
 
     // totalDeposited is the most right coin id which has been deposited
     uint256 public totalDeposited;
@@ -68,8 +70,8 @@ contract DepositContract {
     ) public {
         erc20 = ERC20(_erc20);
         commitment = Commitment(_commitment);
-        checkpointDispute = _checkpointDispute;
-        exitDispute = _exitDispute;
+        checkpointDisputeAddress = _checkpointDispute;
+        exitDisputeAddress = _exitDispute;
     }
 
     /**
@@ -167,7 +169,7 @@ contract DepositContract {
 
     function finalizeCheckpoint(types.StateUpdate memory _checkpoint) public {
         require(
-            msg.sender == checkpointDispute,
+            msg.sender == checkpointDisputeAddress,
             "Only called from checkpoint dispute"
         );
 
@@ -217,7 +219,13 @@ contract DepositContract {
             "finalizeExit must be called from payout contract"
         );
 
-        // TODO: require disputeManager.settled(_exit)
+        ExitDispute exitDispute = ExitDispute(exitDisputeAddress);
+        types.Decision decision = exitDispute.getClaimDecision(_exit);
+
+        require(
+            decision == types.Decision.True,
+            "exit claim must be settled to true"
+        );
 
         require(
             _exit.depositContractAddress == address(this),

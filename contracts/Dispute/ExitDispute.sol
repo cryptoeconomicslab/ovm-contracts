@@ -1,14 +1,16 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
- 
+
 import {DataTypes as types} from "../DataTypes.sol";
-import {Dispute} from './DisputeInterface.sol';
+import {DepositContract} from "../DepositContract.sol";
+import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
-import {CheckpointChallengeValidator} from './CheckpointChallengeValidator.sol';
-import {SpentChallengeValidator} from './SpentChallengeValidator.sol';
+import {CheckpointChallengeValidator} from "./CheckpointChallengeValidator.sol";
+import {SpentChallengeValidator} from "./SpentChallengeValidator.sol";
 import "../Library/Deserializer.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 import {DisputeKind} from "./DisputeKind.sol";
+import {Utils} from "../Utils.sol";
 
 /**
  * # ExitDispute contract
@@ -17,57 +19,85 @@ import {DisputeKind} from "./DisputeKind.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeValidator {
+contract ExitDispute is
+    Dispute,
+    SpentChallengeValidator,
+    CheckpointChallengeValidator
+{
+    Utils utils;
+
     constructor(
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
         address _utilsAddress
-    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+    )
+        public
+        CheckpointChallengeValidator(
+            _disputeManagerAddress,
+            _commitmentVerifierAddress,
+            _utilsAddress
+        )
+    {
+        utils = Utils(_utilsAddress);
+    }
 
-    event ExitClaimed(
-        types.StateUpdate stateUpdate
-    );
+    event ExitClaimed(types.StateUpdate stateUpdate);
 
-    event ExitChallenged(
-        types.StateUpdate stateUpdate,
-        bytes challengeType
-    );
+    event ExitChallenged(types.StateUpdate stateUpdate, bytes challengeType);
 
     event ExitSettled(types.StateUpdate);
 
-    function claim(bytes[] memory _inputs, bytes[] memory _witness)
-        public{
+    /**
+     * Claim Exit at StateUpdate
+     * There're two kind of exit claims. ExitStateUpdate and ExitCheckpoint.
+     * The former needs inclusion proof of stateUpdate. The latter don't need
+     * witness but check if checkpoint for the stateUpdate is finalized yet.
+     * _inputs: [encode(stateUpdate)]
+     * _witness: [encode(inclusionProof)]
+     */
+    function claim(bytes[] memory _inputs, bytes[] memory _witness) public {
         // validate inputs
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
         );
-        require(
-            _witness.length == 1,
-            "witness length does not match. expected 1"
-        );
         types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
             (types.StateUpdate)
         );
-        types.InclusionProof memory inclusionProof = abi.decode(
-            _witness[0],
-            (types.InclusionProof)
-        );
-        bytes memory blockNumberBytes = abi.encode(stateUpdate.blockNumber);
-        bytes32 root = utils.bytesToBytes32(
-            commitmentVerifier.retrieve(blockNumberBytes)
-        );
-        require(
-            commitmentVerifier.verifyInclusionWithRoot(
-                keccak256(abi.encode(stateUpdate.stateObject)),
-                stateUpdate.depositContractAddress,
-                stateUpdate.range,
-                inclusionProof,
-                root
-            ),
-            "Inclusion verification failed"
-        );
+        if (_witness.length == 0) {
+            // ExitCheckpoint
+            // check if checkpoint is stored in depositContract
+            bytes32 id = getId(stateUpdate);
+            DepositContract depositContract = DepositContract(
+                stateUpdate.depositContractAddress
+            );
+            require(
+                depositContract.checkpoints(id),
+                "Checkpoint needs to be finalized or inclusionProof have to be provided"
+            );
+        } else {
+            // ExitStateUpdate
+            types.InclusionProof memory inclusionProof = abi.decode(
+                _witness[0],
+                (types.InclusionProof)
+            );
+            bytes memory blockNumberBytes = abi.encode(stateUpdate.blockNumber);
+            bytes32 root = utils.bytesToBytes32(
+                commitmentVerifier.retrieve(blockNumberBytes)
+            );
+
+            require(
+                commitmentVerifier.verifyInclusionWithRoot(
+                    keccak256(abi.encode(stateUpdate.stateObject)),
+                    stateUpdate.depositContractAddress,
+                    stateUpdate.range,
+                    inclusionProof,
+                    root
+                ),
+                "Inclusion verification failed"
+            );
+        }
         // claim property to DisputeManager
         types.Property memory property = createProperty(_inputs[0], EXIT_CLAIM);
         disputeManager.claim(property);
@@ -84,7 +114,7 @@ contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeVal
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
-    ) public{
+    ) public {
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
@@ -102,31 +132,44 @@ contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeVal
             bytes[] memory spentChallengeInputs = new bytes[](1);
             spentChallengeInputs[0] = _challengeInputs[1];
             validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
-            challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
-        } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
+            challengeProperty = createProperty(
+                _challengeInputs[0],
+                EXIT_SPENT_CHALLENTE
+            );
+        } else if (
+            keccak256(_challengeInputs[0]) ==
+            keccak256(EXIT_CHECKPOINT_CHALLENTE)
+        ) {
             validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
-            challengeProperty = createProperty(_challengeInputs[0], _challengeInputs[1]);
+            challengeProperty = createProperty(
+                _challengeInputs[0],
+                _challengeInputs[1]
+            );
         } else {
             revert("illegal challenge type");
         }
-        types.StateUpdate memory stateUpdate = abi.decode(_inputs[0], (types.StateUpdate));
-        disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty);
-        emit ExitChallenged(
-            stateUpdate, _challengeInputs[0]
+        types.StateUpdate memory stateUpdate = abi.decode(
+            _inputs[0],
+            (types.StateUpdate)
         );
+        disputeManager.challenge(
+            createProperty(_inputs[0], EXIT_CLAIM),
+            challengeProperty
+        );
+        emit ExitChallenged(stateUpdate, _challengeInputs[0]);
     }
 
     function removeChallenge(
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
-    ) public{}
+    ) public {}
 
     /**
      * prove exit is coin which hasn't been spent.
      * check checkpoint
      */
-    function settle(bytes[] memory _inputs) public{
+    function settle(bytes[] memory _inputs) public {
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
@@ -142,5 +185,29 @@ contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeVal
             .deserializeStateUpdate(suProperty);
 
         emit ExitSettled(stateUpdate);
+    }
+
+    /* Helpers */
+    function getId(types.StateUpdate memory _su)
+        private
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(_su));
+    }
+
+    function getClaimDecision(types.StateUpdate memory _su)
+        public
+        view
+        returns (types.Decision)
+    {
+        bytes memory suBytes = abi.encode(_su);
+        types.Property memory exitProperty = createProperty(
+            suBytes,
+            EXIT_CLAIM
+        );
+        bytes32 id = utils.getPropertyId(exitProperty);
+        types.ChallengeGame memory game = disputeManager.getGame(id);
+        return game.decision;
     }
 }

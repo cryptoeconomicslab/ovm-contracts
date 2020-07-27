@@ -13,21 +13,24 @@ import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.js
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as ExitDispute from '../../build/contracts/ExitDispute.json'
+import * as MockDepositContract from '../../build/contracts/MockDepositContract.json'
+import * as MockToken from '../../build/contracts/MockToken.json'
 import * as ethers from 'ethers'
-import {
-  Address,
-  Bytes,
-} from '@cryptoeconomicslab/primitives'
+import { Address, Bytes } from '@cryptoeconomicslab/primitives'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
-import {DisputeTestSupport, generateTree, encodeStructable, toStateUpdateStruct, toTransactionStruct} from './utils'
+import {
+  DisputeTestSupport,
+  generateTree,
+  encodeStructable,
+  toStateUpdateStruct,
+  toTransactionStruct
+} from './utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
-
-
 
 describe('ExitDispute', () => {
   const provider = createMockProvider()
@@ -49,7 +52,11 @@ describe('ExitDispute', () => {
     utils = await deployContract(wallet, Utils, [])
     deserializer = await deployContract(wallet, Deserializer, [])
     await support.setup()
-    mockCompiledPredicate = await deployContract(wallet, MockCompiledPredicate, [])
+    mockCompiledPredicate = await deployContract(
+      wallet,
+      MockCompiledPredicate,
+      []
+    )
   })
 
   beforeEach(async () => {
@@ -70,267 +77,303 @@ describe('ExitDispute', () => {
       utils.address
     ])
     //spentChallengeValidator = await deployContract(wallet, SpentChallengeValidator, [])
-    exitDispute = await deployContract(wallet, ExitDispute, [
-      disputeManager.address,
-      commitmentVerifier.address,
-      utils.address
-    ], {
-      gasLimit: 6000000
-    })
+    exitDispute = await deployContract(
+      wallet,
+      ExitDispute,
+      [disputeManager.address, commitmentVerifier.address, utils.address],
+      {
+        gasLimit: 6000000
+      }
+    )
   })
 
-
-  describe('claim', () => {
-    describe('succeed to claim a exit', () => {
-      it('create a new exit claim', async () => {
+  describe('Exit Checkpoint', () => {
+    let depositContract: ethers.Contract
+    beforeEach(async () => {
+      const token = await deployContract(wallet, MockToken, [])
+      depositContract = await deployContract(wallet, MockDepositContract, [
+        token.address
+      ])
+    })
+    describe('claim', () => {
+      it('succeed to claim a exit checkpoint', async () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
-        const stateUpdate = support.ownershipStateUpdate(
+        const su = support.ownershipStateUpdate(
           Address.from(ALICE_ADDRESS),
           nextBlockNumber,
           0,
           5
         )
-        const { root, inclusionProof } = generateTree(stateUpdate)
-        await commitment.submitRoot(nextBlockNumber, root)
-
-        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
-        const witness = [encodeStructable(inclusionProof)]
+        su.update({
+          depositContractAddress: Address.from(depositContract.address)
+        })
+        const inputs = [EthCoder.encode(toStateUpdateStruct(su))]
+        const witness: Bytes[] = []
 
         await expect(
-          exitDispute.claim(inputs, witness, {
-            gasLimit: 800000
-          })
+          exitDispute.claim(inputs, witness, { gasLimit: 800000 })
         ).to.emit(exitDispute, 'ExitClaimed')
       })
-    })
 
-    describe('fail to claim a exit', () => {
-      it('cannot decode stateUpdate', async () => {
-        const inputs = ['0x01']
-        await expect(
-          exitDispute.claim(inputs, [], {
-            gasLimit: 800000
-          })
-        ).to.be.reverted
-      })
-
-      it('cannot decode inclusionProof', async () => {
+      it('fail to claim a exit checkpoint checkpoint is not finalized at stateUpdate', async () => {
+        await depositContract.setCheckpoints(false, { gasLimit: 100000 })
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
-        const stateUpdate = support.ownershipStateUpdate(
+        const su = support.ownershipStateUpdate(
           Address.from(ALICE_ADDRESS),
           nextBlockNumber,
           0,
           5
         )
-        const { root } = generateTree(stateUpdate)
-        await commitment.submitRoot(nextBlockNumber, root)
+        su.update({
+          depositContractAddress: Address.from(depositContract.address)
+        })
+        const inputs = [EthCoder.encode(toStateUpdateStruct(su))]
+        const witness: Bytes[] = []
 
-        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
-        const witness = ['0x01']
-
-        await expect(
-          exitDispute.claim(inputs, witness, {
-            gasLimit: 800000
-          })
-        ).to.be.reverted
-      })
-
-      it('falsy inclusionProof', async () => {
-        const currentBlockNumber = await commitment.currentBlock()
-        const nextBlockNumber = currentBlockNumber + 1
-
-        const stateUpdate = support.ownershipStateUpdate(
-          Address.from(ALICE_ADDRESS),
-          nextBlockNumber,
-          0,
-          5
-        )
-        const { root, falsyInclusionProof } = generateTree(stateUpdate)
-        await commitment.submitRoot(nextBlockNumber, root)
-
-        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
-        const witness = [encodeStructable(falsyInclusionProof)]
-
-        await expect(
-          exitDispute.claim(inputs, witness, {
-            gasLimit: 800000
-          })
-        ).to.be.reverted
+        await expect(exitDispute.claim(inputs, witness, { gasLimit: 800000 }))
+          .to.be.reverted
       })
     })
   })
 
-  describe('challenge', () => {
-    const init = async (challengeType = 'EXIT_SPENT_CHALLENGE'): Promise<[Bytes[], Bytes[], Bytes[]]> => {
-      const currentBlockNumber = await commitment.currentBlock()
-      const nextBlockNumber = currentBlockNumber.toNumber() + 1
-      const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
-      await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+  describe('Exit state update', () => {
+    describe('claim', () => {
+      describe('succeed to claim a exit stateUpdate', () => {
+        it('create a new exit claim', async () => {
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber + 1
 
-      const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
-      await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
-
-      const inputs = [EthCoder.encode(toStateUpdateStruct(secondBlockInfo.stateUpdate))]
-      const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
-      await exitDispute.claim(inputs, witness, {
-        gasLimit: 800000
-      })
-      // prepare challenge
-      const challengeInputs = [
-        Bytes.fromString(challengeType)
-      ]
-      const challengeWitness = [
-        encodeStructable(firstBlockInfo.inclusionProof)
-      ]
-      return [inputs, challengeInputs, challengeWitness]
-    }
-    describe('succeed to exit challenge', () => {
-      it('create a new exit challenge(spent)', async () => {
-        const [inputs, challengeInputs, challengeWitness] = await init()
-        await mockCompiledPredicate.setDicideReturn(true)
-        const transaction = support.ownershipTransaction(
-          Address.from(BOB_ADDRESS),
-          1000000,
-          0,
-          5,
-          Address.from(mockCompiledPredicate.address)
-        )
-        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            challengeInputs,
-            challengeWitness,
-            {
-              gasLimit: 900000
-            }
+          const stateUpdate = support.ownershipStateUpdate(
+            Address.from(ALICE_ADDRESS),
+            nextBlockNumber,
+            0,
+            5
           )
-        ).to.emit(exitDispute, 'ExitChallenged')
-      }).timeout(15000)
-      // TODO I'll catch you later.
-      // it('create a new exit challenge(checkpoint)', async () => {
-      //   const [inputs, challengeInputs, challengeWitness] = await init('EXIT_CHECKPOINT_CHALLENGE')
-      //   await expect(
-      //     exitDispute.challenge(
-      //       inputs,
-      //       challengeInputs,
-      //       challengeWitness,
-      //       {
-      //         gasLimit: 800000
-      //       }
-      //     )
-      //   ).to.emit(exitDispute, 'ExitChallenged')
-      // }).timeout(15000)
+          const { root, inclusionProof } = generateTree(stateUpdate)
+          await commitment.submitRoot(nextBlockNumber, root)
+
+          const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
+          const witness = [encodeStructable(inclusionProof)]
+
+          await expect(
+            exitDispute.claim(inputs, witness, {
+              gasLimit: 800000
+            })
+          ).to.emit(exitDispute, 'ExitClaimed')
+        })
+      })
+
+      describe('fail to claim a exit stateUpdate', () => {
+        it('cannot decode stateUpdate', async () => {
+          const inputs = ['0x01']
+          await expect(
+            exitDispute.claim(inputs, [], {
+              gasLimit: 800000
+            })
+          ).to.be.reverted
+        })
+
+        it('cannot decode inclusionProof', async () => {
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber + 1
+
+          const stateUpdate = support.ownershipStateUpdate(
+            Address.from(ALICE_ADDRESS),
+            nextBlockNumber,
+            0,
+            5
+          )
+          const { root } = generateTree(stateUpdate)
+          await commitment.submitRoot(nextBlockNumber, root)
+
+          const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
+          const witness = ['0x01']
+
+          await expect(
+            exitDispute.claim(inputs, witness, {
+              gasLimit: 800000
+            })
+          ).to.be.reverted
+        })
+
+        it('falsy inclusionProof', async () => {
+          const currentBlockNumber = await commitment.currentBlock()
+          const nextBlockNumber = currentBlockNumber + 1
+
+          const stateUpdate = support.ownershipStateUpdate(
+            Address.from(ALICE_ADDRESS),
+            nextBlockNumber,
+            0,
+            5
+          )
+          const { root, falsyInclusionProof } = generateTree(stateUpdate)
+          await commitment.submitRoot(nextBlockNumber, root)
+
+          const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
+          const witness = [encodeStructable(falsyInclusionProof)]
+
+          await expect(
+            exitDispute.claim(inputs, witness, {
+              gasLimit: 800000
+            })
+          ).to.be.reverted
+        })
+      })
     })
-    describe('failer to exit challenge', () => {
-      it('If the first argument length is not 1, an error occurs.', async () => {
-        const [, challengeInputs, challengeWitness] = await init()
-        await expect(
-          exitDispute.challenge(
-            [],
-            challengeInputs,
-            challengeWitness,
-            {
-              gasLimit: 800000
-            }
-          )
-        ).to.be.reverted
-      })
-      it('If the second argument is an empty array, an error occurs', async () => {
-        const [inputs, , challengeWitness] = await init()
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            [],
-            challengeWitness,
-            {
-              gasLimit: 800000
-            }
-          )
-        ).to.be.reverted
-      })
-      it('If the third argument length is not 1, an error occurs. ', async () => {
-        const [inputs, challengeInputs, ] = await init()
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            challengeInputs,
-            [],
-            {
-              gasLimit: 800000
-            }
-          )
-        ).to.be.reverted
-      })
-      it('token must be same', async () => {
-        const [inputs, challengeInputs, challengeWitness] = await init()
-        await mockCompiledPredicate.setDicideReturn(true)
-        const transaction = support.ownershipTransaction(
-          Address.from(ALICE_ADDRESS),
-          1000000,
-          0,
-          5,
-          Address.from(mockCompiledPredicate.address)
+
+    describe('challenge', () => {
+      const init = async (
+        challengeType = 'EXIT_SPENT_CHALLENGE'
+      ): Promise<[Bytes[], Bytes[], Bytes[]]> => {
+        const currentBlockNumber = await commitment.currentBlock()
+        const nextBlockNumber = currentBlockNumber.toNumber() + 1
+        const firstBlockInfo = support.prepareBlock(
+          ALICE_ADDRESS,
+          nextBlockNumber
         )
-        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            challengeInputs,
-            challengeWitness,
-            {
-              gasLimit: 900000
-            }
-          )
-        ).to.be.reverted
-      })
-      it('range must contain subrange', async () => {
-        const [inputs, challengeInputs, challengeWitness] = await init()
-        await mockCompiledPredicate.setDicideReturn(true)
-        const transaction = support.ownershipTransaction(
-          Address.from(BOB_ADDRESS),
-          1000000,
-          1,
-          5,
-          Address.from(mockCompiledPredicate.address)
+        await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
+
+        const secondBlockInfo = support.prepareBlock(
+          BOB_ADDRESS,
+          nextBlockNumber + 1
         )
-        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            challengeInputs,
-            challengeWitness,
-            {
-              gasLimit: 900000
-            }
+        await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
+
+        const inputs = [
+          EthCoder.encode(toStateUpdateStruct(secondBlockInfo.stateUpdate))
+        ]
+        const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+        await exitDispute.claim(inputs, witness, {
+          gasLimit: 800000
+        })
+        // prepare challenge
+        const challengeInputs = [Bytes.fromString(challengeType)]
+        const challengeWitness = [
+          encodeStructable(firstBlockInfo.inclusionProof)
+        ]
+        return [inputs, challengeInputs, challengeWitness]
+      }
+      describe('succeed to exit challenge', () => {
+        it('create a new exit challenge(spent)', async () => {
+          const [inputs, challengeInputs, challengeWitness] = await init()
+          await mockCompiledPredicate.setDicideReturn(true)
+          const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            0,
+            5,
+            Address.from(mockCompiledPredicate.address)
           )
-        ).to.be.reverted
+          challengeInputs.push(
+            EthCoder.encode(toTransactionStruct(transaction))
+          )
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 900000
+            })
+          ).to.emit(exitDispute, 'ExitChallenged')
+        }).timeout(15000)
+        // TODO I'll catch you later.
+        // it('create a new exit challenge(checkpoint)', async () => {
+        //   const [inputs, challengeInputs, challengeWitness] = await init('EXIT_CHECKPOINT_CHALLENGE')
+        //   await expect(
+        //     exitDispute.challenge(
+        //       inputs,
+        //       challengeInputs,
+        //       challengeWitness,
+        //       {
+        //         gasLimit: 800000
+        //       }
+        //     )
+        //   ).to.emit(exitDispute, 'ExitChallenged')
+        // }).timeout(15000)
       })
-      it('State object decided to false', async () => {
-        const [inputs, challengeInputs, challengeWitness] = await init()
-        await mockCompiledPredicate.setDicideReturn(false)
-        const transaction = support.ownershipTransaction(
-          Address.from(BOB_ADDRESS),
-          1000000,
-          0,
-          5,
-          Address.from(mockCompiledPredicate.address)
-        )
-        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            challengeInputs,
-            challengeWitness,
-            {
-              gasLimit: 900000
-            }
+      describe('failer to exit challenge', () => {
+        it('If the first argument length is not 1, an error occurs.', async () => {
+          const [, challengeInputs, challengeWitness] = await init()
+          await expect(
+            exitDispute.challenge([], challengeInputs, challengeWitness, {
+              gasLimit: 800000
+            })
+          ).to.be.reverted
+        })
+        it('If the second argument is an empty array, an error occurs', async () => {
+          const [inputs, , challengeWitness] = await init()
+          await expect(
+            exitDispute.challenge(inputs, [], challengeWitness, {
+              gasLimit: 800000
+            })
+          ).to.be.reverted
+        })
+        it('If the third argument length is not 1, an error occurs. ', async () => {
+          const [inputs, challengeInputs] = await init()
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, [], {
+              gasLimit: 800000
+            })
+          ).to.be.reverted
+        })
+        it('token must be same', async () => {
+          const [inputs, challengeInputs, challengeWitness] = await init()
+          await mockCompiledPredicate.setDicideReturn(true)
+          const transaction = support.ownershipTransaction(
+            Address.from(ALICE_ADDRESS),
+            1000000,
+            0,
+            5,
+            Address.from(mockCompiledPredicate.address)
           )
-        ).to.be.reverted
+          challengeInputs.push(
+            EthCoder.encode(toTransactionStruct(transaction))
+          )
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 900000
+            })
+          ).to.be.reverted
+        })
+        it('range must contain subrange', async () => {
+          const [inputs, challengeInputs, challengeWitness] = await init()
+          await mockCompiledPredicate.setDicideReturn(true)
+          const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            1,
+            5,
+            Address.from(mockCompiledPredicate.address)
+          )
+          challengeInputs.push(
+            EthCoder.encode(toTransactionStruct(transaction))
+          )
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 900000
+            })
+          ).to.be.reverted
+        })
+        it('State object decided to false', async () => {
+          const [inputs, challengeInputs, challengeWitness] = await init()
+          await mockCompiledPredicate.setDicideReturn(false)
+          const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            0,
+            5,
+            Address.from(mockCompiledPredicate.address)
+          )
+          challengeInputs.push(
+            EthCoder.encode(toTransactionStruct(transaction))
+          )
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 900000
+            })
+          ).to.be.reverted
+        })
       })
     })
   })
