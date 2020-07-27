@@ -17,7 +17,7 @@ import {DisputeKind} from "./DisputeKind.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is Dispute, CheckpointChallengeValidator {
+contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeValidator {
     constructor(
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
@@ -46,12 +46,10 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
-        types.Property memory suProperty = abi.decode(
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         types.InclusionProof memory inclusionProof = abi.decode(
             _witness[0],
             (types.InclusionProof)
@@ -103,7 +101,7 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
             bytes[] memory spentChallengeInputs = new bytes[](1);
             spentChallengeInputs[0] = _challengeInputs[1];
-            new SpentChallengeValidator().validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
+            validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
             validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
@@ -111,13 +109,8 @@ contract ExitDispute is Dispute, CheckpointChallengeValidator {
         } else {
             revert("illegal challenge type");
         }
+        types.StateUpdate memory stateUpdate = abi.decode(_inputs[0], (types.StateUpdate));
         disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty);
-        types.Property memory suProperty = abi.decode(
-            _inputs[0],
-            (types.Property)
-        );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         emit ExitChallenged(
             stateUpdate, _challengeInputs[0]
         );

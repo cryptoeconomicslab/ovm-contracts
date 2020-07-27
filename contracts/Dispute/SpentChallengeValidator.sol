@@ -13,10 +13,10 @@ contract SpentChallengeValidator {
      * _witness: [signature]
      */
     function validateSpentChallenge(
-        bytes[] calldata _inputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external view {
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) internal view {
         types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
             (types.StateUpdate)
