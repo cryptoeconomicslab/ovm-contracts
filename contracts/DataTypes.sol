@@ -34,7 +34,7 @@ library DataTypes {
         Property nextStateObject;
     }
     struct Checkpoint {
-        Property stateUpdate;
+        StateUpdate stateUpdate;
     }
     struct Exit {
         StateUpdate stateUpdate;

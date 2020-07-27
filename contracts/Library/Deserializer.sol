@@ -5,53 +5,6 @@ import {DataTypes as types} from "../DataTypes.sol";
 
 library Deserializer {
     /**
-     * @dev deserialize property to Exit instance
-     */
-    function deserializeExit(types.Property memory _exit)
-        public
-        pure
-        returns (types.Exit memory)
-    {
-        types.Property memory stateUpdateProperty = abi.decode(
-            _exit.inputs[0],
-            (types.Property)
-        );
-        types.InclusionProof memory inclusionProof = abi.decode(
-            _exit.inputs[1],
-            (types.InclusionProof)
-        );
-        return
-            types.Exit({
-                stateUpdate: deserializeStateUpdate(stateUpdateProperty),
-                inclusionProof: inclusionProof
-            });
-    }
-
-    /**
-     * @dev deserialize property to ExitDeposit instance
-     */
-    function deserializeExitDeposit(types.Property memory _exit)
-        public
-        pure
-        returns (types.ExitDeposit memory)
-    {
-        types.Property memory stateUpdateProperty = abi.decode(
-            _exit.inputs[0],
-            (types.Property)
-        );
-        types.Property memory checkpointProperty = abi.decode(
-            _exit.inputs[1],
-            (types.Property)
-        );
-
-        return
-            types.ExitDeposit({
-                stateUpdate: deserializeStateUpdate(stateUpdateProperty),
-                checkpoint: deserializeCheckpoint(checkpointProperty)
-            });
-    }
-
-    /**
      * @dev deserialize property to StateUpdate instance
      */
     function deserializeStateUpdate(types.Property memory _stateUpdate)
@@ -76,18 +29,6 @@ library Deserializer {
                 range: range,
                 stateObject: stateObject
             });
-    }
-
-    function deserializeCheckpoint(types.Property memory _checkpoint)
-        public
-        pure
-        returns (types.Checkpoint memory)
-    {
-        types.Property memory stateUpdate = abi.decode(
-            _checkpoint.inputs[0],
-            (types.Property)
-        );
-        return types.Checkpoint({stateUpdate: stateUpdate});
     }
 
     function bytesToAddress(bytes memory addressBytes)

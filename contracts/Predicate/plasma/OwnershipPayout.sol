@@ -20,7 +20,7 @@ contract OwnershipPayout {
      */
     function finalizeExit(
         address depositContractAddress,
-        types.Property memory _exitProperty,
+        types.StateUpdate memory _exit,
         uint256 _depositedRangeId,
         address _owner
     ) public {
@@ -28,7 +28,7 @@ contract OwnershipPayout {
             depositContractAddress
         );
         types.StateUpdate memory stateUpdate = depositContract.finalizeExit(
-            _exitProperty,
+            _exit,
             _depositedRangeId
         );
         address owner = utils.bytesToAddress(stateUpdate.stateObject.inputs[0]);

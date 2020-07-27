@@ -12,6 +12,7 @@ import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as CheckpointDispute from '../../build/contracts/CheckpointDispute.json'
+import * as DepositContract from '../../build/contracts/DepositContract.json'
 import * as ethers from 'ethers'
 import {
   Bytes,
@@ -29,6 +30,7 @@ import {
   encodeStructable,
   toStateUpdateStruct
 } from './utils'
+import { increaseBlocks } from '../helpers/increaseBlocks'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -660,6 +662,33 @@ describe('CheckpointDispute', () => {
           })
         ).to.be.reverted
       }).timeout(5000)
+    })
+  })
+
+  describe('settle checkpoint', () => {
+    it('succeed to settle checkpoint', async () => {
+      const currentBlockNumber = await commitment.currentBlock()
+      const nextBlockNumber = currentBlockNumber + 1
+
+      const stateUpdate = support.ownershipStateUpdate(
+        Address.from(ALICE_ADDRESS),
+        nextBlockNumber,
+        0,
+        5
+      )
+      const { root, inclusionProof } = generateTree(stateUpdate)
+      await commitment.submitRoot(nextBlockNumber, root)
+
+      const inputs = [encodeSU(stateUpdate)]
+      const witness = [encodeStructable(inclusionProof)]
+
+      await checkpointDispute.claim(inputs, witness, {
+        gasLimit: 800000
+      })
+
+      await increaseBlocks(wallets, 10)
+
+      await checkpointDispute.settle(inputs, { gasLimit: 80000 })
     })
   })
 })
