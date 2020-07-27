@@ -17,7 +17,7 @@ import {
   } from '@cryptoeconomicslab/merkle-tree'
   import { Keccak256 } from '@cryptoeconomicslab/hash'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
-import { StateUpdate } from '@cryptoeconomicslab/plasma'
+import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import * as MockFalsyCompiledPredicate from '../../build/contracts/MockFalsyCompiledPredicate.json'
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 
@@ -58,6 +58,26 @@ export class DisputeTestSupport{
           new Property(Address.from(predicate.address), [EthCoder.encode(owner)])
         )
     }
+    public ownershipTransaction(
+      owner: Address,
+      blockNumber: number,
+      start: number,
+      end: number,
+      compiledPredicate: Address, 
+      falsy?: boolean
+  ) {
+      const predicate = falsy ? this.falsyCompiledPredicate : this.truthyCompiledPredicate
+      const range = new Range(BigNumber.from(start), BigNumber.from(end))
+      const block = BigNumber.from(blockNumber)
+      const property = new Property(compiledPredicate, [])
+      return new Transaction(
+        Address.default(),
+        range,
+        block,
+        new Property(Address.from(predicate.address), [EthCoder.encode(owner), range.toBytes(), EthCoder.encode(block), EthCoder.encode(property.toStruct())]),
+        Address.default()
+      )
+  }
     public prepareBlock(owner: string, blockNumber: number, falsy?: boolean) {
         const su = this.ownershipStateUpdate(
           Address.from(owner),
@@ -137,4 +157,22 @@ export function generateTree(
 
   export function encodeStructable(structable: { toStruct: () => Struct }) {
     return EthCoder.encode(structable.toStruct())
+  }
+
+  export function toStateUpdateStruct(data: StateUpdate) : Struct {
+    return new Struct([
+      { key: 'depositContractAddress', value: data.depositContractAddress },
+      { key: 'range', value: data.range.toStruct() },
+      { key: 'blockNumber', value: data.blockNumber },
+      { key: 'stateObject', value: data.stateObject.toStruct() }
+    ])
+  }
+
+  export function toTransactionStruct(data: Transaction) : Struct {
+    return new Struct([
+      { key: 'depositContractAddress', value: data.depositContractAddress },
+      { key: 'range', value: data.range.toStruct() },
+      { key: 'maxBlockNumber', value: data.maxBlockNumber },
+      { key: 'nextStateObject', value: data.stateObject.toStruct() }
+    ])
   }

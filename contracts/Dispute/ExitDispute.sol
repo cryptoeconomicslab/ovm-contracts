@@ -3,13 +3,12 @@ pragma experimental ABIEncoderV2;
  
 import {DataTypes as types} from "../DataTypes.sol";
 import {Dispute} from './DisputeInterface.sol';
-import {DisputeManager} from './DisputeManager.sol';
-import {CheckpointChallenge} from './CheckpointChallenge.sol';
-import {SpentChallenge} from './SpentChallenge.sol';
+import {DisputeHelper} from "./DisputeHelper.sol";
+import {CheckpointChallengeValidator} from './CheckpointChallengeValidator.sol';
+import {SpentChallengeValidator} from './SpentChallengeValidator.sol';
 import "../Library/Deserializer.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
-import {Utils} from "../Utils.sol";
-import {CommitmentVerifier} from "../CommitmentVerifier.sol";
+import {DisputeKind} from "./DisputeKind.sol";
 
 /**
  * # ExitDispute contract
@@ -18,16 +17,12 @@ import {CommitmentVerifier} from "../CommitmentVerifier.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is Dispute {
-    DisputeManager disputeManager;
-    CommitmentVerifier commitmentVerifier;
-    Utils utils;
-    SpentChallenge spentChallenge;
-    CheckpointChallenge checkpointChallenge;
-
-    bytes EXIT_CLAIM = bytes("EXIT_CLAIM");
-    bytes EXIT_SPENT_CHALLENTE = bytes("EXIT_SPENT_CHALLENGE");
-    bytes EXIT_CHECKPOINT_CHALLENTE = bytes("EXIT_CHECKPOINT_CHALLENGE");
+contract ExitDispute is Dispute, SpentChallengeValidator, CheckpointChallengeValidator {
+    constructor(
+        address _disputeManagerAddress,
+        address _commitmentVerifierAddress,
+        address _utilsAddress
+    ) public CheckpointChallengeValidator(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
 
     event ExitClaimed(
         types.StateUpdate stateUpdate
@@ -40,22 +35,8 @@ contract ExitDispute is Dispute {
 
     event ExitSettled(types.StateUpdate);
 
-    constructor(
-        address _disputeManagerAddress,
-        address _commitmentVerifierAddress,
-        address _utilsAddress,
-        address _spentChallenge,
-        address _checkpointChallenge
-    ) public {
-        disputeManager = DisputeManager(_disputeManagerAddress);
-        commitmentVerifier = CommitmentVerifier(_commitmentVerifierAddress);
-        utils = Utils(_utilsAddress);
-        spentChallenge = SpentChallenge(_spentChallenge);
-        checkpointChallenge = CheckpointChallenge(_checkpointChallenge);
-    }
-
-    function claim(bytes[] calldata _inputs, bytes[] calldata _witness)
-        external{
+    function claim(bytes[] memory _inputs, bytes[] memory _witness)
+        public{
         // validate inputs
         require(
             _inputs.length == 1,
@@ -65,12 +46,10 @@ contract ExitDispute is Dispute {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
-        types.Property memory suProperty = abi.decode(
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         types.InclusionProof memory inclusionProof = abi.decode(
             _witness[0],
             (types.InclusionProof)
@@ -102,10 +81,10 @@ contract ExitDispute is Dispute {
      * bytes("EXIT_SPENT_CHALLENGE") or bytes("EXIT_CHECKPOINT_CHALLENGE")
      */
     function challenge(
-        bytes[] calldata _inputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external{
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) public{
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
@@ -114,47 +93,40 @@ contract ExitDispute is Dispute {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
+        require(
+            _challengeInputs.length == 2,
+            "challenge inputs length does not match. expected 2"
+        );
         types.Property memory challengeProperty;
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
-            require(
-                _challengeInputs.length == 1,
-                "challenge inputs length does not match. expected 1"
-            );
-            spentChallenge.verify(_inputs, _witness);
+            bytes[] memory spentChallengeInputs = new bytes[](1);
+            spentChallengeInputs[0] = _challengeInputs[1];
+            validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], EXIT_SPENT_CHALLENTE);
         } else if (keccak256(_challengeInputs[0]) == keccak256(EXIT_CHECKPOINT_CHALLENTE)) {
-            require(
-                _challengeInputs.length == 2,
-                "challenge inputs length does not match. expected 2"
-            );
-            checkpointChallenge.verify(_inputs, _witness);
+            validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(_challengeInputs[0], _challengeInputs[1]);
         } else {
             revert("illegal challenge type");
         }
+        types.StateUpdate memory stateUpdate = abi.decode(_inputs[0], (types.StateUpdate));
         disputeManager.challenge(createProperty(_inputs[0], EXIT_CLAIM), challengeProperty);
-        types.Property memory suProperty = abi.decode(
-            _inputs[0],
-            (types.Property)
-        );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
         emit ExitChallenged(
             stateUpdate, _challengeInputs[0]
         );
     }
 
     function removeChallenge(
-        bytes[] calldata _inputs,
-        bytes[] calldata _challengeInputs,
-        bytes[] calldata _witness
-    ) external{}
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    ) public{}
 
     /**
      * prove exit is coin which hasn't been spent.
      * check checkpoint
      */
-    function settle(bytes[] calldata _inputs) external{
+    function settle(bytes[] memory _inputs) public{
         require(
             _inputs.length == 1,
             "inputs length does not match. expected 1"
@@ -170,16 +142,5 @@ contract ExitDispute is Dispute {
             .deserializeStateUpdate(suProperty);
 
         emit ExitSettled(stateUpdate);
-    }
-
-    function createProperty(bytes memory suBytes, bytes memory kind)
-        private
-        view
-        returns (types.Property memory)
-    {
-        bytes[] memory inputs = new bytes[](2);
-        inputs[0] = kind;
-        inputs[1] = suBytes;
-        return types.Property(address(this), inputs);
     }
 }

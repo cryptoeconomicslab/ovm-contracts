@@ -10,19 +10,17 @@ import * as Utils from '../../build/contracts/Utils.json'
 import * as Deserializer from '../../build/contracts/Deserializer.json'
 import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
+import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as ExitDispute from '../../build/contracts/ExitDispute.json'
-import * as MockSpentChallenge from '../../build/contracts/MockSpentChallenge.json'
-import * as MockCheckpointChallenge from '../../build/contracts/MockCheckpointChallenge.json'
 import * as ethers from 'ethers'
 import {
   Address,
   Bytes,
-  BigNumber,
 } from '@cryptoeconomicslab/primitives'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
-import {DisputeTestSupport, generateTree, encodeStructable} from './utils'
+import {DisputeTestSupport, generateTree, encodeStructable, toStateUpdateStruct, toTransactionStruct} from './utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -44,13 +42,14 @@ describe('ExitDispute', () => {
   let exitDispute: ethers.Contract
   let commitment: ethers.Contract
   let commitmentVerifier: ethers.Contract
-  let spentChallenge: ethers.Contract
-  let checkpointChallenge: ethers.Contract
+  let mockCompiledPredicate: ethers.Contract
+  let spentChallengeValidator: ethers.Contract
 
   before(async () => {
     utils = await deployContract(wallet, Utils, [])
     deserializer = await deployContract(wallet, Deserializer, [])
     await support.setup()
+    mockCompiledPredicate = await deployContract(wallet, MockCompiledPredicate, [])
   })
 
   beforeEach(async () => {
@@ -70,17 +69,14 @@ describe('ExitDispute', () => {
     disputeManager = await deployContract(wallet, DisputeManager, [
       utils.address
     ])
-    spentChallenge = await deployContract(wallet, MockSpentChallenge, [])
-    checkpointChallenge = await deployContract(wallet, MockCheckpointChallenge, [])
-
+    //spentChallengeValidator = await deployContract(wallet, SpentChallengeValidator, [])
     exitDispute = await deployContract(wallet, ExitDispute, [
       disputeManager.address,
       commitmentVerifier.address,
-      utils.address,
-      spentChallenge.address,
-      checkpointChallenge.address
-    ])
-
+      utils.address
+    ], {
+      gasLimit: 6000000
+    })
   })
 
 
@@ -99,7 +95,7 @@ describe('ExitDispute', () => {
         const { root, inclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
         const witness = [encodeStructable(inclusionProof)]
 
         await expect(
@@ -133,7 +129,7 @@ describe('ExitDispute', () => {
         const { root } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
         const witness = ['0x01']
 
         await expect(
@@ -156,7 +152,7 @@ describe('ExitDispute', () => {
         const { root, falsyInclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
         const witness = [encodeStructable(falsyInclusionProof)]
 
         await expect(
@@ -178,25 +174,15 @@ describe('ExitDispute', () => {
       const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
       await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-      const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+      const inputs = [EthCoder.encode(toStateUpdateStruct(secondBlockInfo.stateUpdate))]
       const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
-
       await exitDispute.claim(inputs, witness, {
         gasLimit: 800000
       })
-
       // prepare challenge
-      let challengeInputs
-      if (challengeType === 'EXIT_SPENT_CHALLENGE') {
-        challengeInputs = [
-          Bytes.fromString(challengeType)
-        ]
-      } else {
-        challengeInputs = [
-          Bytes.fromString(challengeType),
-          Bytes.fromString('dummy')
-        ]
-      }
+      const challengeInputs = [
+        Bytes.fromString(challengeType)
+      ]
       const challengeWitness = [
         encodeStructable(firstBlockInfo.inclusionProof)
       ]
@@ -205,42 +191,40 @@ describe('ExitDispute', () => {
     describe('succeed to exit challenge', () => {
       it('create a new exit challenge(spent)', async () => {
         const [inputs, challengeInputs, challengeWitness] = await init()
-        const beforeSpendCalledCount = Number((await spentChallenge.calledCount()))
-        const beforeCheckpointCalledCount = Number(await checkpointChallenge.calledCount())
+        await mockCompiledPredicate.setDicideReturn(true)
+        const transaction = support.ownershipTransaction(
+          Address.from(BOB_ADDRESS),
+          1000000,
+          0,
+          5,
+          Address.from(mockCompiledPredicate.address)
+        )
+        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
         await expect(
           exitDispute.challenge(
             inputs,
             challengeInputs,
             challengeWitness,
             {
-              gasLimit: 800000
+              gasLimit: 900000
             }
           )
         ).to.emit(exitDispute, 'ExitChallenged')
-        const afterSpendCalledCount = Number((await spentChallenge.calledCount()))
-        const afterCheckpointCalledCount = Number(await checkpointChallenge.calledCount())
-        expect(beforeSpendCalledCount + 1).to.be.equal(afterSpendCalledCount)
-        expect(beforeCheckpointCalledCount).to.be.equal(afterCheckpointCalledCount)
       }).timeout(15000)
-      it('create a new exit challenge(checkpoint)', async () => {
-        const [inputs, challengeInputs, challengeWitness] = await init('EXIT_CHECKPOINT_CHALLENGE')
-        const beforeSpendCalledCount = Number((await spentChallenge.calledCount()))
-        const beforeCheckpointCalledCount = Number(await checkpointChallenge.calledCount())
-        await expect(
-          exitDispute.challenge(
-            inputs,
-            challengeInputs,
-            challengeWitness,
-            {
-              gasLimit: 800000
-            }
-          )
-        ).to.emit(exitDispute, 'ExitChallenged')
-        const afterSpendCalledCount = Number((await spentChallenge.calledCount()))
-        const afterCheckpointCalledCount = Number(await checkpointChallenge.calledCount())
-        expect(beforeSpendCalledCount).to.be.equal(afterSpendCalledCount)
-        expect(beforeCheckpointCalledCount + 1).to.be.equal(afterCheckpointCalledCount)
-      }).timeout(15000)
+      // TODO I'll catch you later.
+      // it('create a new exit challenge(checkpoint)', async () => {
+      //   const [inputs, challengeInputs, challengeWitness] = await init('EXIT_CHECKPOINT_CHALLENGE')
+      //   await expect(
+      //     exitDispute.challenge(
+      //       inputs,
+      //       challengeInputs,
+      //       challengeWitness,
+      //       {
+      //         gasLimit: 800000
+      //       }
+      //     )
+      //   ).to.emit(exitDispute, 'ExitChallenged')
+      // }).timeout(15000)
     })
     describe('failer to exit challenge', () => {
       it('If the first argument length is not 1, an error occurs.', async () => {
@@ -278,6 +262,72 @@ describe('ExitDispute', () => {
             [],
             {
               gasLimit: 800000
+            }
+          )
+        ).to.be.reverted
+      })
+      it('token must be same', async () => {
+        const [inputs, challengeInputs, challengeWitness] = await init()
+        await mockCompiledPredicate.setDicideReturn(true)
+        const transaction = support.ownershipTransaction(
+          Address.from(ALICE_ADDRESS),
+          1000000,
+          0,
+          5,
+          Address.from(mockCompiledPredicate.address)
+        )
+        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
+        await expect(
+          exitDispute.challenge(
+            inputs,
+            challengeInputs,
+            challengeWitness,
+            {
+              gasLimit: 900000
+            }
+          )
+        ).to.be.reverted
+      })
+      it('range must contain subrange', async () => {
+        const [inputs, challengeInputs, challengeWitness] = await init()
+        await mockCompiledPredicate.setDicideReturn(true)
+        const transaction = support.ownershipTransaction(
+          Address.from(BOB_ADDRESS),
+          1000000,
+          1,
+          5,
+          Address.from(mockCompiledPredicate.address)
+        )
+        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
+        await expect(
+          exitDispute.challenge(
+            inputs,
+            challengeInputs,
+            challengeWitness,
+            {
+              gasLimit: 900000
+            }
+          )
+        ).to.be.reverted
+      })
+      it('State object decided to false', async () => {
+        const [inputs, challengeInputs, challengeWitness] = await init()
+        await mockCompiledPredicate.setDicideReturn(false)
+        const transaction = support.ownershipTransaction(
+          Address.from(BOB_ADDRESS),
+          1000000,
+          0,
+          5,
+          Address.from(mockCompiledPredicate.address)
+        )
+        challengeInputs.push(EthCoder.encode(toTransactionStruct(transaction)))
+        await expect(
+          exitDispute.challenge(
+            inputs,
+            challengeInputs,
+            challengeWitness,
+            {
+              gasLimit: 900000
             }
           )
         ).to.be.reverted
