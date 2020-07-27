@@ -4,6 +4,8 @@ pragma experimental ABIEncoderV2;
 import {DataTypes as types} from "./DataTypes.sol";
 
 interface Deposit {
+    function checkpoints(bytes32 _stateUpdateId) external returns (bool);
+
     function finalizeCheckpoint(types.StateUpdate calldata _stateUpdate)
         external;
 

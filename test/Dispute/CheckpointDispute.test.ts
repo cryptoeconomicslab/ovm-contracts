@@ -12,7 +12,8 @@ import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as CheckpointDispute from '../../build/contracts/CheckpointDispute.json'
-import * as DepositContract from '../../build/contracts/DepositContract.json'
+import * as DepositContract from '../../build/contracts/MockDepositContract.json'
+import * as MockToken from '../../build/contracts/MockToken.json'
 import * as ethers from 'ethers'
 import {
   Bytes,
@@ -667,6 +668,10 @@ describe('CheckpointDispute', () => {
 
   describe('settle checkpoint', () => {
     it('succeed to settle checkpoint', async () => {
+      const token = await deployContract(wallet, MockToken, [])
+      const depositContract = await deployContract(wallet, DepositContract, [
+        token.address
+      ])
       const currentBlockNumber = await commitment.currentBlock()
       const nextBlockNumber = currentBlockNumber + 1
 
@@ -676,6 +681,9 @@ describe('CheckpointDispute', () => {
         0,
         5
       )
+      stateUpdate.update({
+        depositContractAddress: Address.from(depositContract.address)
+      })
       const { root, inclusionProof } = generateTree(stateUpdate)
       await commitment.submitRoot(nextBlockNumber, root)
 
@@ -688,7 +696,9 @@ describe('CheckpointDispute', () => {
 
       await increaseBlocks(wallets, 10)
 
-      await checkpointDispute.settle(inputs, { gasLimit: 80000 })
+      await expect(
+        checkpointDispute.settle(inputs, { gasLimit: 800000 })
+      ).to.emit(depositContract, 'CheckpointFinalized')
     })
   })
 })
