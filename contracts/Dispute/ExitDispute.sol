@@ -159,6 +159,10 @@ contract ExitDispute is
                 _challengeInputs[0],
                 _challengeInputs[1]
             );
+            types.StateUpdate memory challengeStateUpdate = abi.decode(
+                _challengeInputs[0],
+                (types.StateUpdate)
+            );
             emit ExitCheckpointChallenged(stateUpdate, challengeStateUpdate);
         } else {
             revert("illegal challenge type");
