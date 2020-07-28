@@ -11,7 +11,6 @@ import {Commitment} from "./Commitment.sol";
 import {DisputeKind} from "./Dispute/DisputeKind.sol";
 import {ExitDispute} from "./Dispute/ExitDispute.sol";
 import "./Predicate/CompiledPredicate.sol";
-import "./Library/Deserializer.sol";
 
 /**
  * @notice Deposit contract is contract which manages tokens that users deposit when entering plasma.

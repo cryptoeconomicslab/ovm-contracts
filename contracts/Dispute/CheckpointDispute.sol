@@ -7,7 +7,6 @@ import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 import {DisputeKind} from "./DisputeKind.sol";
-import "../Library/Deserializer.sol";
 import {CheckpointChallengeValidator} from "./CheckpointChallengeValidator.sol";
 
 /**

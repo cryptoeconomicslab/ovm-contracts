@@ -10,6 +10,9 @@ export interface InitilizationConfig {
   constantVariableTable: { [key: string]: string }
   commitment: string
   adjudicationContract: string
+  disputeManager: string
+  checkpointDispute: string
+  exitDispute: string
   payoutContracts: { [key: string]: string }
   PlasmaETH: string
   utils: {

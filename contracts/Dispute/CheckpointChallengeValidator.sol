@@ -2,7 +2,6 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
-import "../Library/Deserializer.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {DisputeKind} from "./DisputeKind.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
@@ -75,7 +74,7 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             "BlockNumber must be smaller than challenged state"
         );
         require(
-            isSubrange(challengeStateUpdate.range, stateUpdate.range),
+            utils.isSubrange(challengeStateUpdate.range, stateUpdate.range),
             "Range must be subrange of stateUpdate"
         );
         require(
@@ -142,24 +141,46 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             "Invalid challenge"
         );
 
-        // TODO: need to use stateUpdate predicate instead of stateObject to check validity of transaction?
+        types.Transaction memory transaction = abi.decode(
+            _witness[0],
+            (types.Transaction)
+        );
+        require(
+            transaction.depositContractAddress ==
+                stateUpdate.depositContractAddress,
+            "token must be same"
+        );
+        require(
+            utils.isSubrange(stateUpdate.range, transaction.range),
+            "range must contain subrange"
+        );
+        require(
+            transaction.maxBlockNumber >= stateUpdate.blockNumber,
+            "blockNumber must be valid"
+        );
+
         CompiledPredicate predicate = CompiledPredicate(
             challengeStateUpdate.stateObject.predicateAddress
         );
 
+        types.Property memory so = challengeStateUpdate.stateObject;
+
+        // inputs for stateObject property
+        bytes[] memory inputs = new bytes[](so.inputs.length + 1);
+        for (uint256 i = 0; i < so.inputs.length; i++) {
+            inputs[i] = so.inputs[i];
+        }
+        inputs[so.inputs.length] = _witness[0];
+
+        bytes[] memory witness = new bytes[](_witness.length - 1);
+        for (uint256 i = 0; i < witness.length - 1; i++) {
+            witness[i] = _witness[i + 1];
+        }
+
         require(
-            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+            predicate.decide(inputs, witness),
             "State object decided to false"
         );
         return (challengeProperty, property, stateUpdate, challengeStateUpdate);
-    }
-
-    function isSubrange(
-        types.Range memory _subrange,
-        types.Range memory _surroundingRange
-    ) private pure returns (bool) {
-        return
-            _subrange.start >= _surroundingRange.start &&
-            _subrange.end <= _surroundingRange.end;
     }
 }
