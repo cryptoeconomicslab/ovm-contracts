@@ -32,6 +32,7 @@ library DataTypes {
         Range range;
         uint256 maxBlockNumber;
         Property nextStateObject;
+        address from;
     }
     struct Checkpoint {
         StateUpdate stateUpdate;

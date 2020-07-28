@@ -42,7 +42,17 @@ contract ExitDispute is
 
     event ExitClaimed(types.StateUpdate stateUpdate);
 
-    event ExitChallenged(types.StateUpdate stateUpdate, bytes challengeType);
+    event ExitSpentChallenged(types.StateUpdate stateUpdate);
+
+    event ExitCheckpointChallenged(
+        types.StateUpdate stateUpdate,
+        types.StateUpdate challengingStateUpdate
+    );
+
+    event ExitChallengeRemoved(
+        types.StateUpdate stateUpdate,
+        types.StateUpdate challengingStateUpdate
+    );
 
     event ExitSettled(types.StateUpdate);
 
@@ -127,6 +137,10 @@ contract ExitDispute is
             "challenge inputs length does not match. expected 2"
         );
         types.Property memory challengeProperty;
+        types.StateUpdate memory stateUpdate = abi.decode(
+            _inputs[0],
+            (types.StateUpdate)
+        );
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
             bytes[] memory spentChallengeInputs = new bytes[](1);
             spentChallengeInputs[0] = _challengeInputs[1];
@@ -135,6 +149,7 @@ contract ExitDispute is
                 _challengeInputs[0],
                 EXIT_SPENT_CHALLENTE
             );
+            emit ExitSpentChallenged(stateUpdate);
         } else if (
             keccak256(_challengeInputs[0]) ==
             keccak256(EXIT_CHECKPOINT_CHALLENTE)
@@ -144,18 +159,15 @@ contract ExitDispute is
                 _challengeInputs[0],
                 _challengeInputs[1]
             );
+            emit ExitCheckpointChallenged(stateUpdate, challengeStateUpdate);
         } else {
             revert("illegal challenge type");
         }
-        types.StateUpdate memory stateUpdate = abi.decode(
-            _inputs[0],
-            (types.StateUpdate)
-        );
+
         disputeManager.challenge(
             createProperty(_inputs[0], EXIT_CLAIM),
             challengeProperty
         );
-        emit ExitChallenged(stateUpdate, _challengeInputs[0]);
     }
 
     function removeChallenge(
