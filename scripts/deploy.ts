@@ -263,7 +263,6 @@ const deployCompiledPredicates = async (
   wallet: ethers.Wallet,
   uacAddress: string,
   utilsAddress: string,
-  commitmentAddress: string,
   logicalConnectives: { [key: string]: string },
   atomicPredicates: { [key: string]: string },
   payoutContracts: { [key: string]: string }
@@ -345,7 +344,6 @@ const deployContracts = async (
     wallet,
     adjudicationContract.address,
     utils.address,
-    commitment.address,
     logicalConnectives,
     atomicPredicates,
     payoutContracts
