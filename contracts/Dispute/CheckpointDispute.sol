@@ -182,6 +182,8 @@ contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
             _challengeInputs.length == 1,
             "challenge inputs length does not match. expected 1"
         );
+        require(_witness.length >= 1, "witness must be at least 1");
+
         (
             types.Property memory challengeProperty,
             types.Property memory property,

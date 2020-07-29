@@ -32,6 +32,10 @@ chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
 
+const TOKEN_ADDRESS2 = Address.from(
+  '0x0472ec0185ebb8202f3d4ddb0226998889663cf2'
+)
+
 describe('ExitDispute', () => {
   const provider = createMockProvider()
   const wallets = getWallets(provider)
@@ -226,6 +230,7 @@ describe('ExitDispute', () => {
     })
 
     describe('challenge', () => {
+      // FIXME: refactor later
       const init = async (
         challengeType = 'EXIT_SPENT_CHALLENGE'
       ): Promise<[Bytes[], Bytes[], Bytes[]]> => {
@@ -260,7 +265,6 @@ describe('ExitDispute', () => {
       describe('succeed to exit challenge', () => {
         it('create a new exit challenge(spent)', async () => {
           const [inputs, challengeInputs, challengeWitness] = await init()
-          await mockCompiledPredicate.setDicideReturn(true)
           const transaction = support.ownershipTransaction(
             Address.from(BOB_ADDRESS),
             1000000,
@@ -275,7 +279,7 @@ describe('ExitDispute', () => {
             exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
               gasLimit: 900000
             })
-          ).to.emit(exitDispute, 'ExitChallenged')
+          ).to.emit(exitDispute, 'ExitSpentChallenged')
         }).timeout(15000)
         // TODO I'll catch you later.
         // it('create a new exit challenge(checkpoint)', async () => {
@@ -292,7 +296,7 @@ describe('ExitDispute', () => {
         //   ).to.emit(exitDispute, 'ExitChallenged')
         // }).timeout(15000)
       })
-      describe('failer to exit challenge', () => {
+      describe('fail to challenge an exit', () => {
         it('If the first argument length is not 1, an error occurs.', async () => {
           const [, challengeInputs, challengeWitness] = await init()
           await expect(
@@ -301,6 +305,7 @@ describe('ExitDispute', () => {
             })
           ).to.be.reverted
         })
+
         it('If the second argument is an empty array, an error occurs', async () => {
           const [inputs, , challengeWitness] = await init()
           await expect(
@@ -309,6 +314,7 @@ describe('ExitDispute', () => {
             })
           ).to.be.reverted
         })
+
         it('If the third argument length is not 1, an error occurs. ', async () => {
           const [inputs, challengeInputs] = await init()
           await expect(
@@ -317,15 +323,17 @@ describe('ExitDispute', () => {
             })
           ).to.be.reverted
         })
+
         it('token must be same', async () => {
           const [inputs, challengeInputs, challengeWitness] = await init()
-          await mockCompiledPredicate.setDicideReturn(true)
           const transaction = support.ownershipTransaction(
-            Address.from(ALICE_ADDRESS),
+            Address.from(BOB_ADDRESS),
             1000000,
             0,
             5,
-            Address.from(mockCompiledPredicate.address)
+            Address.from(mockCompiledPredicate.address),
+            false,
+            TOKEN_ADDRESS2
           )
           challengeInputs.push(
             EthCoder.encode(toTransactionStruct(transaction))
@@ -336,9 +344,9 @@ describe('ExitDispute', () => {
             })
           ).to.be.reverted
         })
+
         it('range must contain subrange', async () => {
           const [inputs, challengeInputs, challengeWitness] = await init()
-          await mockCompiledPredicate.setDicideReturn(true)
           const transaction = support.ownershipTransaction(
             Address.from(BOB_ADDRESS),
             1000000,
@@ -355,9 +363,11 @@ describe('ExitDispute', () => {
             })
           ).to.be.reverted
         })
-        it('State object decided to false', async () => {
-          const [inputs, challengeInputs, challengeWitness] = await init()
-          await mockCompiledPredicate.setDicideReturn(false)
+
+        it.skip('State object decided to false', async () => {
+          const [inputs, challengeInputs, challengeWitness] = await init(
+            'EXIT_SPENT_CHALLENGE'
+          )
           const transaction = support.ownershipTransaction(
             Address.from(BOB_ADDRESS),
             1000000,
@@ -372,7 +382,7 @@ describe('ExitDispute', () => {
             exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
               gasLimit: 900000
             })
-          ).to.be.reverted
+          ).to.be.revertedWith('State object decided to false')
         })
       })
     })

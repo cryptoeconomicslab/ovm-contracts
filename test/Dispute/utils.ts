@@ -20,7 +20,7 @@ import * as MockFalsyCompiledPredicate from '../../build/contracts/MockFalsyComp
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 
 export class DisputeTestSupport {
-  private falsyCompiledPredicate!: ethers.Contract
+  public falsyCompiledPredicate!: ethers.Contract
   public truthyCompiledPredicate!: ethers.Contract
   private wallet: ethers.ethers.Wallet
 
@@ -63,7 +63,8 @@ export class DisputeTestSupport {
     start: number,
     end: number,
     compiledPredicate: Address,
-    falsy?: boolean
+    falsy: boolean = false,
+    depositContractAddress: Address = Address.default()
   ) {
     const predicate = falsy
       ? this.falsyCompiledPredicate
@@ -72,7 +73,7 @@ export class DisputeTestSupport {
     const block = BigNumber.from(blockNumber)
     const property = new Property(compiledPredicate, [])
     return new Transaction(
-      Address.default(),
+      depositContractAddress,
       range,
       block,
       new Property(Address.from(predicate.address), [

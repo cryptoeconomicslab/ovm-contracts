@@ -29,7 +29,8 @@ import {
   DisputeTestSupport,
   generateTree,
   encodeStructable,
-  toStateUpdateStruct
+  toStateUpdateStruct,
+  toTransactionStruct
 } from './utils'
 import { increaseBlocks } from '../helpers/increaseBlocks'
 setupContext({ coder: EthCoder })
@@ -585,9 +586,23 @@ describe('CheckpointDispute', () => {
       it('remove challenge', async () => {
         // state object of challengeInputs is always truthy when passing no arguments to `prepareChallenge`
         const { inputs, challengeInputs } = await prepareChallenge()
+        const tx = support.ownershipTransaction(
+          Address.from(ALICE_ADDRESS),
+          100,
+          0,
+          5,
+          Address.from(support.truthyCompiledPredicate.address)
+        )
 
         await expect(
-          checkpointDispute.removeChallenge(inputs, challengeInputs, [])
+          checkpointDispute.removeChallenge(
+            inputs,
+            challengeInputs,
+            [EthCoder.encode(tx.body)],
+            {
+              gasLimit: 800000
+            }
+          )
         ).to.emit(checkpointDispute, 'ChallengeRemoved')
       }).timeout(15000)
     })
@@ -596,9 +611,23 @@ describe('CheckpointDispute', () => {
       it('cannot decide', async () => {
         // state object of challengeInputs is always truthy when passing no arguments to `prepareChallenge`
         const { inputs, challengeInputs } = await prepareChallenge(true)
+        const tx = support.ownershipTransaction(
+          Address.from(ALICE_ADDRESS),
+          100,
+          0,
+          5,
+          Address.from(support.truthyCompiledPredicate.address)
+        )
 
         await expect(
-          checkpointDispute.removeChallenge(inputs, challengeInputs, [])
+          checkpointDispute.removeChallenge(
+            inputs,
+            challengeInputs,
+            [EthCoder.encode(tx.body)],
+            {
+              gasLimit: 800000
+            }
+          )
         ).to.revertedWith('State object decided to false')
       }).timeout(10000)
 

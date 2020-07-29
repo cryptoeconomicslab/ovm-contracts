@@ -173,7 +173,7 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         inputs[so.inputs.length] = _witness[0];
 
         bytes[] memory witness = new bytes[](_witness.length - 1);
-        for (uint256 i = 0; i < witness.length - 1; i++) {
+        for (uint256 i = 0; i < _witness.length - 1; i++) {
             witness[i] = _witness[i + 1];
         }
 
