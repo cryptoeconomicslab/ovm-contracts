@@ -54,7 +54,7 @@ contract ExitDispute is
         types.StateUpdate challengingStateUpdate
     );
 
-    event ExitSettled(types.StateUpdate);
+    event ExitSettled(types.StateUpdate stateUpdate, bool decision);
 
     /**
      * Claim Exit at StateUpdate
@@ -190,14 +190,14 @@ contract ExitDispute is
             "inputs length does not match. expected 1"
         );
         types.Property memory property = createProperty(_inputs[0], EXIT_CLAIM);
-        disputeManager.settleGame(property);
+        bool decision = disputeManager.settleGame(property);
 
         types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
             (types.StateUpdate)
         );
 
-        emit ExitSettled(stateUpdate);
+        emit ExitSettled(stateUpdate, decision);
     }
 
     /* Helpers */
