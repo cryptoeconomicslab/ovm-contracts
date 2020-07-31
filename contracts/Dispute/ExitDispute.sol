@@ -214,7 +214,7 @@ contract ExitDispute is
         view
         returns (types.Decision)
     {
-        bytes memory suBytes = abi.encode(_su);
+        bytes memory suBytes = abi.encodePacked(_su);
         types.Property memory exitProperty = createProperty(
             suBytes,
             EXIT_CLAIM
