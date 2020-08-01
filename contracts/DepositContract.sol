@@ -233,7 +233,7 @@ contract DepositContract {
 
         // Remove the deposited range
         removeDepositedRange(_exit.range, _depositedRangeId);
-        //Transfer tokens to its predicate
+        // Transfer tokens to its predicate
         uint256 amount = _exit.range.end - _exit.range.start;
         erc20.transfer(payout, amount);
         emit ExitFinalized(exitId, _exit);

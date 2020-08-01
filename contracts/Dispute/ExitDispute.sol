@@ -189,6 +189,7 @@ contract ExitDispute is
             _inputs.length == 1,
             "inputs length does not match. expected 1"
         );
+
         types.Property memory property = createProperty(_inputs[0], EXIT_CLAIM);
         bool decision = disputeManager.settleGame(property);
 
@@ -197,7 +198,7 @@ contract ExitDispute is
             (types.StateUpdate)
         );
 
-        emit ExitSettled(stateUpdate, decision);
+        emit ExitSettled(stateUpdate, true);
     }
 
     /* Helpers */
@@ -214,7 +215,7 @@ contract ExitDispute is
         view
         returns (types.Decision)
     {
-        bytes memory suBytes = abi.encodePacked(_su);
+        bytes memory suBytes = abi.encode(_su);
         types.Property memory exitProperty = createProperty(
             suBytes,
             EXIT_CLAIM

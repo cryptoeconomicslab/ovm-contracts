@@ -8,6 +8,10 @@ import "../Library/Deserializer.sol";
 
 contract MockDepositContract {
     event CheckpointFinalized(types.StateUpdate checkpoint);
+    event ExitFinalized(
+        types.StateUpdate stateUpdate,
+        uint256 depositedRangeId
+    );
 
     ERC20 public erc20;
     bool private res;
@@ -32,7 +36,9 @@ contract MockDepositContract {
     function finalizeExit(
         types.StateUpdate memory _exit,
         uint256 _depositedRangeId
-    ) public {}
+    ) public {
+        emit ExitFinalized(_exit, _depositedRangeId);
+    }
 
     function checkpoints(bytes32 id) public view returns (bool) {
         return res;
