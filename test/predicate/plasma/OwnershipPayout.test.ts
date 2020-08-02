@@ -72,15 +72,16 @@ describe('OwnershipPayout', () => {
         inputs: [encodeAddress(wallets[0].address)]
       }
 
-      await ownershipPayout.finalizeExit(
-        mockDepositContract.address,
-        su(stateObject),
-        0,
-        wallet.address
-      )
-
-      expect(true).to.be.true
+      await expect(
+        ownershipPayout.finalizeExit(
+          mockDepositContract.address,
+          su(stateObject),
+          0,
+          wallet.address
+        )
+      ).to.emit(mockDepositContract, 'ExitFinalized')
     })
+
     it('check gas cost', async () => {
       const stateObject = {
         predicateAddress: mockOwnershipPredicate.address,
