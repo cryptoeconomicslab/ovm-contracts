@@ -79,7 +79,7 @@ contract ExitDispute is
             // ExitCheckpoint
             // check if checkpoint is stored in depositContract
             types.StateUpdate memory checkpoint = abi.decode(
-                _inputs[0],
+                _inputs[1],
                 (types.StateUpdate)
             );
             require(
