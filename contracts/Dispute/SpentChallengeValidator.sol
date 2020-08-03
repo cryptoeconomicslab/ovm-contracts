@@ -46,11 +46,9 @@ contract SpentChallengeValidator is DisputeHelper {
         types.Property memory so = stateUpdate.stateObject;
 
         // inputs for stateObject property
-        bytes[] memory inputs = new bytes[](so.inputs.length + 1);
-        for (uint256 i = 0; i < so.inputs.length; i++) {
-            inputs[i] = so.inputs[i];
-        }
-        inputs[so.inputs.length] = _challengeInputs[0];
+        bytes[] memory inputs = new bytes[](2);
+        inputs[0] = so.inputs[0];
+        inputs[1] = _challengeInputs[0];
 
         require(
             predicate.decide(inputs, _witness),

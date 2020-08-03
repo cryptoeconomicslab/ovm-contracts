@@ -119,6 +119,14 @@ contract ExitDispute is
      * challenge prove the exiting coin has been spent.
      * First element of challengeInputs must be either of
      * bytes("EXIT_SPENT_CHALLENGE") or bytes("EXIT_CHECKPOINT_CHALLENGE")
+     * SPENT_CHALLENGE
+     * input: [SU]
+     * challengeInput: [label, transaction]
+     * witness: [signature]
+     * CHECKPOINT
+     * input: [SU]
+     * challengeInput: [label, checkpointSU]
+     * witness: []
      */
     function challenge(
         bytes[] memory _inputs,
@@ -179,7 +187,9 @@ contract ExitDispute is
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
-    ) public {}
+    ) public {
+        // removeChallenge for checkpoint challenge.
+    }
 
     /**
      * prove exit is coin which hasn't been spent.
