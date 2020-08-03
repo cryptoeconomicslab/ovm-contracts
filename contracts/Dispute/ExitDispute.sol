@@ -61,29 +61,30 @@ contract ExitDispute is
      * There're two kind of exit claims. ExitStateUpdate and ExitCheckpoint.
      * The former needs inclusion proof of stateUpdate. The latter don't need
      * witness but check if checkpoint for the stateUpdate is finalized yet.
-     * _inputs: [encode(stateUpdate)]
+     * _inputs: [encode(stateUpdate), checkpointId?]
      * _witness: [encode(inclusionProof)]
      */
     function claim(bytes[] memory _inputs, bytes[] memory _witness) public {
         // validate inputs
         require(
-            _inputs.length == 1,
-            "inputs length does not match. expected 1"
+            _inputs.length >= 1,
+            "inputs length does not match. at least 1"
         );
         types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
             (types.StateUpdate)
         );
+
         if (_witness.length == 0) {
             // ExitCheckpoint
             // check if checkpoint is stored in depositContract
-            bytes32 id = getId(stateUpdate);
-            DepositContract depositContract = DepositContract(
-                stateUpdate.depositContractAddress
+            types.StateUpdate memory checkpoint = abi.decode(
+                _inputs[0],
+                (types.StateUpdate)
             );
             require(
-                depositContract.checkpoints(id),
-                "Checkpoint needs to be finalized or inclusionProof have to be provided"
+                checkpointExitable(stateUpdate, checkpoint),
+                "Checkpoint must be exitable for stateUpdate"
             );
         } else {
             // ExitStateUpdate
@@ -223,5 +224,39 @@ contract ExitDispute is
         bytes32 id = utils.getPropertyId(exitProperty);
         types.ChallengeGame memory game = disputeManager.getGame(id);
         return game.decision;
+    }
+
+    function checkpointExitable(
+        types.StateUpdate memory stateUpdate,
+        types.StateUpdate memory checkpoint
+    ) private returns (bool) {
+        require(
+            isSubrange(stateUpdate.range, checkpoint.range),
+            "StateUpdate range must be subrange of checkpoint"
+        );
+        require(
+            stateUpdate.blockNumber == checkpoint.blockNumber,
+            "BlockNumber must be same"
+        );
+
+        bytes32 id = getId(checkpoint);
+        DepositContract depositContract = DepositContract(
+            stateUpdate.depositContractAddress
+        );
+        require(
+            depositContract.checkpoints(id),
+            "Checkpoint needs to be finalized or inclusionProof have to be provided"
+        );
+
+        return true;
+    }
+
+    function isSubrange(
+        types.Range memory _subrange,
+        types.Range memory _surroundingRange
+    ) public pure returns (bool) {
+        return
+            _subrange.start >= _surroundingRange.start &&
+            _subrange.end <= _surroundingRange.end;
     }
 }
