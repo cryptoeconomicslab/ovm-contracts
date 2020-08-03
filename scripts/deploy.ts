@@ -271,7 +271,7 @@ const deployCompiledPredicates = async (
 
   const ownershipPredicate = await deployOneCompiledPredicate(
     'OwnershipPredicate',
-    [utils.hexlify(utils.toUtf8Bytes('secp256k1'))],
+    [utils.hexlify(utils.toUtf8Bytes('typedData'))],
     wallet,
     uacAddress,
     utilsAddress,
