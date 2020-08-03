@@ -31,7 +31,7 @@ contract SpentChallengeValidator is DisputeHelper {
             "token must be same"
         );
         require(
-            utils.isSubrange(stateUpdate.range, transaction.range),
+            utils.isSubrange(transaction.range, stateUpdate.range),
             "range must contain subrange"
         );
         require(

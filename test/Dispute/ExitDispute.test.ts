@@ -26,6 +26,7 @@ import {
   toStateUpdateStruct,
   toTransactionStruct
 } from './utils'
+import { keccak256 } from 'ethers/utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -113,7 +114,11 @@ describe('ExitDispute', () => {
         su.update({
           depositContractAddress: Address.from(depositContract.address)
         })
-        const inputs = [EthCoder.encode(toStateUpdateStruct(su))]
+        const id = keccak256('0x01')
+        const inputs = [
+          EthCoder.encode(toStateUpdateStruct(su)),
+          EthCoder.encode(toStateUpdateStruct(su))
+        ]
         const witness: Bytes[] = []
 
         await expect(
@@ -351,7 +356,7 @@ describe('ExitDispute', () => {
             Address.from(BOB_ADDRESS),
             1000000,
             1,
-            5,
+            100,
             Address.from(mockCompiledPredicate.address)
           )
           challengeInputs.push(

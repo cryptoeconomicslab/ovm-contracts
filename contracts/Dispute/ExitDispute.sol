@@ -61,7 +61,7 @@ contract ExitDispute is
      * There're two kind of exit claims. ExitStateUpdate and ExitCheckpoint.
      * The former needs inclusion proof of stateUpdate. The latter don't need
      * witness but check if checkpoint for the stateUpdate is finalized yet.
-     * _inputs: [encode(stateUpdate), checkpointId?]
+     * _inputs: [encode(stateUpdate), checkpoint]
      * _witness: [encode(inclusionProof)]
      */
     function claim(bytes[] memory _inputs, bytes[] memory _witness) public {
@@ -75,7 +75,7 @@ contract ExitDispute is
             (types.StateUpdate)
         );
 
-        if (_witness.length == 0) {
+        if (_witness.length == 0 && _inputs.length == 2) {
             // ExitCheckpoint
             // check if checkpoint is stored in depositContract
             types.StateUpdate memory checkpoint = abi.decode(
