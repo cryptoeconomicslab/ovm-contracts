@@ -166,7 +166,7 @@ contract ExitDispute is
             validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(
                 _challengeInputs[0],
-                _challengeInputs[1]
+                EXIT_CHECKPOINT_CHALLENTE
             );
             types.StateUpdate memory challengeStateUpdate = abi.decode(
                 _challengeInputs[0],
