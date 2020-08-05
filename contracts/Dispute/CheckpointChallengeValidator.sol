@@ -2,7 +2,6 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
-import "../Library/Deserializer.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {DisputeKind} from "./DisputeKind.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
@@ -18,7 +17,15 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         address _disputeManagerAddress,
         address _commitmentVerifierAddress,
         address _utilsAddress
-    ) public DisputeHelper(_disputeManagerAddress, _commitmentVerifierAddress, _utilsAddress) {}
+    )
+        public
+        DisputeHelper(
+            _disputeManagerAddress,
+            _commitmentVerifierAddress,
+            _utilsAddress
+        )
+    {}
+
     /**
      * challenge checkpiont
      * _inputs: [encode(stateUpdate)] challenged state update
@@ -29,27 +36,34 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         bytes[] memory _inputs,
         bytes[] memory _challengeInputs,
         bytes[] memory _witness
-    ) internal view returns (types.StateUpdate memory, types.StateUpdate memory, types.InclusionProof memory){
-        types.Property memory suProperty = abi.decode(
+    )
+        internal
+        view
+        returns (
+            types.StateUpdate memory,
+            types.StateUpdate memory,
+            types.InclusionProof memory
+        )
+    {
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
 
-        types.Property memory challengeSuProperty = abi.decode(
+        types.StateUpdate memory challengeStateUpdate = abi.decode(
             _challengeInputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(challengeSuProperty);
 
         types.InclusionProof memory inclusionProof = abi.decode(
             _witness[0],
             (types.InclusionProof)
         );
 
-        types.Property memory claimedProperty = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+        types.Property memory claimedProperty = createProperty(
+            _inputs[0],
+            CHECKPOINT_CLAIM
+        );
         require(
             stateUpdate.depositContractAddress ==
                 challengeStateUpdate.depositContractAddress,
@@ -60,7 +74,7 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             "BlockNumber must be smaller than challenged state"
         );
         require(
-            isSubrange(challengeStateUpdate.range, stateUpdate.range),
+            utils.isSubrange(challengeStateUpdate.range, stateUpdate.range),
             "Range must be subrange of stateUpdate"
         );
         require(
@@ -89,25 +103,33 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
     }
 
     function validateChallengeRemoval(
-                bytes[] memory _inputs,
-                bytes[] memory _challengeInputs,
-                bytes[] memory _witness
-        ) internal view returns (types.Property memory, types.Property memory, types.StateUpdate memory, types.StateUpdate memory) {
-        types.Property memory suProperty = abi.decode(
+        bytes[] memory _inputs,
+        bytes[] memory _challengeInputs,
+        bytes[] memory _witness
+    )
+        internal
+        view
+        returns (
+            types.Property memory,
+            types.Property memory,
+            types.StateUpdate memory,
+            types.StateUpdate memory
+        )
+    {
+        types.StateUpdate memory stateUpdate = abi.decode(
             _inputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory stateUpdate = Deserializer
-            .deserializeStateUpdate(suProperty);
 
-        types.Property memory property = createProperty(_inputs[0], CHECKPOINT_CLAIM);
+        types.Property memory property = createProperty(
+            _inputs[0],
+            CHECKPOINT_CLAIM
+        );
 
-        types.Property memory challengeSuProperty = abi.decode(
+        types.StateUpdate memory challengeStateUpdate = abi.decode(
             _challengeInputs[0],
-            (types.Property)
+            (types.StateUpdate)
         );
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(challengeSuProperty);
 
         types.Property memory challengeProperty = createProperty(
             _challengeInputs[0],
@@ -119,25 +141,46 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             "Invalid challenge"
         );
 
-        // TODO: need to use stateUpdate predicate instead of stateObject to check validity of transaction?
+        types.Transaction memory transaction = abi.decode(
+            _witness[0],
+            (types.Transaction)
+        );
+        require(
+            transaction.depositContractAddress ==
+                stateUpdate.depositContractAddress,
+            "token must be same"
+        );
+        require(
+            utils.isSubrange(stateUpdate.range, transaction.range),
+            "range must contain subrange"
+        );
+        require(
+            transaction.maxBlockNumber >= stateUpdate.blockNumber,
+            "blockNumber must be valid"
+        );
+
         CompiledPredicate predicate = CompiledPredicate(
             challengeStateUpdate.stateObject.predicateAddress
         );
 
+        types.Property memory so = challengeStateUpdate.stateObject;
+
+        // inputs for stateObject property
+        bytes[] memory inputs = new bytes[](so.inputs.length + 1);
+        for (uint256 i = 0; i < so.inputs.length; i++) {
+            inputs[i] = so.inputs[i];
+        }
+        inputs[so.inputs.length] = _witness[0];
+
+        bytes[] memory witness = new bytes[](_witness.length - 1);
+        for (uint256 i = 0; i < _witness.length - 1; i++) {
+            witness[i] = _witness[i + 1];
+        }
+
         require(
-            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+            predicate.decide(inputs, witness),
             "State object decided to false"
         );
         return (challengeProperty, property, stateUpdate, challengeStateUpdate);
     }
-
-    function isSubrange(
-        types.Range memory _subrange,
-        types.Range memory _surroundingRange
-    ) private pure returns (bool) {
-        return
-            _subrange.start >= _surroundingRange.start &&
-            _subrange.end <= _surroundingRange.end;
-    }
-
 }

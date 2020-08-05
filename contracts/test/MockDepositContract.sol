@@ -7,20 +7,40 @@ import "./MockToken.sol";
 import "../Library/Deserializer.sol";
 
 contract MockDepositContract {
+    event CheckpointFinalized(types.StateUpdate checkpoint);
+    event ExitFinalized(
+        types.StateUpdate stateUpdate,
+        uint256 depositedRangeId
+    );
+
     ERC20 public erc20;
+    bool private res;
+
     constructor(address mockToken) public {
         erc20 = MockToken(mockToken);
+        res = true;
+    }
+
+    function setCheckpoints(bool _res) public {
+        res = _res;
     }
 
     function deposit(uint256 _amount, types.Property memory _initialState)
         public
     {}
 
-    function finalizeExit(
-        types.Property memory _exitProperty,
-        uint256 _depositedRangeId
-    ) public returns (types.StateUpdate memory) {
-        return Deserializer.deserializeExit(_exitProperty).stateUpdate;
+    function finalizeCheckpoint(types.StateUpdate memory _checkpoint) public {
+        emit CheckpointFinalized(_checkpoint);
     }
 
+    function finalizeExit(
+        types.StateUpdate memory _exit,
+        uint256 _depositedRangeId
+    ) public {
+        emit ExitFinalized(_exit, _depositedRangeId);
+    }
+
+    function checkpoints(bytes32 id) public view returns (bool) {
+        return res;
+    }
 }

@@ -45,19 +45,15 @@ contract IsValidSignaturePredicate is BaseAtomicPredicate {
         pure
         returns (bytes32)
     {
-        types.Property memory transaction = abi.decode(
+        types.Transaction memory transaction = abi.decode(
             message,
-            (types.Property)
+            (types.Transaction)
         );
-        address token = abi.decode(transaction.inputs[0], (address));
-        types.Range memory range = abi.decode(
-            transaction.inputs[1],
-            (types.Range)
-        );
-        types.Property memory stateObject = abi.decode(
-            transaction.inputs[3],
-            (types.Property)
-        );
+        address token = transaction.depositContractAddress;
+        types.Range memory range = transaction.range;
+        types.Property memory stateObject = transaction.nextStateObject;
+        address owner = abi.decode(stateObject.inputs[0], (address));
+
         return
             keccak256(
                 abi.encodePacked(
@@ -65,8 +61,7 @@ contract IsValidSignaturePredicate is BaseAtomicPredicate {
                         abi.encodePacked(
                             "address token",
                             "uint256 amount",
-                            TypedDataPredicate(stateObject.predicateAddress)
-                                .packTypes(),
+                            "address owner", // TODO: fix to dynamic predicate
                             "bytes transaction"
                         )
                     ),
@@ -74,8 +69,7 @@ contract IsValidSignaturePredicate is BaseAtomicPredicate {
                         abi.encodePacked(
                             token,
                             range.end - range.start,
-                            TypedDataPredicate(stateObject.predicateAddress)
-                                .packValues(stateObject.inputs),
+                            owner, // TODO: fix to dynamic predicate
                             message
                         )
                     )

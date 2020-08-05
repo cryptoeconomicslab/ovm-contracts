@@ -25,6 +25,11 @@ import * as IsContainedPredicate from '../build/contracts/IsContainedPredicate.j
 import * as HasIntersectionPredicate from '../build/contracts/HasIntersectionPredicate.json'
 import * as VerifyInclusionPredicate from '../build/contracts/VerifyInclusionPredicate.json'
 import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
+
+import * as DisputeManager from '../build/contracts/DisputeManager.json'
+import * as CheckpointDispute from '../build/contracts/CheckpointDispute.json'
+import * as ExitDispute from '../build/contracts/ExitDispute.json'
+
 import {
   randomAddress,
   encodeAddress,
@@ -258,28 +263,15 @@ const deployCompiledPredicates = async (
   wallet: ethers.Wallet,
   uacAddress: string,
   utilsAddress: string,
-  commitmentAddress: string,
   logicalConnectives: { [key: string]: string },
   atomicPredicates: { [key: string]: string },
   payoutContracts: { [key: string]: string }
 ): Promise<{ [key: string]: CompiledPredicate }> => {
   const deployedPredicateTable: { [key: string]: CompiledPredicate } = {}
 
-  const stateUpdatePredicate = await deployOneCompiledPredicate(
-    'StateUpdatePredicate',
-    [txAddress],
-    wallet,
-    uacAddress,
-    utilsAddress,
-    ethers.constants.AddressZero,
-    logicalConnectives,
-    atomicPredicates
-  )
-  deployedPredicateTable['StateUpdatePredicate'] = stateUpdatePredicate
-
   const ownershipPredicate = await deployOneCompiledPredicate(
     'OwnershipPredicate',
-    [utils.hexlify(utils.toUtf8Bytes('secp256k1'))],
+    [utils.hexlify(utils.toUtf8Bytes('typedData'))],
     wallet,
     uacAddress,
     utilsAddress,
@@ -288,42 +280,6 @@ const deployCompiledPredicates = async (
     atomicPredicates
   )
   deployedPredicateTable['OwnershipPredicate'] = ownershipPredicate
-
-  const checkpointPredicate = await deployOneCompiledPredicate(
-    'CheckpointPredicate',
-    [encodeAddress(commitmentAddress)],
-    wallet,
-    uacAddress,
-    utilsAddress,
-    ethers.constants.AddressZero,
-    logicalConnectives,
-    atomicPredicates
-  )
-  deployedPredicateTable['CheckpointPredicate'] = checkpointPredicate
-
-  const exitPredicate = await deployOneCompiledPredicate(
-    'ExitPredicate',
-    [checkpointPredicate.deployedAddress],
-    wallet,
-    uacAddress,
-    utilsAddress,
-    ethers.constants.AddressZero,
-    logicalConnectives,
-    atomicPredicates
-  )
-  deployedPredicateTable['ExitPredicate'] = exitPredicate
-
-  const depositExitPredicate = await deployOneCompiledPredicate(
-    'ExitDepositPredicate',
-    [],
-    wallet,
-    uacAddress,
-    utilsAddress,
-    ethers.constants.AddressZero,
-    logicalConnectives,
-    atomicPredicates
-  )
-  deployedPredicateTable['ExitDepositPredicate'] = depositExitPredicate
 
   return deployedPredicateTable
 }
@@ -388,7 +344,6 @@ const deployContracts = async (
     wallet,
     adjudicationContract.address,
     utils.address,
-    commitment.address,
     logicalConnectives,
     atomicPredicates,
     payoutContracts
@@ -404,21 +359,42 @@ const deployContracts = async (
   )
   console.log('PlasmaETH Deployed')
 
-  console.log('Deploying DepositContract')
-  link(
-    DepositContract,
-    'contracts/Library/Deserializer.sol:Deserializer',
-    deserializer.address
+  console.log('Deploying DisputeManager')
+  const disputeManager = await deployContract(
+    DisputeManager,
+    wallet,
+    utils.address
   )
+  console.log('DisputeManager Deployed')
+
+  console.log('Deploying CheckpointDispute')
+  const checkpointDispute = await deployContract(
+    CheckpointDispute,
+    wallet,
+    disputeManager.address,
+    commitmentVerifier.address,
+    utils.address
+  )
+  console.log('CheckpointDispute Deployed')
+
+  console.log('Deploying ExitDispute')
+  const exitDispute = await deployContract(
+    ExitDispute,
+    wallet,
+    disputeManager.address,
+    commitmentVerifier.address,
+    utils.address
+  )
+  console.log('ExitDispute Deployed')
+
+  console.log('Deploying DepositContract')
   const depositContract = await deployContract(
     DepositContract,
     wallet,
     plasmaETH.address,
     commitment.address,
-    adjudicationContract.address,
-    deployedPredicateTable['StateUpdatePredicate'].deployedAddress,
-    deployedPredicateTable['ExitPredicate'].deployedAddress,
-    deployedPredicateTable['ExitDepositPredicate'].deployedAddress
+    checkpointDispute.address,
+    exitDispute.address
   )
   console.log('DepositContract Deployed')
 
@@ -433,6 +409,9 @@ const deployContracts = async (
     },
     commitment: commitment.address,
     adjudicationContract: adjudicationContract.address,
+    disputeManager: disputeManager.address,
+    checkpointDispute: checkpointDispute.address,
+    exitDispute: exitDispute.address,
     payoutContracts: {
       DepositContract: depositContract.address,
       ...payoutContracts

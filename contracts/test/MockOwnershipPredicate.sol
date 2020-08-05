@@ -42,11 +42,11 @@ contract MockOwnershipPredicate is CompiledPredicate {
     {}
 
     function finalizeExit(
-        types.Property memory _exitProperty,
+        types.StateUpdate memory _exit,
         uint256 _depositedRangeId
     ) public {
         DepositContract(depositContractAddress).finalizeExit(
-            _exitProperty,
+            _exit,
             _depositedRangeId
         );
     }

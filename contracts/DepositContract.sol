@@ -8,11 +8,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 /* Internal Imports */
 import {DataTypes as types} from "./DataTypes.sol";
 import {Commitment} from "./Commitment.sol";
-import {
-    UniversalAdjudicationContract
-} from "./UniversalAdjudicationContract.sol";
+import {DisputeKind} from "./Dispute/DisputeKind.sol";
+import {ExitDispute} from "./Dispute/ExitDispute.sol";
 import "./Predicate/CompiledPredicate.sol";
-import "./Library/Deserializer.sol";
 
 /**
  * @notice Deposit contract is contract which manages tokens that users deposit when entering plasma.
@@ -27,17 +25,17 @@ contract DepositContract {
      * @notice Emitted when checkpoint is finalized
      * @param checkpointId Hash of the checkpoint property
      * @param checkpoint Finalized checkpoint
-    */
+     */
     event CheckpointFinalized(
         bytes32 checkpointId,
-        types.Checkpoint checkpoint
+        types.StateUpdate checkpoint
     );
 
     /**
      * @notice Emitted when exit is finalized
      * @param exitId Hash of the exit property
      */
-    event ExitFinalized(bytes32 exitId);
+    event ExitFinalized(bytes32 exitId, types.StateUpdate exit);
 
     /**
      * @notice Emitted when deposit range is extended
@@ -54,10 +52,8 @@ contract DepositContract {
     /* Public Variables and Mappings*/
     ERC20 public erc20;
     Commitment public commitment;
-    UniversalAdjudicationContract public universalAdjudicationContract;
-    address public stateUpdatePredicateContract;
-    address public exitPredicateAddress;
-    address public exitDepositPredicateAddress;
+    address public checkpointDisputeAddress;
+    address public exitDisputeAddress;
 
     // totalDeposited is the most right coin id which has been deposited
     uint256 public totalDeposited;
@@ -68,20 +64,13 @@ contract DepositContract {
     constructor(
         address _erc20,
         address _commitment,
-        address _universalAdjudicationContract,
-        // Fixme: when StateUpdatePredicate is merged
-        address _stateUpdatePredicateContract,
-        address _exitPredicateAddress,
-        address _exitDepositPredicateAddress
+        address _checkpointDispute,
+        address _exitDispute
     ) public {
         erc20 = ERC20(_erc20);
         commitment = Commitment(_commitment);
-        universalAdjudicationContract = UniversalAdjudicationContract(
-            _universalAdjudicationContract
-        );
-        stateUpdatePredicateContract = _stateUpdatePredicateContract;
-        exitPredicateAddress = _exitPredicateAddress;
-        exitDepositPredicateAddress = _exitDepositPredicateAddress;
+        checkpointDisputeAddress = _checkpointDispute;
+        exitDisputeAddress = _exitDispute;
     }
 
     /**
@@ -105,23 +94,14 @@ contract DepositContract {
             start: totalDeposited,
             end: totalDeposited.add(_amount)
         });
-        bytes[] memory inputs = new bytes[](4);
-        inputs[0] = abi.encode(address(this));
-        inputs[1] = abi.encode(depositRange);
-        inputs[2] = abi.encode(getLatestPlasmaBlockNumber());
-        inputs[3] = abi.encode(_initialState);
-        types.Property memory stateUpdate = types.Property({ // Fixme: when StateUpdatePredicate is merged
-            predicateAddress: stateUpdatePredicateContract,
-            inputs: inputs
-        });
-        types.Checkpoint memory checkpoint = types.Checkpoint({
-            stateUpdate: stateUpdate
+        types.StateUpdate memory stateUpdate = types.StateUpdate({
+            depositContractAddress: address(this),
+            range: depositRange,
+            blockNumber: getLatestPlasmaBlockNumber(),
+            stateObject: _initialState
         });
         extendDepositedRanges(_amount);
-        bytes32 checkpointId = getCheckpointId(checkpoint);
-        // store the checkpoint
-        checkpoints[checkpointId] = true;
-        emit CheckpointFinalized(checkpointId, checkpoint);
+        _finalizeCheckpoint(stateUpdate);
     }
 
     // TODO: make this private
@@ -155,7 +135,9 @@ contract DepositContract {
             "range must be of a depostied range (the one that has not been exited)"
         );
 
-        types.Range storage encompasingRange = depositedRanges[_depositedRangeId];
+
+            types.Range storage encompasingRange
+         = depositedRanges[_depositedRangeId];
         /*
          * depositedRanges makes O(1) checking existence of certain range.
          * Since _range is subrange of encompasingRange, we only have to check is each start and end are same or not.
@@ -184,35 +166,32 @@ contract DepositContract {
         emit DepositedRangeRemoved(_range);
     }
 
+    function finalizeCheckpoint(types.StateUpdate memory _checkpoint) public {
+        require(
+            msg.sender == checkpointDisputeAddress,
+            "Only called from checkpoint dispute"
+        );
+
+        _finalizeCheckpoint(_checkpoint);
+    }
+
     /**
      * @notice Method used to finalize a new checkpoint.
      * @dev Given checkpoint property, checks if the property is already decided. If it's decided to true,
      * create a new checkpoint with the property and emit an CheckpointFinalized event.
-     * @param _checkpointProperty Property instance of checkpoint predicate.
+     * @param _checkpoint StateUpdate instance of checkpoint predicate.
      */
-    function finalizeCheckpoint(types.Property memory _checkpointProperty)
-        public
-    {
-        require(
-            universalAdjudicationContract.isDecided(_checkpointProperty),
-            "Checkpointing claim must be decided"
-        );
-        types.Property memory property = abi.decode(
-            _checkpointProperty.inputs[0],
-            (types.Property)
-        );
-        types.Checkpoint memory checkpoint = types.Checkpoint({
-            stateUpdate: property
-        });
+    function _finalizeCheckpoint(types.StateUpdate memory _checkpoint) private {
+        // require called from CheckpointDispute or itself
 
-        bytes32 checkpointId = getCheckpointId(checkpoint);
+        bytes32 checkpointId = getId(_checkpoint);
         // store the checkpoint
         checkpoints[checkpointId] = true;
-        emit CheckpointFinalized(checkpointId, checkpoint);
+        emit CheckpointFinalized(checkpointId, _checkpoint);
     }
 
     /**
-     * @notice Client calls this method to finalize withdrawal process. If succeed, ethereum account receives deposited amount corresponding
+     * @notice ExitDisputeContracts calls this method to finalize withdrawal process. If succeed, ethereum account receives deposited amount corresponding
      * to the state.
      * @dev finalizeExit checks if given exit property is already decided. If it's decided, it sends token back to the owner.
      * The steps of finalizeExit.
@@ -220,112 +199,57 @@ contract DepositContract {
      *     2. check the property is decided by Adjudication Contract.
      *     3. Transfer asset to payout contract corresponding to StateObject.
      *     Please alse see https://docs.plasma.group/projects/spec/en/latest/src/02-contracts/deposit-contract.html#finalizeexit
-     * @param _exitProperty A property which is an instance of exit predicate and its inputs are range and StateUpdate that exiting account wants to withdraw.
+     * @param _exit A stateUpdate which is an instance of exit predicate and its inputs are range and StateUpdate that exiting account wants to withdraw.
      *     _exitProperty can be a property of either ExitPredicate or ExitDepositPredicate.
      * @param _depositedRangeId Id of deposited range
      * @return returns finalized StateUpdate of specified exit property
-    */
+     */
     function finalizeExit(
-        types.Property memory _exitProperty,
+        types.StateUpdate memory _exit,
         uint256 _depositedRangeId
-    ) public returns (types.StateUpdate memory) {
-        types.StateUpdate memory stateUpdate = verifyExitProperty(
-            _exitProperty
-        );
-        bytes32 exitId = getExitId(_exitProperty);
+    ) public {
+        bytes32 exitId = getId(_exit);
         // get payout contract address
-        address payout = CompiledPredicate(
-            stateUpdate
-                .stateObject
-                .predicateAddress
-        )
+        address payout = CompiledPredicate(_exit.stateObject.predicateAddress)
             .payoutContractAddress();
         // Check that we are authorized to finalize this exit
-        require(
-            universalAdjudicationContract.isDecided(_exitProperty),
-            "Exit must be decided after this block"
-        );
         require(
             payout == msg.sender,
             "finalizeExit must be called from payout contract"
         );
+
+        ExitDispute exitDispute = ExitDispute(exitDisputeAddress);
+        types.Decision decision = exitDispute.getClaimDecision(_exit);
+
         require(
-            stateUpdate.depositContractAddress == address(this),
-            "StateUpdate.depositContractAddress must be this contract address"
+            decision == types.Decision.True,
+            "exit claim must be settled to true"
+        );
+
+        require(
+            _exit.depositContractAddress == address(this),
+            "depositContractAddress must be this contract address"
         );
 
         // Remove the deposited range
-        removeDepositedRange(stateUpdate.range, _depositedRangeId);
-        //Transfer tokens to its predicate
-        uint256 amount = stateUpdate.range.end - stateUpdate.range.start;
+        removeDepositedRange(_exit.range, _depositedRangeId);
+        // Transfer tokens to its predicate
+        uint256 amount = _exit.range.end - _exit.range.start;
         erc20.transfer(payout, amount);
-        emit ExitFinalized(exitId);
-        return stateUpdate;
-    }
-
-    /**
-     * @dev verify StateUpdate in Exit property.
-     *     _exitProperty must be instance of ether ExitPredicate or ExitDepositPredicate.
-     *     if _exitProperty is instance of ExitDepositPredicate, check _exitProperty.su is subrange of _exitProperty.checkpoint.
-     */
-    function verifyExitProperty(types.Property memory _exitProperty)
-        private
-        returns (types.StateUpdate memory)
-    {
-        if (_exitProperty.predicateAddress == exitPredicateAddress) {
-            types.Exit memory exit = Deserializer.deserializeExit(
-                _exitProperty
-            );
-            // TODO: check inclusion proof
-            return exit.stateUpdate;
-        } else if (
-            _exitProperty.predicateAddress == exitDepositPredicateAddress
-        ) {
-            types.ExitDeposit memory exitDeposit = Deserializer
-                .deserializeExitDeposit(_exitProperty);
-            types.Checkpoint memory checkpoint = exitDeposit.checkpoint;
-            types.StateUpdate memory stateUpdate = Deserializer
-                .deserializeStateUpdate(checkpoint.stateUpdate);
-            require(
-                checkpoints[getCheckpointId(checkpoint)],
-                "checkpoint must be finalized"
-            );
-            require(
-                stateUpdate.depositContractAddress ==
-                    exitDeposit.stateUpdate.depositContractAddress,
-                "depositContractAddress must be same"
-            );
-            require(
-                stateUpdate.blockNumber == exitDeposit.stateUpdate.blockNumber,
-                "blockNumber must be same"
-            );
-            require(
-                isSubrange(exitDeposit.stateUpdate.range, stateUpdate.range),
-                "range must be subrange of checkpoint"
-            );
-            return exitDeposit.stateUpdate;
-        }
+        emit ExitFinalized(exitId, _exit);
     }
 
     /* Helpers */
+    function getId(types.StateUpdate memory _su)
+        private
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(_su));
+    }
+
     function getLatestPlasmaBlockNumber() private returns (uint256) {
         return commitment.currentBlock();
-    }
-
-    function getCheckpointId(types.Checkpoint memory _checkpoint)
-        private
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encode(_checkpoint));
-    }
-
-    function getExitId(types.Property memory _exit)
-        private
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encode(_exit));
     }
 
     function isSubrange(

@@ -3,10 +3,10 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import {Utils} from "../Utils.sol";
-import "../Library/Deserializer.sol";
+import {DisputeHelper} from "./DisputeHelper.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 
-contract SpentChallengeValidator {
+contract SpentChallengeValidator is DisputeHelper {
     /**
      * _inputs: [encode(stateUpdate)]
      * _challengeInputs: [encode(transaction)]
@@ -26,24 +26,32 @@ contract SpentChallengeValidator {
             (types.Transaction)
         );
         require(
-            keccak256(transaction.nextStateObject.inputs[0]) ==
-                keccak256(stateUpdate.stateObject.inputs[0]),
+            transaction.depositContractAddress ==
+                stateUpdate.depositContractAddress,
             "token must be same"
         );
-        types.Range memory range = transaction.range;
-        types.Range memory subrange = stateUpdate.range;
         require(
-            range.start <= subrange.start && subrange.end <= range.end,
+            utils.isSubrange(transaction.range, stateUpdate.range),
             "range must contain subrange"
         );
-
-        types.StateUpdate memory challengeStateUpdate = Deserializer
-            .deserializeStateUpdate(transaction.nextStateObject);
-        CompiledPredicate predicate = CompiledPredicate(
-            challengeStateUpdate.stateObject.predicateAddress
-        );
         require(
-            predicate.decide(challengeStateUpdate.stateObject.inputs, _witness),
+            transaction.maxBlockNumber >= stateUpdate.blockNumber,
+            "blockNumber must be valid"
+        );
+
+        CompiledPredicate predicate = CompiledPredicate(
+            stateUpdate.stateObject.predicateAddress
+        );
+
+        types.Property memory so = stateUpdate.stateObject;
+
+        // inputs for stateObject property
+        bytes[] memory inputs = new bytes[](2);
+        inputs[0] = so.inputs[0];
+        inputs[1] = _challengeInputs[0];
+
+        require(
+            predicate.decide(inputs, _witness),
             "State object decided to false"
         );
     }

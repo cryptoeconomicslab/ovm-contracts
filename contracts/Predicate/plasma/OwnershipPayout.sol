@@ -20,19 +20,16 @@ contract OwnershipPayout {
      */
     function finalizeExit(
         address depositContractAddress,
-        types.Property memory _exitProperty,
+        types.StateUpdate memory _exit,
         uint256 _depositedRangeId,
         address _owner
     ) public {
         DepositContract depositContract = DepositContract(
             depositContractAddress
         );
-        types.StateUpdate memory stateUpdate = depositContract.finalizeExit(
-            _exitProperty,
-            _depositedRangeId
-        );
-        address owner = utils.bytesToAddress(stateUpdate.stateObject.inputs[0]);
-        uint256 amount = stateUpdate.range.end - stateUpdate.range.start;
+        depositContract.finalizeExit(_exit, _depositedRangeId);
+        address owner = utils.bytesToAddress(_exit.stateObject.inputs[0]);
+        uint256 amount = _exit.range.end - _exit.range.start;
         require(msg.sender == owner, "msg.sender must be owner");
         depositContract.erc20().transfer(_owner, amount);
     }

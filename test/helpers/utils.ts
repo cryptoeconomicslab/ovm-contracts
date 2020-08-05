@@ -70,3 +70,24 @@ export function encodeAddress(address: string) {
 export function randomAddress() {
   return hexlify(randomBytes(20))
 }
+
+export function encodeStateUpdate(
+  depositContractAddress: string,
+  range: [number, number],
+  blockNumber: number,
+  stateObject: OvmProperty
+) {
+  return abi.encode(
+    [
+      'tuple(address, tuple(uint256, uint256), uint256, tuple(address, bytes[]))'
+    ],
+    [
+      [
+        depositContractAddress,
+        range,
+        blockNumber,
+        [stateObject.predicateAddress, stateObject.inputs]
+      ]
+    ]
+  )
+}

@@ -12,8 +12,11 @@ import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as CheckpointDispute from '../../build/contracts/CheckpointDispute.json'
+import * as DepositContract from '../../build/contracts/MockDepositContract.json'
+import * as MockToken from '../../build/contracts/MockToken.json'
 import * as ethers from 'ethers'
 import {
+  Bytes,
   Address,
   BigNumber,
   Range,
@@ -22,12 +25,24 @@ import {
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
 import { setupContext } from '@cryptoeconomicslab/context'
-import {DisputeTestSupport, generateTree, encodeStructable} from './utils'
+import {
+  DisputeTestSupport,
+  generateTree,
+  encodeStructable,
+  toStateUpdateStruct,
+  toTransactionStruct
+} from './utils'
+import { increaseBlocks } from '../helpers/increaseBlocks'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
 chai.use(require('chai-as-promised'))
 const { expect, assert } = chai
+const { encode } = EthCoder
+
+function encodeSU(stateUpdate: StateUpdate): Bytes {
+  return encode(toStateUpdateStruct(stateUpdate))
+}
 
 describe('CheckpointDispute', () => {
   const provider = createMockProvider()
@@ -67,13 +82,14 @@ describe('CheckpointDispute', () => {
     disputeManager = await deployContract(wallet, DisputeManager, [
       utils.address
     ])
-    checkpointDispute = await deployContract(wallet, CheckpointDispute, [
-      disputeManager.address,
-      commitmentVerifier.address,
-      utils.address
-    ], {
-      gasLimit: 5000000
-    })
+    checkpointDispute = await deployContract(
+      wallet,
+      CheckpointDispute,
+      [disputeManager.address, commitmentVerifier.address, utils.address],
+      {
+        gasLimit: 5000000
+      }
+    )
   })
 
   describe('claim', () => {
@@ -91,7 +107,7 @@ describe('CheckpointDispute', () => {
         const { root, inclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [encodeSU(stateUpdate)]
         const witness = [encodeStructable(inclusionProof)]
 
         await expect(
@@ -148,7 +164,7 @@ describe('CheckpointDispute', () => {
         const { root, falsyInclusionProof } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [encodeSU(stateUpdate)]
         const witness = [encodeStructable(falsyInclusionProof)]
 
         await expect(
@@ -166,13 +182,19 @@ describe('CheckpointDispute', () => {
         // prepare blocks
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber.toNumber() + 1
-        const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+        const firstBlockInfo = support.prepareBlock(
+          ALICE_ADDRESS,
+          nextBlockNumber
+        )
         await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-        const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+        const secondBlockInfo = support.prepareBlock(
+          BOB_ADDRESS,
+          nextBlockNumber + 1
+        )
         await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-        const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+        const inputs = [encodeSU(secondBlockInfo.stateUpdate)]
         const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
         await checkpointDispute.claim(inputs, witness, {
@@ -180,9 +202,7 @@ describe('CheckpointDispute', () => {
         })
 
         // prepare challenge
-        const challengeInputs = [
-          encodeStructable(firstBlockInfo.stateUpdate.property)
-        ]
+        const challengeInputs = [encodeSU(firstBlockInfo.stateUpdate)]
         const challengeWitness = [
           encodeStructable(firstBlockInfo.inclusionProof)
         ]
@@ -208,10 +228,9 @@ describe('CheckpointDispute', () => {
             ALICE_ADDRESS,
             currentBlockNumber.toNumber() + 1
           )
-          const inputs = [encodeStructable(blockInfo.stateUpdate.property)]
-          const challengeInputs = [
-            encodeStructable(blockInfo.stateUpdate.property)
-          ]
+          const inputs = [encodeSU(blockInfo.stateUpdate)]
+
+          const challengeInputs = [encodeSU(blockInfo.stateUpdate)]
           const challengeWitness = [encodeStructable(blockInfo.inclusionProof)]
           return {
             inputs,
@@ -315,18 +334,20 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(
+            ALICE_ADDRESS,
+            nextBlockNumber
+          )
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(
+            BOB_ADDRESS,
+            nextBlockNumber + 1
+          )
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-          const inputs = [
-            encodeStructable(secondBlockInfo.stateUpdate.property)
-          ]
-          const challengeInputs = [
-            encodeStructable(firstBlockInfo.stateUpdate.property)
-          ]
+          const inputs = [encodeSU(secondBlockInfo.stateUpdate)]
+          const challengeInputs = [encodeSU(firstBlockInfo.stateUpdate)]
           const challengeWitness = [
             encodeStructable(firstBlockInfo.inclusionProof)
           ]
@@ -347,15 +368,19 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(
+            ALICE_ADDRESS,
+            nextBlockNumber
+          )
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(
+            BOB_ADDRESS,
+            nextBlockNumber + 1
+          )
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-          const inputs = [
-            encodeStructable(secondBlockInfo.stateUpdate.property)
-          ]
+          const inputs = [encodeSU(secondBlockInfo.stateUpdate)]
           const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
@@ -363,9 +388,7 @@ describe('CheckpointDispute', () => {
           })
 
           // prepare challenge
-          const challengeInputs = [
-            encodeStructable(firstBlockInfo.stateUpdate.property)
-          ]
+          const challengeInputs = [encodeSU(firstBlockInfo.stateUpdate)]
           const challengeWitness = [
             encodeStructable(firstBlockInfo.falsyInclusionProof)
           ]
@@ -386,13 +409,19 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(
+            ALICE_ADDRESS,
+            nextBlockNumber
+          )
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(
+            BOB_ADDRESS,
+            nextBlockNumber + 1
+          )
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-          const inputs = [encodeStructable(firstBlockInfo.stateUpdate.property)]
+          const inputs = [encodeSU(firstBlockInfo.stateUpdate)]
           const witness = [encodeStructable(firstBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
@@ -400,9 +429,7 @@ describe('CheckpointDispute', () => {
           })
 
           // prepare challenge
-          const challengeInputs = [
-            encodeStructable(secondBlockInfo.stateUpdate.property)
-          ]
+          const challengeInputs = [encodeSU(secondBlockInfo.stateUpdate)]
           const challengeWitness = [
             encodeStructable(secondBlockInfo.falsyInclusionProof)
           ]
@@ -423,15 +450,19 @@ describe('CheckpointDispute', () => {
           // prepare blocks
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(
+            ALICE_ADDRESS,
+            nextBlockNumber
+          )
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(
+            BOB_ADDRESS,
+            nextBlockNumber + 1
+          )
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-          const inputs = [
-            encodeStructable(secondBlockInfo.stateUpdate.property)
-          ]
+          const inputs = [encodeSU(secondBlockInfo.stateUpdate)]
           const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
@@ -439,9 +470,7 @@ describe('CheckpointDispute', () => {
           })
 
           // prepare challenge
-          const challengeInputs = [
-            encodeStructable(firstBlockInfo.falsySU.property)
-          ]
+          const challengeInputs = [encodeSU(firstBlockInfo.falsySU)]
           const challengeWitness = [
             encodeStructable(firstBlockInfo.falsyInclusionProof)
           ]
@@ -461,15 +490,19 @@ describe('CheckpointDispute', () => {
         it('deposit contract address is different', async () => {
           const currentBlockNumber = await commitment.currentBlock()
           const nextBlockNumber = currentBlockNumber.toNumber() + 1
-          const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber)
+          const firstBlockInfo = support.prepareBlock(
+            ALICE_ADDRESS,
+            nextBlockNumber
+          )
           await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-          const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+          const secondBlockInfo = support.prepareBlock(
+            BOB_ADDRESS,
+            nextBlockNumber + 1
+          )
           await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-          const inputs = [
-            encodeStructable(secondBlockInfo.stateUpdate.property)
-          ]
+          const inputs = [encodeSU(secondBlockInfo.stateUpdate)]
           const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
           await checkpointDispute.claim(inputs, witness, {
@@ -481,14 +514,13 @@ describe('CheckpointDispute', () => {
             Address.from(ALICE_ADDRESS),
             new Range(BigNumber.from(0), BigNumber.from(5)),
             BigNumber.from(nextBlockNumber),
-            new Property(Address.from(support.truthyCompiledPredicate.address), [
-              EthCoder.encode(Address.from(ALICE_ADDRESS))
-            ])
+            new Property(
+              Address.from(support.truthyCompiledPredicate.address),
+              [EthCoder.encode(Address.from(ALICE_ADDRESS))]
+            )
           )
           // prepare challenge
-          const challengeInputs = [
-            encodeStructable(suWithDifferentAddress.property)
-          ]
+          const challengeInputs = [encodeSU(suWithDifferentAddress)]
           const challengeWitness = [
             encodeStructable(firstBlockInfo.falsyInclusionProof)
           ]
@@ -512,23 +544,28 @@ describe('CheckpointDispute', () => {
     async function prepareChallenge(falsy?: boolean) {
       const currentBlockNumber = await commitment.currentBlock()
       const nextBlockNumber = currentBlockNumber.toNumber() + 1
-      const firstBlockInfo = support.prepareBlock(ALICE_ADDRESS, nextBlockNumber, falsy)
+      const firstBlockInfo = support.prepareBlock(
+        ALICE_ADDRESS,
+        nextBlockNumber,
+        falsy
+      )
       await commitment.submitRoot(nextBlockNumber, firstBlockInfo.root)
 
-      const secondBlockInfo = support.prepareBlock(BOB_ADDRESS, nextBlockNumber + 1)
+      const secondBlockInfo = support.prepareBlock(
+        BOB_ADDRESS,
+        nextBlockNumber + 1
+      )
       await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
-      const inputs = [encodeStructable(secondBlockInfo.stateUpdate.property)]
+      const inputs = [encodeSU(secondBlockInfo.stateUpdate)]
       const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
 
       await checkpointDispute.claim(inputs, witness, {
-        gasLimit: 800000
+        gasLimit: 1000000
       })
 
       // prepare challenge
-      const challengeInputs = [
-        encodeStructable(firstBlockInfo.stateUpdate.property)
-      ]
+      const challengeInputs = [encodeSU(firstBlockInfo.stateUpdate)]
       const challengeWitness = [encodeStructable(firstBlockInfo.inclusionProof)]
 
       await checkpointDispute.challenge(
@@ -536,7 +573,7 @@ describe('CheckpointDispute', () => {
         challengeInputs,
         challengeWitness,
         {
-          gasLimit: 800000
+          gasLimit: 1000000
         }
       )
       return {
@@ -549,9 +586,23 @@ describe('CheckpointDispute', () => {
       it('remove challenge', async () => {
         // state object of challengeInputs is always truthy when passing no arguments to `prepareChallenge`
         const { inputs, challengeInputs } = await prepareChallenge()
+        const tx = support.ownershipTransaction(
+          Address.from(ALICE_ADDRESS),
+          100,
+          0,
+          5,
+          Address.from(support.truthyCompiledPredicate.address)
+        )
 
         await expect(
-          checkpointDispute.removeChallenge(inputs, challengeInputs, [])
+          checkpointDispute.removeChallenge(
+            inputs,
+            challengeInputs,
+            [EthCoder.encode(tx.body)],
+            {
+              gasLimit: 800000
+            }
+          )
         ).to.emit(checkpointDispute, 'ChallengeRemoved')
       }).timeout(15000)
     })
@@ -560,9 +611,23 @@ describe('CheckpointDispute', () => {
       it('cannot decide', async () => {
         // state object of challengeInputs is always truthy when passing no arguments to `prepareChallenge`
         const { inputs, challengeInputs } = await prepareChallenge(true)
+        const tx = support.ownershipTransaction(
+          Address.from(ALICE_ADDRESS),
+          100,
+          0,
+          5,
+          Address.from(support.truthyCompiledPredicate.address)
+        )
 
         await expect(
-          checkpointDispute.removeChallenge(inputs, challengeInputs, [])
+          checkpointDispute.removeChallenge(
+            inputs,
+            challengeInputs,
+            [EthCoder.encode(tx.body)],
+            {
+              gasLimit: 800000
+            }
+          )
         ).to.revertedWith('State object decided to false')
       }).timeout(10000)
 
@@ -622,16 +687,47 @@ describe('CheckpointDispute', () => {
           true
         )
         await expect(
-          checkpointDispute.removeChallenge(
-            inputs,
-            [encodeStructable(su.property)],
-            [],
-            {
-              gasLimit: 800000
-            }
-          )
+          checkpointDispute.removeChallenge(inputs, [encodeSU(su)], [], {
+            gasLimit: 800000
+          })
         ).to.be.reverted
       }).timeout(5000)
+    })
+  })
+
+  describe('settle checkpoint', () => {
+    it('succeed to settle checkpoint', async () => {
+      const token = await deployContract(wallet, MockToken, [])
+      const depositContract = await deployContract(wallet, DepositContract, [
+        token.address
+      ])
+      const currentBlockNumber = await commitment.currentBlock()
+      const nextBlockNumber = currentBlockNumber + 1
+
+      const stateUpdate = support.ownershipStateUpdate(
+        Address.from(ALICE_ADDRESS),
+        nextBlockNumber,
+        0,
+        5
+      )
+      stateUpdate.update({
+        depositContractAddress: Address.from(depositContract.address)
+      })
+      const { root, inclusionProof } = generateTree(stateUpdate)
+      await commitment.submitRoot(nextBlockNumber, root)
+
+      const inputs = [encodeSU(stateUpdate)]
+      const witness = [encodeStructable(inclusionProof)]
+
+      await checkpointDispute.claim(inputs, witness, {
+        gasLimit: 800000
+      })
+
+      await increaseBlocks(wallets, 10)
+
+      await expect(
+        checkpointDispute.settle(inputs, { gasLimit: 800000 })
+      ).to.emit(depositContract, 'CheckpointFinalized')
     })
   })
 })
