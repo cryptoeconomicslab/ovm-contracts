@@ -193,6 +193,29 @@ contract DisputeManager {
     }
 
     /**
+     * If the game can be decided true, isDecidable returns true.
+     */
+    function isDecidable(bytes32 _id) public view returns (bool) {
+        if (started(_id) == false) {
+            return false;
+        }
+        types.ChallengeGame storage game = games[_id];
+        if (game.createdBlock > block.number - DISPUTE_PERIOD) {
+            return false;
+        }
+
+        // check all game.challenges should be false
+        for (uint256 i = 0; i < game.challenges.length; i++) {
+            types.ChallengeGame memory challengingGame = games[game
+                .challenges[i]];
+            if (challengingGame.decision != types.Decision.False) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * check if game of given id is already started
      */
     function started(bytes32 _id) public view returns (bool) {

@@ -341,4 +341,50 @@ describe('DisputeManager', () => {
       })
     })
   })
+
+  describe('isDecidable', () => {
+    const inputs = ['0x01']
+    const challengeInputs = ['0x02']
+
+    beforeEach(async () => {
+      await disputeContract.claim(inputs, [])
+    })
+
+    it('return true', async () => {
+      await increaseBlocks(wallets, 10)
+
+      await expect(disputeContract.settle(inputs)).to.emit(
+        disputeManager,
+        'PropertyDecided'
+      )
+      const gameId = getGameIdFromProperty({
+        predicateAddress: disputeContract.address,
+        inputs
+      })
+      const isDecidable = await disputeManager.isDecidable(gameId)
+      assert.equal(isDecidable, true)
+    })
+
+    it('return false because dispute period have not been passed', async () => {
+      const gameId = getGameIdFromProperty({
+        predicateAddress: disputeContract.address,
+        inputs
+      })
+      const isDecidable = await disputeManager.isDecidable(gameId)
+      assert.equal(isDecidable, false)
+    })
+
+    it('return false because game is challenged', async () => {
+      await increaseBlocks(wallets, 10)
+      await disputeContract.challenge(inputs, challengeInputs, [])
+      await disputeContract.setGameResult(challengeInputs, true)
+
+      const gameId = getGameIdFromProperty({
+        predicateAddress: disputeContract.address,
+        inputs
+      })
+      const isDecidable = await disputeManager.isDecidable(gameId)
+      assert.equal(isDecidable, false)
+    })
+  })
 })
