@@ -24,7 +24,8 @@ import {
   generateTree,
   encodeStructable,
   toStateUpdateStruct,
-  toTransactionStruct
+  toTransactionStruct,
+  stateUpdateToLog
 } from './utils'
 import { keccak256 } from 'ethers/utils'
 setupContext({ coder: EthCoder })
@@ -389,6 +390,34 @@ describe('ExitDispute', () => {
             })
           ).to.be.revertedWith('State object decided to false')
         })
+      })
+    })
+
+    describe('isCompletable', () => {
+      it('returns false', async () => {
+        const currentBlockNumber = await commitment.currentBlock()
+        const nextBlockNumber = currentBlockNumber + 1
+
+        const stateUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          nextBlockNumber,
+          0,
+          5
+        )
+
+        const { root, inclusionProof } = generateTree(stateUpdate)
+        await commitment.submitRoot(nextBlockNumber, root)
+
+        const inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
+        const witness = [encodeStructable(inclusionProof)]
+
+        await exitDispute.claim(inputs, witness, {
+          gasLimit: 800000
+        })
+        const isCompletable = await exitDispute.isCompletable(
+          stateUpdateToLog(stateUpdate)
+        )
+        assert.equal(isCompletable, false)
       })
     })
   })
