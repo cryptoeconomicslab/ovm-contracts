@@ -44,7 +44,7 @@
     "typescript": "3.9.6"
   },
   "dependencies": {
-    "@cryptoeconomicslab/context": "^0.4.1",
+    "@cryptoeconomicslab/context": "^0.5.0",
     "@cryptoeconomicslab/eth-coder": "^0.4.1",
     "@cryptoeconomicslab/hash": "^0.4.1",
     "@cryptoeconomicslab/merkle-tree": "^0.4.1",
