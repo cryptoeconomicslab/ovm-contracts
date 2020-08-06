@@ -236,6 +236,23 @@ contract ExitDispute is
         return game.decision;
     }
 
+    /**
+     * If the exit can be withdrawable, isCompletable returns true.
+     */
+    function isCompletable(types.StateUpdate memory _su)
+        public
+        view
+        returns (bool)
+    {
+        bytes memory suBytes = abi.encode(_su);
+        types.Property memory exitProperty = createProperty(
+            suBytes,
+            EXIT_CLAIM
+        );
+        bytes32 id = utils.getPropertyId(exitProperty);
+        return disputeManager.isDecidable(id);
+    }
+
     function checkpointExitable(
         types.StateUpdate memory stateUpdate,
         types.StateUpdate memory checkpoint
