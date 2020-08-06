@@ -48,7 +48,7 @@
     "@cryptoeconomicslab/eth-coder": "^0.4.1",
     "@cryptoeconomicslab/hash": "^0.4.1",
     "@cryptoeconomicslab/merkle-tree": "^0.4.1",
-    "@cryptoeconomicslab/ovm": "^0.4.1",
+    "@cryptoeconomicslab/ovm": "^0.5.0",
     "@cryptoeconomicslab/plasma": "^0.4.1",
     "@cryptoeconomicslab/primitives": "^0.4.1",
     "@types/node": "^14.0.13",
