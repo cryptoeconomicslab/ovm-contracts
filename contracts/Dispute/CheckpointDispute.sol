@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import {DepositContract} from "../DepositContract.sol";
-import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {CompiledPredicate} from "../Predicate/CompiledPredicate.sol";
 import {DisputeKind} from "./DisputeKind.sol";
@@ -33,7 +32,7 @@ import {CheckpointChallengeValidator} from "./CheckpointChallengeValidator.sol";
  * - witness : array of bytes passed to state object of specified stateUpdate
  * ex) ownership : [[owner, tx], [signature]]
  */
-contract CheckpointDispute is Dispute, CheckpointChallengeValidator {
+contract CheckpointDispute is CheckpointChallengeValidator {
     event CheckpointClaimed(
         types.StateUpdate stateUpdate,
         types.InclusionProof inclusionProof

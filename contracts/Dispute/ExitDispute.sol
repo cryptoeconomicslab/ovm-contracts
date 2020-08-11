@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import {DepositContract} from "../DepositContract.sol";
-import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {CheckpointChallengeValidator} from "./CheckpointChallengeValidator.sol";
 import {SpentChallengeValidator} from "./SpentChallengeValidator.sol";
@@ -18,11 +17,7 @@ import {Utils} from "../Utils.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is
-    Dispute,
-    SpentChallengeValidator,
-    CheckpointChallengeValidator
-{
+contract ExitDispute is SpentChallengeValidator, CheckpointChallengeValidator {
     Utils utils;
 
     constructor(
