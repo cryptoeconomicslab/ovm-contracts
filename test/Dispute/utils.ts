@@ -183,3 +183,15 @@ export function toTransactionStruct(data: Transaction): Struct {
     { key: 'nextStateObject', value: data.stateObject.toStruct() }
   ])
 }
+
+export function stateUpdateToLog(stateUpdate: StateUpdate) {
+  return [
+    stateUpdate.depositContractAddress.data,
+    { start: stateUpdate.range.start.raw, end: stateUpdate.range.end.raw },
+    ethers.utils.bigNumberify(stateUpdate.blockNumber.raw),
+    {
+      predicateAddress: stateUpdate.stateObject.deciderAddress.data,
+      inputs: stateUpdate.stateObject.inputs
+    }
+  ]
+}
