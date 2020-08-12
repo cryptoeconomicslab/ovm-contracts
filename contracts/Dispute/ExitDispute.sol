@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
 import {DepositContract} from "../DepositContract.sol";
-import {Dispute} from "./DisputeInterface.sol";
 import {DisputeHelper} from "./DisputeHelper.sol";
 import {CheckpointChallengeValidator} from "./CheckpointChallengeValidator.sol";
 import {SpentChallengeValidator} from "./SpentChallengeValidator.sol";
@@ -18,11 +17,7 @@ import {Utils} from "../Utils.sol";
  * Exitable stateUpdate is StateUpdate which is not spended
  * and StateUpdate at which checkpoint decides.
  */
-contract ExitDispute is
-    Dispute,
-    SpentChallengeValidator,
-    CheckpointChallengeValidator
-{
+contract ExitDispute is SpentChallengeValidator, CheckpointChallengeValidator {
     Utils utils;
 
     constructor(
@@ -150,23 +145,23 @@ contract ExitDispute is
             _inputs[0],
             (types.StateUpdate)
         );
-        if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENTE)) {
+        if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENGE)) {
             bytes[] memory spentChallengeInputs = new bytes[](1);
             spentChallengeInputs[0] = _challengeInputs[1];
             validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
             challengeProperty = createProperty(
                 _challengeInputs[0],
-                EXIT_SPENT_CHALLENTE
+                EXIT_SPENT_CHALLENGE
             );
             emit ExitSpentChallenged(stateUpdate);
         } else if (
             keccak256(_challengeInputs[0]) ==
-            keccak256(EXIT_CHECKPOINT_CHALLENTE)
+            keccak256(EXIT_CHECKPOINT_CHALLENGE)
         ) {
             validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
             challengeProperty = createProperty(
                 _challengeInputs[0],
-                EXIT_CHECKPOINT_CHALLENTE
+                EXIT_CHECKPOINT_CHALLENGE
             );
             types.StateUpdate memory challengeStateUpdate = abi.decode(
                 _challengeInputs[0],

@@ -2,10 +2,9 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {DataTypes as types} from "../DataTypes.sol";
-import {Dispute} from "../Dispute/DisputeInterface.sol";
 import {DisputeManager} from "../Dispute/DisputeManager.sol";
 
-contract MockDisputeContract is Dispute {
+contract MockDisputeContract {
     DisputeManager disputeManager;
 
     constructor(address _disputeManagerAddress) public {
@@ -132,5 +131,4 @@ contract MockDisputeContract is Dispute {
         );
         disputeManager.settleGame(property);
     }
-
 }

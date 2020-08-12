@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 /* Internal Contract Imports */
 import "../Utils.sol";
 import {DataTypes as types} from "../DataTypes.sol";
-import {Dispute} from "./DisputeInterface.sol";
 
 /**
  * # Dispute manager contract
