@@ -143,7 +143,7 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             "token must be same"
         );
         require(
-            utils.isSubrange(stateUpdate.range, transaction.range),
+            utils.hasIntersection(stateUpdate.range, transaction.range),
             "range must contain subrange"
         );
         require(

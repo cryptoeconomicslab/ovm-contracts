@@ -134,4 +134,13 @@ contract Utils {
             _subrange.start >= _surroundingRange.start &&
             _subrange.end <= _surroundingRange.end;
     }
+
+    function hasIntersection(
+        types.Range memory _rangeA,
+        types.Range memory _rangeB
+    ) public pure returns (bool) {
+        bool a = _rangeA.start >= _rangeB.start && _rangeA.start < _rangeB.end;
+        bool b = _rangeB.start >= _rangeA.start && _rangeB.start < _rangeA.end;
+        return a || b;
+    }
 }

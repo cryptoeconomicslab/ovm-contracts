@@ -27,7 +27,7 @@ import {
   toTransactionStruct,
   stateUpdateToLog
 } from './utils'
-import { StateUpdate } from '@cryptoeconomicslab/plasma'
+import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import { increaseBlocks } from '../helpers/increaseBlocks'
 import { keccak256 } from 'ethers/utils'
 setupContext({ coder: EthCoder })
@@ -240,7 +240,10 @@ describe('ExitDispute', () => {
     describe('challenge', () => {
       // FIXME: refactor later
       const init = async (
-        challengeType = 'EXIT_SPENT_CHALLENGE'
+        challengeType = 'EXIT_SPENT_CHALLENGE',
+        options: {
+          transaction?: Transaction
+        } = {}
       ): Promise<[Bytes[], Bytes[], Bytes[]]> => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber.toNumber() + 1
@@ -267,16 +270,18 @@ describe('ExitDispute', () => {
         const challengeInputs = [Bytes.fromString(challengeType)]
         const challengeWitness = []
         if (challengeType === 'EXIT_SPENT_CHALLENGE') {
-          const transaction = support.ownershipTransaction(
-            Address.from(BOB_ADDRESS),
-            1000000,
-            0,
-            5,
-            Address.from(mockCompiledPredicate.address)
-          )
+          if (!options.transaction) {
+            options.transaction = support.ownershipTransaction(
+              Address.from(BOB_ADDRESS),
+              1000000,
+              0,
+              5,
+              Address.from(mockCompiledPredicate.address)
+            )
+          }
           const signature = '0x00112233445566778899'
           challengeInputs.push(
-            EthCoder.encode(toTransactionStruct(transaction))
+            EthCoder.encode(toTransactionStruct(options.transaction))
           )
           challengeWitness.push(Bytes.fromHexString(signature))
         } else if (challengeType === 'EXIT_CHECKPOINT_CHALLENGE') {
@@ -284,12 +289,45 @@ describe('ExitDispute', () => {
             EthCoder.encode(toStateUpdateStruct(firstBlockInfo.stateUpdate))
           )
           challengeWitness.push(encodeStructable(firstBlockInfo.inclusionProof))
+        } else {
+          throw new Error('invalid challenge type')
         }
         return [inputs, challengeInputs, challengeWitness]
       }
       describe('succeed to exit challenge', () => {
-        it('create a new exit challenge(spent)', async () => {
-          const [inputs, challengeInputs, challengeWitness] = await init()
+        it('create a new exit challenge(spent) with small amount tx', async () => {
+          const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            0,
+            2,
+            Address.from(mockCompiledPredicate.address)
+          )
+          const [
+            inputs,
+            challengeInputs,
+            challengeWitness
+          ] = await init('EXIT_SPENT_CHALLENGE', { transaction })
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 900000
+            })
+          ).to.emit(exitDispute, 'ExitSpentChallenged')
+        }).timeout(15000)
+
+        it('create a new exit challenge(spent) with merge tx', async () => {
+          const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            0,
+            10,
+            Address.from(mockCompiledPredicate.address)
+          )
+          const [
+            inputs,
+            challengeInputs,
+            challengeWitness
+          ] = await init('EXIT_SPENT_CHALLENGE', { transaction })
           await expect(
             exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
               gasLimit: 900000
