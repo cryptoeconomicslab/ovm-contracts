@@ -153,6 +153,10 @@ contract CheckpointDispute is CheckpointChallengeValidator {
             _challengeInputs[0],
             CHECKPOINT_CHALLENGE
         );
+        require(
+            disputeManager.started(utils.getPropertyId(claimProperty)),
+            "Claim does not exist"
+        );
         disputeManager.challenge(claimProperty, challengeProperty);
 
         emit CheckpointChallenged(

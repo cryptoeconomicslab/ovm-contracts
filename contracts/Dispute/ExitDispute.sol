@@ -158,19 +158,34 @@ contract ExitDispute is SpentChallengeValidator, CheckpointChallengeValidator {
             keccak256(_challengeInputs[0]) ==
             keccak256(EXIT_CHECKPOINT_CHALLENGE)
         ) {
-            validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
+            bytes[] memory invalidHistoryChallengeInputs = new bytes[](1);
+            invalidHistoryChallengeInputs[0] = _challengeInputs[1];
+            validateCheckpointChallenge(
+                _inputs,
+                invalidHistoryChallengeInputs,
+                _witness
+            );
             challengeProperty = createProperty(
-                _challengeInputs[0],
+                invalidHistoryChallengeInputs[0],
                 EXIT_CHECKPOINT_CHALLENGE
             );
             types.StateUpdate memory challengeStateUpdate = abi.decode(
-                _challengeInputs[0],
+                invalidHistoryChallengeInputs[0],
                 (types.StateUpdate)
             );
             emit ExitCheckpointChallenged(stateUpdate, challengeStateUpdate);
         } else {
             revert("illegal challenge type");
         }
+
+        types.Property memory claimedProperty = createProperty(
+            _inputs[0],
+            EXIT_CLAIM
+        );
+        require(
+            disputeManager.started(utils.getPropertyId(claimedProperty)),
+            "Claim does not exist"
+        );
 
         disputeManager.challenge(
             createProperty(_inputs[0], EXIT_CLAIM),
