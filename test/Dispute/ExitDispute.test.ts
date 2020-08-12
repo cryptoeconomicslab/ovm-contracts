@@ -278,7 +278,7 @@ describe('ExitDispute', () => {
           challengeInputs.push(
             EthCoder.encode(toTransactionStruct(transaction))
           )
-          challengeWitness.push(signature)
+          challengeWitness.push(Bytes.fromHexString(signature))
         } else if (challengeType === 'EXIT_CHECKPOINT_CHALLENGE') {
           challengeInputs.push(
             EthCoder.encode(toStateUpdateStruct(firstBlockInfo.stateUpdate))
