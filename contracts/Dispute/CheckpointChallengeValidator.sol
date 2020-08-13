@@ -60,10 +60,6 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             (types.InclusionProof)
         );
 
-        types.Property memory claimedProperty = createProperty(
-            _inputs[0],
-            CHECKPOINT_CLAIM
-        );
         require(
             stateUpdate.depositContractAddress ==
                 challengeStateUpdate.depositContractAddress,
@@ -76,10 +72,6 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
         require(
             utils.isSubrange(challengeStateUpdate.range, stateUpdate.range),
             "Range must be subrange of stateUpdate"
-        );
-        require(
-            disputeManager.started(utils.getPropertyId(claimedProperty)),
-            "Claim does not exist"
         );
 
         // verify inclusion proof
@@ -151,7 +143,7 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             "token must be same"
         );
         require(
-            utils.isSubrange(stateUpdate.range, transaction.range),
+            utils.hasIntersection(stateUpdate.range, transaction.range),
             "range must contain subrange"
         );
         require(

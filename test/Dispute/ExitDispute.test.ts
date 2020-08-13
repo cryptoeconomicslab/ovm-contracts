@@ -27,6 +27,8 @@ import {
   toTransactionStruct,
   stateUpdateToLog
 } from './utils'
+import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
+import { increaseBlocks } from '../helpers/increaseBlocks'
 import { keccak256 } from 'ethers/utils'
 setupContext({ coder: EthCoder })
 
@@ -238,7 +240,10 @@ describe('ExitDispute', () => {
     describe('challenge', () => {
       // FIXME: refactor later
       const init = async (
-        challengeType = 'EXIT_SPENT_CHALLENGE'
+        challengeType = 'EXIT_SPENT_CHALLENGE',
+        options: {
+          transaction?: Transaction
+        } = {}
       ): Promise<[Bytes[], Bytes[], Bytes[]]> => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber.toNumber() + 1
@@ -263,44 +268,83 @@ describe('ExitDispute', () => {
         })
         // prepare challenge
         const challengeInputs = [Bytes.fromString(challengeType)]
-        const challengeWitness = [
-          encodeStructable(firstBlockInfo.inclusionProof)
-        ]
+        const challengeWitness = []
+        if (challengeType === 'EXIT_SPENT_CHALLENGE') {
+          if (!options.transaction) {
+            options.transaction = support.ownershipTransaction(
+              Address.from(BOB_ADDRESS),
+              1000000,
+              0,
+              5,
+              Address.from(mockCompiledPredicate.address)
+            )
+          }
+          const signature = '0x00112233445566778899'
+          challengeInputs.push(
+            EthCoder.encode(toTransactionStruct(options.transaction))
+          )
+          challengeWitness.push(Bytes.fromHexString(signature))
+        } else if (challengeType === 'EXIT_CHECKPOINT_CHALLENGE') {
+          challengeInputs.push(
+            EthCoder.encode(toStateUpdateStruct(firstBlockInfo.stateUpdate))
+          )
+          challengeWitness.push(encodeStructable(firstBlockInfo.inclusionProof))
+        } else {
+          throw new Error('invalid challenge type')
+        }
         return [inputs, challengeInputs, challengeWitness]
       }
       describe('succeed to exit challenge', () => {
-        it('create a new exit challenge(spent)', async () => {
-          const [inputs, challengeInputs, challengeWitness] = await init()
+        it('create a new exit challenge(spent) with small amount tx', async () => {
           const transaction = support.ownershipTransaction(
             Address.from(BOB_ADDRESS),
             1000000,
             0,
-            5,
+            2,
             Address.from(mockCompiledPredicate.address)
           )
-          challengeInputs.push(
-            EthCoder.encode(toTransactionStruct(transaction))
-          )
+          const [
+            inputs,
+            challengeInputs,
+            challengeWitness
+          ] = await init('EXIT_SPENT_CHALLENGE', { transaction })
           await expect(
             exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
               gasLimit: 900000
             })
           ).to.emit(exitDispute, 'ExitSpentChallenged')
         }).timeout(15000)
-        // TODO I'll catch you later.
-        // it('create a new exit challenge(checkpoint)', async () => {
-        //   const [inputs, challengeInputs, challengeWitness] = await init('EXIT_CHECKPOINT_CHALLENGE')
-        //   await expect(
-        //     exitDispute.challenge(
-        //       inputs,
-        //       challengeInputs,
-        //       challengeWitness,
-        //       {
-        //         gasLimit: 800000
-        //       }
-        //     )
-        //   ).to.emit(exitDispute, 'ExitChallenged')
-        // }).timeout(15000)
+
+        it('create a new exit challenge(spent) with merge tx', async () => {
+          const transaction = support.ownershipTransaction(
+            Address.from(BOB_ADDRESS),
+            1000000,
+            0,
+            10,
+            Address.from(mockCompiledPredicate.address)
+          )
+          const [
+            inputs,
+            challengeInputs,
+            challengeWitness
+          ] = await init('EXIT_SPENT_CHALLENGE', { transaction })
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 900000
+            })
+          ).to.emit(exitDispute, 'ExitSpentChallenged')
+        }).timeout(15000)
+
+        it('create a new exit challenge(checkpoint)', async () => {
+          const [inputs, challengeInputs, challengeWitness] = await init(
+            'EXIT_CHECKPOINT_CHALLENGE'
+          )
+          await expect(
+            exitDispute.challenge(inputs, challengeInputs, challengeWitness, {
+              gasLimit: 800000
+            })
+          ).to.emit(exitDispute, 'ExitCheckpointChallenged')
+        }).timeout(15000)
       })
       describe('fail to challenge an exit', () => {
         it('If the first argument length is not 1, an error occurs.', async () => {
@@ -390,6 +434,46 @@ describe('ExitDispute', () => {
             })
           ).to.be.revertedWith('State object decided to false')
         })
+      })
+    })
+
+    describe('settle', () => {
+      let inputs: Bytes[] = []
+      let stateUpdate: StateUpdate
+      beforeEach(async () => {
+        const currentBlockNumber = await commitment.currentBlock()
+        const nextBlockNumber = currentBlockNumber + 1
+
+        stateUpdate = support.ownershipStateUpdate(
+          Address.from(ALICE_ADDRESS),
+          nextBlockNumber,
+          0,
+          5
+        )
+        const { root, inclusionProof } = generateTree(stateUpdate)
+        await commitment.submitRoot(nextBlockNumber, root)
+
+        inputs = [EthCoder.encode(toStateUpdateStruct(stateUpdate))]
+        const witness = [encodeStructable(inclusionProof)]
+
+        await exitDispute.claim(inputs, witness, {
+          gasLimit: 800000
+        })
+      })
+
+      it('settle exit', async () => {
+        await increaseBlocks(wallets, 10)
+
+        await expect(exitDispute.settle(inputs)).to.emit(
+          exitDispute,
+          'ExitSettled'
+        )
+      })
+
+      it('cannot settle exit', async () => {
+        await expect(exitDispute.settle(inputs)).revertedWith(
+          'revert dispute period has not been passed'
+        )
       })
     })
 

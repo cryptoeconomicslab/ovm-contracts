@@ -30,8 +30,9 @@ contract SpentChallengeValidator is DisputeHelper {
                 stateUpdate.depositContractAddress,
             "token must be same"
         );
+        // To support spending multiple state updates
         require(
-            utils.isSubrange(transaction.range, stateUpdate.range),
+            utils.hasIntersection(transaction.range, stateUpdate.range),
             "range must contain subrange"
         );
         require(
