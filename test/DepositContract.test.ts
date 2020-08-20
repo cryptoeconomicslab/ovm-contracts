@@ -161,10 +161,16 @@ describe('DepositContract', () => {
 
   describe('finalizeCheckpoint', () => {
     it('succeed to finalize checkpoint called by CheckpointDispute', async () => {
-      const su = encodeStateUpdate(depositContract.address, [0, 10], 5, {
-        predicateAddress: testPredicate.address,
-        inputs: ['0x01']
-      })
+      const su = encodeStateUpdate(
+        depositContract.address,
+        [0, 10],
+        5,
+        {
+          predicateAddress: testPredicate.address,
+          inputs: ['0x01']
+        },
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
+      )
       await expect(mockCheckpointDispute.settle([su])).to.emit(
         depositContract,
         'CheckpointFinalized'

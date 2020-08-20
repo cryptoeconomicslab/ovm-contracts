@@ -26,12 +26,14 @@ library DataTypes {
         Range range;
         uint256 blockNumber;
         Property stateObject;
+        bytes32 chunkId;
     }
     struct Transaction {
         address depositContractAddress;
         Range range;
         uint256 maxBlockNumber;
         Property nextStateObject;
+        bytes32 chunkId;
         address from;
     }
     struct Checkpoint {
@@ -72,5 +74,10 @@ library DataTypes {
     struct AddressTreeNode {
         bytes32 data;
         address tokenAddress;
+    }
+    struct ChunkKey {
+        address depositContractAddress;
+        uint256 blockNumber;
+        uint256 start;
     }
 }

@@ -22,12 +22,14 @@ library Deserializer {
             _stateUpdate.inputs[3],
             (types.Property)
         );
+        bytes32 chunkId = abi.decode(_stateUpdate.inputs[4], (bytes32));
         return
             types.StateUpdate({
                 blockNumber: blockNumber,
                 depositContractAddress: depositAddress,
                 range: range,
-                stateObject: stateObject
+                stateObject: stateObject,
+                chunkId: chunkId
             });
     }
 
