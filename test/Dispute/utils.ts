@@ -15,7 +15,11 @@ import {
 } from '@cryptoeconomicslab/merkle-tree'
 import { Keccak256 } from '@cryptoeconomicslab/hash'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
-import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
+import {
+  StateUpdate,
+  UnsignedTransaction,
+  Transaction
+} from '@cryptoeconomicslab/plasma'
 import * as MockFalsyCompiledPredicate from '../../build/contracts/MockFalsyCompiledPredicate.json'
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
 
@@ -51,10 +55,10 @@ export class DisputeTestSupport {
       : this.truthyCompiledPredicate
     return new StateUpdate(
       Address.default(),
-      Address.default(),
       new Range(BigNumber.from(start), BigNumber.from(end)),
       BigNumber.from(blockNumber),
-      new Property(Address.from(predicate.address), [EthCoder.encode(owner)])
+      new Property(Address.from(predicate.address), [EthCoder.encode(owner)]),
+      FixedBytes.default(32)
     )
   }
   public ownershipTransaction(
@@ -72,7 +76,7 @@ export class DisputeTestSupport {
     const range = new Range(BigNumber.from(start), BigNumber.from(end))
     const block = BigNumber.from(blockNumber)
     const property = new Property(compiledPredicate, [])
-    return new Transaction(
+    return new UnsignedTransaction(
       depositContractAddress,
       range,
       block,
@@ -82,6 +86,7 @@ export class DisputeTestSupport {
         EthCoder.encode(block),
         EthCoder.encode(property.toStruct())
       ]),
+      FixedBytes.default(32),
       Address.default()
     )
   }
@@ -171,7 +176,8 @@ export function toStateUpdateStruct(data: StateUpdate): Struct {
     { key: 'depositContractAddress', value: data.depositContractAddress },
     { key: 'range', value: data.range.toStruct() },
     { key: 'blockNumber', value: data.blockNumber },
-    { key: 'stateObject', value: data.stateObject.toStruct() }
+    { key: 'stateObject', value: data.stateObject.toStruct() },
+    { key: 'chunkId', value: data.chunkId }
   ])
 }
 
@@ -180,7 +186,8 @@ export function toTransactionStruct(data: Transaction): Struct {
     { key: 'depositContractAddress', value: data.depositContractAddress },
     { key: 'range', value: data.range.toStruct() },
     { key: 'maxBlockNumber', value: data.maxBlockNumber },
-    { key: 'nextStateObject', value: data.stateObject.toStruct() }
+    { key: 'nextStateObject', value: data.stateObject.toStruct() },
+    { key: 'chunkId', value: data.chunkId }
   ])
 }
 
@@ -192,6 +199,7 @@ export function stateUpdateToLog(stateUpdate: StateUpdate) {
     {
       predicateAddress: stateUpdate.stateObject.deciderAddress.data,
       inputs: stateUpdate.stateObject.inputs
-    }
+    },
+    stateUpdate.chunkId.toHexString()
   ]
 }
