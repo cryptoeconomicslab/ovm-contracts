@@ -20,7 +20,8 @@ import {
   Address,
   BigNumber,
   Range,
-  Property
+  Property,
+  FixedBytes
 } from '@cryptoeconomicslab/primitives'
 import { StateUpdate } from '@cryptoeconomicslab/plasma'
 import EthCoder from '@cryptoeconomicslab/eth-coder'
@@ -141,7 +142,7 @@ describe('CheckpointDispute', () => {
         const { root } = generateTree(stateUpdate)
         await commitment.submitRoot(nextBlockNumber, root)
 
-        const inputs = [encodeStructable(stateUpdate.property)]
+        const inputs = [encodeStructable(stateUpdate)]
         const witness = ['0x01']
 
         await expect(
@@ -510,14 +511,14 @@ describe('CheckpointDispute', () => {
           })
 
           const suWithDifferentAddress = new StateUpdate(
-            Address.default(),
             Address.from(ALICE_ADDRESS),
             new Range(BigNumber.from(0), BigNumber.from(5)),
             BigNumber.from(nextBlockNumber),
             new Property(
               Address.from(support.truthyCompiledPredicate.address),
               [EthCoder.encode(Address.from(ALICE_ADDRESS))]
-            )
+            ),
+            FixedBytes.default(32)
           )
           // prepare challenge
           const challengeInputs = [encodeSU(suWithDifferentAddress)]
@@ -598,7 +599,7 @@ describe('CheckpointDispute', () => {
           checkpointDispute.removeChallenge(
             inputs,
             challengeInputs,
-            [EthCoder.encode(tx.body)],
+            [tx.message],
             {
               gasLimit: 800000
             }
@@ -623,7 +624,7 @@ describe('CheckpointDispute', () => {
           checkpointDispute.removeChallenge(
             inputs,
             challengeInputs,
-            [EthCoder.encode(tx.body)],
+            [tx.message],
             {
               gasLimit: 800000
             }

@@ -62,7 +62,8 @@ describe('OwnershipPayout', () => {
         ethers.constants.AddressZero,
         [0, 100],
         0,
-        [stateObject.predicateAddress, stateObject.inputs]
+        [stateObject.predicateAddress, stateObject.inputs],
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
       ]
     }
 

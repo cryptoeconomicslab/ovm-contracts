@@ -20,6 +20,7 @@ import * as ethers from 'ethers'
 import { OvmProperty, encodeStateUpdate } from './helpers/utils'
 import { getTransactionEvents } from './helpers/getTransactionEvent'
 import { gasCost as GasCost } from './GasCost.test'
+import { keccak256 } from 'ethers/utils'
 const abi = new ethers.utils.AbiCoder()
 const { MaxUint256 } = ethers.constants
 const { bigNumberify } = ethers.utils
@@ -114,11 +115,18 @@ describe('DepositContract', () => {
       assert.deepEqual(depositedRangeExtended.values.newRange, range(0, 1))
 
       const checkpointFinalized = events[1]
+      const chunkId = keccak256(
+        abi.encode(
+          ['tuple(address, uint256, uint256)'],
+          [[depositContract.address, 100, 0]]
+        )
+      )
       assert.deepEqual(checkpointFinalized.values.checkpoint, [
         depositContract.address,
         range(0, 1),
         bigNumberify(100),
-        [stateObject.predicateAddress, stateObject.inputs]
+        [stateObject.predicateAddress, stateObject.inputs],
+        chunkId
       ])
 
       const tx2 = await depositContract.deposit(2, stateObject)
@@ -127,11 +135,19 @@ describe('DepositContract', () => {
       assert.deepEqual(depositedRangeExtended2.values.newRange, range(0, 3))
 
       const checkpointFinalized2 = events2[1]
+      const chunkId2 = keccak256(
+        abi.encode(
+          ['tuple(address, uint256, uint256)'],
+          [[depositContract.address, 100, 1]]
+        )
+      )
+
       assert.deepEqual(checkpointFinalized2.values.checkpoint, [
         depositContract.address,
         range(1, 3),
         bigNumberify(100),
-        [stateObject.predicateAddress, stateObject.inputs]
+        [stateObject.predicateAddress, stateObject.inputs],
+        chunkId2
       ])
     })
 
@@ -161,10 +177,16 @@ describe('DepositContract', () => {
 
   describe('finalizeCheckpoint', () => {
     it('succeed to finalize checkpoint called by CheckpointDispute', async () => {
-      const su = encodeStateUpdate(depositContract.address, [0, 10], 5, {
-        predicateAddress: testPredicate.address,
-        inputs: ['0x01']
-      })
+      const su = encodeStateUpdate(
+        depositContract.address,
+        [0, 10],
+        5,
+        {
+          predicateAddress: testPredicate.address,
+          inputs: ['0x01']
+        },
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
+      )
       await expect(mockCheckpointDispute.settle([su])).to.emit(
         depositContract,
         'CheckpointFinalized'
@@ -177,7 +199,8 @@ describe('DepositContract', () => {
           depositContract.address,
           range(0, 10),
           5,
-          [testPredicate.address, ['0x01']]
+          [testPredicate.address, ['0x01']],
+          '0x0000000000000000000000000000000000000000000000000000000000000000'
         ])
       ).to.be.reverted
     })
@@ -192,7 +215,8 @@ describe('DepositContract', () => {
         depositContractAddress || depositContract.address,
         range,
         100,
-        [stateObject.predicateAddress, stateObject.inputs]
+        [stateObject.predicateAddress, stateObject.inputs],
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
       ]
     }
 

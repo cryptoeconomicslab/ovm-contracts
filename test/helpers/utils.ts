@@ -75,18 +75,20 @@ export function encodeStateUpdate(
   depositContractAddress: string,
   range: [number, number],
   blockNumber: number,
-  stateObject: OvmProperty
+  stateObject: OvmProperty,
+  chunkId: string
 ) {
   return abi.encode(
     [
-      'tuple(address, tuple(uint256, uint256), uint256, tuple(address, bytes[]))'
+      'tuple(address, tuple(uint256, uint256), uint256, tuple(address, bytes[]), bytes32)'
     ],
     [
       [
         depositContractAddress,
         range,
         blockNumber,
-        [stateObject.predicateAddress, stateObject.inputs]
+        [stateObject.predicateAddress, stateObject.inputs],
+        chunkId
       ]
     ]
   )

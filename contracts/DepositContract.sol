@@ -94,11 +94,24 @@ contract DepositContract {
             start: totalDeposited,
             end: totalDeposited.add(_amount)
         });
+
+        uint256 blockNumber = getLatestPlasmaBlockNumber();
+        bytes32 chunkId = keccak256(
+            abi.encode(
+                types.ChunkKey({
+                    depositContractAddress: address(this),
+                    blockNumber: blockNumber,
+                    start: totalDeposited
+                })
+            )
+        );
+
         types.StateUpdate memory stateUpdate = types.StateUpdate({
             depositContractAddress: address(this),
             range: depositRange,
-            blockNumber: getLatestPlasmaBlockNumber(),
-            stateObject: _initialState
+            blockNumber: blockNumber,
+            stateObject: _initialState,
+            chunkId: chunkId
         });
         extendDepositedRanges(_amount);
         _finalizeCheckpoint(stateUpdate);
