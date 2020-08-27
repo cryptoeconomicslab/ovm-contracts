@@ -39,6 +39,13 @@ library DataTypes {
     struct Checkpoint {
         StateUpdate stateUpdate;
     }
+
+    struct ExitInput {
+        uint256 isCheckpoint;
+        StateUpdate stateUpdate;
+        Range range;
+    }
+
     struct Exit {
         StateUpdate stateUpdate;
         InclusionProof inclusionProof;

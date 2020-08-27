@@ -8,4 +8,6 @@ contract DisputeKind {
     bytes internal EXIT_CHECKPOINT_CHALLENGE = bytes(
         "EXIT_CHECKPOINT_CHALLENGE"
     );
+
+    bytes internal BATCH_EXIT_CLAIM = bytes("BATCH_EXIT_CLAIM");
 }

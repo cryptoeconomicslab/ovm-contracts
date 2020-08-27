@@ -1,13 +1,16 @@
 import * as ethers from 'ethers'
 import { deployContract } from 'ethereum-waffle'
+import JSBI from 'jsbi'
 import {
   Address,
   BigNumber,
   Bytes,
   FixedBytes,
+  Integer,
   Range,
   Struct,
-  Property
+  Property,
+  List
 } from '@cryptoeconomicslab/primitives'
 import {
   DoubleLayerTree,
@@ -154,15 +157,32 @@ export function generateTree(
     : generateDoubleLayerTreeLeaf(tokenAddress, 7, 'leaf1')
   const leaf2 = generateDoubleLayerTreeLeaf(tokenAddress, 16, 'leaf2')
   const leaf3 = generateDoubleLayerTreeLeaf(tokenAddress, 100, 'leaf3')
+  const leaves = [leaf0, leaf1, leaf2, leaf3]
+  if (!falsyStateUpdate) {
+    leaves.sort((a, b) => {
+      if (JSBI.greaterThan(a.start.data, b.start.data)) {
+        return 1
+      } else if (JSBI.equal(a.start.data, b.start.data)) {
+        return 0
+      } else {
+        return -1
+      }
+    })
+  }
 
-  const tree = new DoubleLayerTree([leaf0, leaf1, leaf2, leaf3])
+  const tree = new DoubleLayerTree(leaves)
 
   return {
     root: tree.getRoot().toHexString(),
-    inclusionProof: tree.getInclusionProofByAddressAndIndex(tokenAddress, 0),
+    inclusionProof: tree.getInclusionProofByAddressAndIndex(
+      tokenAddress,
+      tree.findIndexByInterval(stateUpdate.range.start) || 0
+    ),
     falsyInclusionProof: tree.getInclusionProofByAddressAndIndex(
       tokenAddress,
-      1
+      falsyStateUpdate
+        ? tree.findIndexByInterval(falsyStateUpdate.range.start) || 1
+        : 1
     )
   }
 }
@@ -189,6 +209,31 @@ export function toTransactionStruct(data: Transaction): Struct {
     { key: 'nextStateObject', value: data.stateObject.toStruct() },
     { key: 'chunkId', value: data.chunkId }
   ])
+}
+
+export function toExitStruct(
+  isCheckpoint: boolean,
+  su: StateUpdate,
+  range: Range
+): Struct {
+  return new Struct([
+    { key: 'isCheckpoint', value: Integer.from(isCheckpoint ? 1 : 0) },
+    { key: 'stateUpdate', value: toStateUpdateStruct(su) },
+    { key: 'range', value: range.toStruct() }
+  ])
+}
+
+export function toBatchExitId(exitItems: Struct[]): Bytes {
+  return Keccak256.hash(
+    EthCoder.encode(
+      List.from(
+        {
+          default: () => exitItems[0]
+        },
+        exitItems
+      )
+    )
+  )
 }
 
 export function stateUpdateToLog(stateUpdate: StateUpdate) {
