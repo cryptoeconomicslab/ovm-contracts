@@ -30,7 +30,6 @@ import {
 } from './utils'
 import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import { increaseBlocks } from '../helpers/increaseBlocks'
-import { keccak256 } from 'ethers/utils'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -221,7 +220,6 @@ describe('BatchExitDispute', () => {
     })
 
     describe('challenge', () => {
-      // FIXME: refactor later
       const init = async (
         challengeType = 'EXIT_SPENT_CHALLENGE',
         options: {
@@ -242,6 +240,15 @@ describe('BatchExitDispute', () => {
         )
         await commitment.submitRoot(nextBlockNumber + 1, secondBlockInfo.root)
 
+        const thirdSU = support.ownershipStateUpdate(
+          Address.from(BOB_ADDRESS),
+          nextBlockNumber + 2,
+          10,
+          12
+        )
+        const thridTree = generateTree(thirdSU)
+        await commitment.submitRoot(nextBlockNumber + 2, thridTree.root)
+
         const inputs = [
           EthCoder.encode(
             toExitStruct(
@@ -249,9 +256,13 @@ describe('BatchExitDispute', () => {
               secondBlockInfo.stateUpdate,
               secondBlockInfo.stateUpdate.range
             )
-          )
+          ),
+          EthCoder.encode(toExitStruct(false, thirdSU, thirdSU.range))
         ]
-        const witness = [encodeStructable(secondBlockInfo.inclusionProof)]
+        const witness = [
+          encodeStructable(secondBlockInfo.inclusionProof),
+          encodeStructable(thridTree.inclusionProof)
+        ]
         await batchExitDispute.claim(inputs, witness, {
           gasLimit: 800000
         })

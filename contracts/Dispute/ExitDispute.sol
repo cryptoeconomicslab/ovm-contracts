@@ -146,9 +146,11 @@ contract ExitDispute is SpentChallengeValidator, CheckpointChallengeValidator {
             (types.StateUpdate)
         );
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENGE)) {
-            bytes[] memory spentChallengeInputs = new bytes[](1);
-            spentChallengeInputs[0] = _challengeInputs[1];
-            validateSpentChallenge(_inputs, spentChallengeInputs, _witness);
+            types.Transaction memory transaction = abi.decode(
+                _challengeInputs[1],
+                (types.Transaction)
+            );
+            validateSpentChallenge(stateUpdate, transaction, _witness);
             challengeProperty = createProperty(
                 _challengeInputs[0],
                 EXIT_SPENT_CHALLENGE
@@ -158,20 +160,22 @@ contract ExitDispute is SpentChallengeValidator, CheckpointChallengeValidator {
             keccak256(_challengeInputs[0]) ==
             keccak256(EXIT_CHECKPOINT_CHALLENGE)
         ) {
-            bytes[] memory invalidHistoryChallengeInputs = new bytes[](1);
-            invalidHistoryChallengeInputs[0] = _challengeInputs[1];
+            types.StateUpdate memory challengeStateUpdate = abi.decode(
+                _challengeInputs[1],
+                (types.StateUpdate)
+            );
+            types.InclusionProof memory inclusionProof = abi.decode(
+                _witness[0],
+                (types.InclusionProof)
+            );
             validateCheckpointChallenge(
-                _inputs,
-                invalidHistoryChallengeInputs,
-                _witness
+                stateUpdate,
+                challengeStateUpdate,
+                inclusionProof
             );
             challengeProperty = createProperty(
-                invalidHistoryChallengeInputs[0],
+                _challengeInputs[1],
                 EXIT_CHECKPOINT_CHALLENGE
-            );
-            types.StateUpdate memory challengeStateUpdate = abi.decode(
-                invalidHistoryChallengeInputs[0],
-                (types.StateUpdate)
             );
             emit ExitCheckpointChallenged(stateUpdate, challengeStateUpdate);
         } else {

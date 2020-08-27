@@ -150,11 +150,11 @@ contract BatchExitDispute is
         uint256 index = abi.decode(_challengeInputs[1], (uint256));
         types.StateUpdate memory stateUpdate = exitInputs[index].stateUpdate;
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENGE)) {
-            bytes[] memory spentChallengeInputs = new bytes[](1);
-            spentChallengeInputs[0] = _challengeInputs[2];
-            bytes[] memory spentInputs = new bytes[](1);
-            spentInputs[0] = abi.encode(stateUpdate);
-            validateSpentChallenge(spentInputs, spentChallengeInputs, _witness);
+            types.Transaction memory transaction = abi.decode(
+                _challengeInputs[2],
+                (types.Transaction)
+            );
+            validateSpentChallenge(stateUpdate, transaction, _witness);
             challengeProperty = createProperty(
                 _challengeInputs[0],
                 EXIT_SPENT_CHALLENGE
@@ -164,22 +164,22 @@ contract BatchExitDispute is
             keccak256(_challengeInputs[0]) ==
             keccak256(EXIT_CHECKPOINT_CHALLENGE)
         ) {
-            bytes[] memory spentInputs = new bytes[](1);
-            spentInputs[0] = abi.encode(stateUpdate);
-            bytes[] memory invalidHistoryChallengeInputs = new bytes[](1);
-            invalidHistoryChallengeInputs[0] = _challengeInputs[2];
+            types.StateUpdate memory challengeStateUpdate = abi.decode(
+                _challengeInputs[2],
+                (types.StateUpdate)
+            );
+            types.InclusionProof memory inclusionProof = abi.decode(
+                _witness[0],
+                (types.InclusionProof)
+            );
             validateCheckpointChallenge(
-                spentInputs,
-                invalidHistoryChallengeInputs,
-                _witness
+                stateUpdate,
+                challengeStateUpdate,
+                inclusionProof
             );
             challengeProperty = createProperty(
-                invalidHistoryChallengeInputs[0],
+                _challengeInputs[2],
                 EXIT_CHECKPOINT_CHALLENGE
-            );
-            types.StateUpdate memory challengeStateUpdate = abi.decode(
-                invalidHistoryChallengeInputs[0],
-                (types.StateUpdate)
             );
             emit ExitCheckpointChallenged(stateUpdate, challengeStateUpdate);
         } else {

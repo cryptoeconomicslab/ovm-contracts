@@ -138,12 +138,24 @@ contract CheckpointDispute is CheckpointChallengeValidator {
             _witness.length == 1,
             "witness length does not match. expected 1"
         );
+        types.StateUpdate memory stateUpdate = abi.decode(
+            _inputs[0],
+            (types.StateUpdate)
+        );
+        types.StateUpdate memory challengeStateUpdate = abi.decode(
+            _challengeInputs[0],
+            (types.StateUpdate)
+        );
+        types.InclusionProof memory inclusionProof = abi.decode(
+            _witness[0],
+            (types.InclusionProof)
+        );
 
-        (
-            types.StateUpdate memory stateUpdate,
-            types.StateUpdate memory challengeStateUpdate,
-            types.InclusionProof memory inclusionProof
-        ) = validateCheckpointChallenge(_inputs, _challengeInputs, _witness);
+        validateCheckpointChallenge(
+            stateUpdate,
+            challengeStateUpdate,
+            inclusionProof
+        );
 
         types.Property memory claimProperty = createProperty(
             _inputs[0],

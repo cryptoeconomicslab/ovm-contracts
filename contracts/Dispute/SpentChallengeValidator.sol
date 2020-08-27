@@ -13,18 +13,10 @@ contract SpentChallengeValidator is DisputeHelper {
      * _witness: [signature]
      */
     function validateSpentChallenge(
-        bytes[] memory _inputs,
-        bytes[] memory _challengeInputs,
+        types.StateUpdate memory stateUpdate,
+        types.Transaction memory transaction,
         bytes[] memory _witness
     ) internal view {
-        types.StateUpdate memory stateUpdate = abi.decode(
-            _inputs[0],
-            (types.StateUpdate)
-        );
-        types.Transaction memory transaction = abi.decode(
-            _challengeInputs[0],
-            (types.Transaction)
-        );
         require(
             transaction.depositContractAddress ==
                 stateUpdate.depositContractAddress,
@@ -49,7 +41,7 @@ contract SpentChallengeValidator is DisputeHelper {
         // inputs for stateObject property
         bytes[] memory inputs = new bytes[](2);
         inputs[0] = so.inputs[0];
-        inputs[1] = _challengeInputs[0];
+        inputs[1] = abi.encode(transaction);
 
         require(
             predicate.decide(inputs, _witness),

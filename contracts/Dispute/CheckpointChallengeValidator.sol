@@ -33,33 +33,10 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
      * _witness: [encode(inclusionProof)] inclusionProof of challenging state update
      */
     function validateCheckpointChallenge(
-        bytes[] memory _inputs,
-        bytes[] memory _challengeInputs,
-        bytes[] memory _witness
-    )
-        internal
-        view
-        returns (
-            types.StateUpdate memory,
-            types.StateUpdate memory,
-            types.InclusionProof memory
-        )
-    {
-        types.StateUpdate memory stateUpdate = abi.decode(
-            _inputs[0],
-            (types.StateUpdate)
-        );
-
-        types.StateUpdate memory challengeStateUpdate = abi.decode(
-            _challengeInputs[0],
-            (types.StateUpdate)
-        );
-
-        types.InclusionProof memory inclusionProof = abi.decode(
-            _witness[0],
-            (types.InclusionProof)
-        );
-
+        types.StateUpdate memory stateUpdate,
+        types.StateUpdate memory challengeStateUpdate,
+        types.InclusionProof memory inclusionProof
+    ) internal view {
         require(
             stateUpdate.depositContractAddress ==
                 challengeStateUpdate.depositContractAddress,
@@ -91,7 +68,6 @@ contract CheckpointChallengeValidator is DisputeHelper, DisputeKind {
             ),
             "Inclusion verification failed"
         );
-        return (stateUpdate, challengeStateUpdate, inclusionProof);
     }
 
     function validateChallengeRemoval(
