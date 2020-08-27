@@ -223,19 +223,6 @@ export function toExitStruct(
   ])
 }
 
-export function toBatchExitId(exitItems: Struct[]): Bytes {
-  return Keccak256.hash(
-    EthCoder.encode(
-      List.from(
-        {
-          default: () => exitItems[0]
-        },
-        exitItems
-      )
-    )
-  )
-}
-
 export function stateUpdateToLog(stateUpdate: StateUpdate) {
   return [
     stateUpdate.depositContractAddress.data,

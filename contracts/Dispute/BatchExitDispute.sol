@@ -34,7 +34,7 @@ contract BatchExitDispute is
         utils = Utils(_utilsAddress);
     }
 
-    event BatchExitClaimed(types.ExitInput[] exitInputs);
+    event BatchExitClaimed(bytes32 id, types.ExitInput[] exitInputs);
 
     event ExitSpentChallenged(types.StateUpdate stateUpdate);
 
@@ -110,8 +110,8 @@ contract BatchExitDispute is
             BATCH_EXIT_CLAIM
         );
         disputeManager.claim(property);
-
-        emit BatchExitClaimed(exitInputs);
+        bytes32 id = utils.getPropertyId(property);
+        emit BatchExitClaimed(id, exitInputs);
     }
 
     /**
@@ -255,17 +255,7 @@ contract BatchExitDispute is
     /**
      * If the exit can be withdrawable, isCompletable returns true.
      */
-    function isCompletable(types.StateUpdate memory _su)
-        public
-        view
-        returns (bool)
-    {
-        bytes memory suBytes = abi.encode(_su);
-        types.Property memory exitProperty = createProperty(
-            suBytes,
-            BATCH_EXIT_CLAIM
-        );
-        bytes32 id = utils.getPropertyId(exitProperty);
+    function isCompletable(bytes32 id) public view returns (bool) {
         return disputeManager.isDecidable(id);
     }
 

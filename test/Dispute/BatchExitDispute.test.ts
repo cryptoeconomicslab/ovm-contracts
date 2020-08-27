@@ -30,6 +30,7 @@ import {
 } from './utils'
 import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import { increaseBlocks } from '../helpers/increaseBlocks'
+import { getTransactionEvents } from '../helpers/getTransactionEvent'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -473,6 +474,7 @@ describe('BatchExitDispute', () => {
     describe('settle', () => {
       let inputs: Bytes[] = []
       let stateUpdate: StateUpdate
+      let batchExitId: string
       beforeEach(async () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
@@ -490,16 +492,22 @@ describe('BatchExitDispute', () => {
           EthCoder.encode(toExitStruct(false, stateUpdate, stateUpdate.range))
         ]
         const witness = [encodeStructable(inclusionProof)]
-
-        await expect(
-          batchExitDispute.claim(inputs, witness, {
-            gasLimit: 800000
-          })
-        ).to.emit(batchExitDispute, 'BatchExitClaimed')
+        const claimTx = await batchExitDispute.claim(inputs, witness, {
+          gasLimit: 800000
+        })
+        const events = await getTransactionEvents(
+          provider,
+          claimTx,
+          batchExitDispute
+        )
+        batchExitId = events[1].values[0]
       })
 
       it('settle exit', async () => {
         await increaseBlocks(wallets, 10)
+
+        const isCompletable = await batchExitDispute.isCompletable(batchExitId)
+        assert.equal(isCompletable, true)
 
         await expect(batchExitDispute.settle(inputs)).to.emit(
           batchExitDispute,
@@ -508,39 +516,12 @@ describe('BatchExitDispute', () => {
       })
 
       it('cannot settle exit', async () => {
+        const isCompletable = await batchExitDispute.isCompletable(batchExitId)
+        assert.equal(isCompletable, false)
+
         await expect(batchExitDispute.settle(inputs)).revertedWith(
           'revert dispute period has not been passed'
         )
-      })
-    })
-
-    describe('isCompletable', () => {
-      it('returns false', async () => {
-        const currentBlockNumber = await commitment.currentBlock()
-        const nextBlockNumber = currentBlockNumber + 1
-
-        const stateUpdate = support.ownershipStateUpdate(
-          Address.from(ALICE_ADDRESS),
-          nextBlockNumber,
-          0,
-          5
-        )
-
-        const { root, inclusionProof } = generateTree(stateUpdate)
-        await commitment.submitRoot(nextBlockNumber, root)
-
-        const inputs = [
-          EthCoder.encode(toExitStruct(false, stateUpdate, stateUpdate.range))
-        ]
-        const witness = [encodeStructable(inclusionProof)]
-
-        await batchExitDispute.claim(inputs, witness, {
-          gasLimit: 800000
-        })
-        const isCompletable = await batchExitDispute.isCompletable(
-          stateUpdateToLog(stateUpdate)
-        )
-        assert.equal(isCompletable, false)
       })
     })
   })
