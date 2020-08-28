@@ -34,7 +34,7 @@ contract BatchExitDispute is
         utils = Utils(_utilsAddress);
     }
 
-    event BatchExitClaimed(bytes32 id, types.ExitInput[] exitInputs);
+    event BatchExitClaimed(bytes32 id, types.StateUpdate[] exitStateUpdates);
 
     event ExitSpentChallenged(types.StateUpdate stateUpdate);
 
@@ -48,7 +48,7 @@ contract BatchExitDispute is
         types.StateUpdate challengingStateUpdate
     );
 
-    event BatchExitSettled(types.ExitInput[] exitInputs, bool decision);
+    event BatchExitSettled(types.StateUpdate[] exitStateUpdates, bool decision);
 
     /**
      * Claim Exit at StateUpdate
@@ -59,23 +59,27 @@ contract BatchExitDispute is
      * _witness: [encode(inclusionProof)]
      */
     function claim(bytes[] memory _inputs, bytes[] memory _witness) public {
-        types.ExitInput[] memory exitInputs = new types.ExitInput[](
+        types.StateUpdate[] memory exitStateUpdates = new types.StateUpdate[](
             _inputs.length
         );
-        for (uint256 i = 0; i < exitInputs.length; i++) {
-            exitInputs[i] = abi.decode(_inputs[i], (types.ExitInput));
-            if (exitInputs[i].isCheckpoint == 1) {
+        for (uint256 i = 0; i < exitStateUpdates.length; i++) {
+            types.ExitInput memory exitInput = abi.decode(
+                _inputs[i],
+                (types.ExitInput)
+            );
+            exitStateUpdates[i] = exitInput.stateUpdate;
+            if (exitInput.isCheckpoint == 1) {
                 types.StateUpdate memory checkpoint = types.StateUpdate({
-                    depositContractAddress: exitInputs[i]
+                    depositContractAddress: exitInput
                         .stateUpdate
                         .depositContractAddress,
-                    range: exitInputs[i].range,
-                    blockNumber: exitInputs[i].stateUpdate.blockNumber,
-                    stateObject: exitInputs[i].stateUpdate.stateObject,
-                    chunkId: exitInputs[i].stateUpdate.chunkId
+                    range: exitInput.range,
+                    blockNumber: exitInput.stateUpdate.blockNumber,
+                    stateObject: exitInput.stateUpdate.stateObject,
+                    chunkId: exitInput.stateUpdate.chunkId
                 });
                 require(
-                    checkpointExitable(exitInputs[i].stateUpdate, checkpoint),
+                    checkpointExitable(exitInput.stateUpdate, checkpoint),
                     "Checkpoint must be exitable for stateUpdate"
                 );
             } else {
@@ -84,7 +88,7 @@ contract BatchExitDispute is
                     (types.InclusionProof)
                 );
                 bytes memory blockNumberBytes = abi.encode(
-                    exitInputs[i].stateUpdate.blockNumber
+                    exitInput.stateUpdate.blockNumber
                 );
                 bytes32 root = utils.bytesToBytes32(
                     commitmentVerifier.retrieve(blockNumberBytes)
@@ -93,10 +97,10 @@ contract BatchExitDispute is
                 require(
                     commitmentVerifier.verifyInclusionWithRoot(
                         keccak256(
-                            abi.encode(exitInputs[i].stateUpdate.stateObject)
+                            abi.encode(exitInput.stateUpdate.stateObject)
                         ),
-                        exitInputs[i].stateUpdate.depositContractAddress,
-                        exitInputs[i].stateUpdate.range,
+                        exitInput.stateUpdate.depositContractAddress,
+                        exitInput.stateUpdate.range,
                         inclusionProof,
                         root
                     ),
@@ -106,12 +110,12 @@ contract BatchExitDispute is
         }
         // claim property to DisputeManager
         types.Property memory property = createProperty(
-            abi.encode(exitInputs),
+            abi.encode(exitStateUpdates),
             BATCH_EXIT_CLAIM
         );
         disputeManager.claim(property);
         bytes32 id = utils.getPropertyId(property);
-        emit BatchExitClaimed(id, exitInputs);
+        emit BatchExitClaimed(id, exitStateUpdates);
     }
 
     /**
@@ -140,15 +144,19 @@ contract BatchExitDispute is
             _challengeInputs.length == 3,
             "challenge inputs length does not match. expected 2"
         );
-        types.ExitInput[] memory exitInputs = new types.ExitInput[](
+        types.StateUpdate[] memory exitStateUpdates = new types.StateUpdate[](
             _inputs.length
         );
-        for (uint256 i = 0; i < exitInputs.length; i++) {
-            exitInputs[i] = abi.decode(_inputs[i], (types.ExitInput));
+        for (uint256 i = 0; i < exitStateUpdates.length; i++) {
+            types.ExitInput memory exitInput = abi.decode(
+                _inputs[i],
+                (types.ExitInput)
+            );
+            exitStateUpdates[i] = exitInput.stateUpdate;
         }
         types.Property memory challengeProperty;
         uint256 index = abi.decode(_challengeInputs[1], (uint256));
-        types.StateUpdate memory stateUpdate = exitInputs[index].stateUpdate;
+        types.StateUpdate memory stateUpdate = exitStateUpdates[index];
         if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENGE)) {
             types.Transaction memory transaction = abi.decode(
                 _challengeInputs[2],
@@ -187,7 +195,7 @@ contract BatchExitDispute is
         }
 
         types.Property memory claimedProperty = createProperty(
-            abi.encode(exitInputs),
+            abi.encode(exitStateUpdates),
             BATCH_EXIT_CLAIM
         );
         require(
@@ -211,21 +219,25 @@ contract BatchExitDispute is
      * check checkpoint
      */
     function settle(bytes[] memory _inputs) public {
-        types.ExitInput[] memory exitInputs = new types.ExitInput[](
+        types.StateUpdate[] memory exitStateUpdates = new types.StateUpdate[](
             _inputs.length
         );
-        for (uint256 i = 0; i < exitInputs.length; i++) {
-            exitInputs[i] = abi.decode(_inputs[i], (types.ExitInput));
+        for (uint256 i = 0; i < exitStateUpdates.length; i++) {
+            types.ExitInput memory exitInput = abi.decode(
+                _inputs[i],
+                (types.ExitInput)
+            );
+            exitStateUpdates[i] = exitInput.stateUpdate;
         }
 
         types.Property memory property = createProperty(
-            abi.encode(exitInputs),
+            abi.encode(exitStateUpdates),
             BATCH_EXIT_CLAIM
         );
         bool decision = disputeManager.settleGame(property);
         require(decision, "game must be settled");
 
-        emit BatchExitSettled(exitInputs, true);
+        emit BatchExitSettled(exitStateUpdates, true);
     }
 
     /* Helpers */
@@ -237,14 +249,13 @@ contract BatchExitDispute is
         return keccak256(abi.encode(_su));
     }
 
-    function getClaimDecision(types.StateUpdate memory _su)
+    function getClaimDecision(types.StateUpdate[] memory _stateUpdates)
         public
         view
         returns (types.Decision)
     {
-        bytes memory suBytes = abi.encode(_su);
         types.Property memory exitProperty = createProperty(
-            suBytes,
+            abi.encode(_stateUpdates),
             BATCH_EXIT_CLAIM
         );
         bytes32 id = utils.getPropertyId(exitProperty);
