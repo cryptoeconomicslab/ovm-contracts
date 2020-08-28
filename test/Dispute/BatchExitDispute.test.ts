@@ -25,8 +25,7 @@ import {
   encodeStructable,
   toStateUpdateStruct,
   toTransactionStruct,
-  toExitStruct,
-  stateUpdateToLog
+  toExitStruct
 } from './utils'
 import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import { increaseBlocks } from '../helpers/increaseBlocks'
@@ -441,32 +440,6 @@ describe('BatchExitDispute', () => {
               }
             )
           ).to.be.reverted
-        })
-
-        it.skip('State object decided to false', async () => {
-          const [inputs, challengeInputs, challengeWitness] = await init(
-            'EXIT_SPENT_CHALLENGE'
-          )
-          const transaction = support.ownershipTransaction(
-            Address.from(BOB_ADDRESS),
-            1000000,
-            0,
-            5,
-            Address.from(mockCompiledPredicate.address)
-          )
-          challengeInputs.push(
-            EthCoder.encode(toTransactionStruct(transaction))
-          )
-          await expect(
-            batchExitDispute.challenge(
-              inputs,
-              challengeInputs,
-              challengeWitness,
-              {
-                gasLimit: 900000
-              }
-            )
-          ).to.be.revertedWith('State object decided to false')
         })
       })
     })
