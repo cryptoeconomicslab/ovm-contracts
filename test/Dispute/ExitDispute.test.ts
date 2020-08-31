@@ -3,11 +3,9 @@ import {
   createMockProvider,
   deployContract,
   getWallets,
-  solidity,
-  link
+  solidity
 } from 'ethereum-waffle'
 import * as Utils from '../../build/contracts/Utils.json'
-import * as Deserializer from '../../build/contracts/Deserializer.json'
 import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
@@ -30,6 +28,7 @@ import {
 import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import { increaseBlocks } from '../helpers/increaseBlocks'
 import { keccak256 } from 'ethers/utils'
+import { linkDeserializer } from '../helpers/link'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -47,7 +46,6 @@ describe('ExitDispute', () => {
   const ALICE_ADDRESS = wallets[1].address
   const BOB_ADDRESS = wallets[2].address
   const support = new DisputeTestSupport(wallet)
-  let deserializer: ethers.Contract
   let utils: ethers.Contract
   let disputeManager: ethers.Contract
   let exitDispute: ethers.Contract
@@ -58,7 +56,7 @@ describe('ExitDispute', () => {
 
   before(async () => {
     utils = await deployContract(wallet, Utils, [])
-    deserializer = await deployContract(wallet, Deserializer, [])
+    await linkDeserializer(wallet)
     await support.setup()
     mockCompiledPredicate = await deployContract(
       wallet,
@@ -68,15 +66,6 @@ describe('ExitDispute', () => {
   })
 
   beforeEach(async () => {
-    try {
-      link(
-        ExitDispute,
-        'contracts/Library/Deserializer.sol:Deserializer',
-        deserializer.address
-      )
-    } catch (e) {
-      // link fail in second time.
-    }
     commitment = await deployContract(wallet, Commitment, [wallet.address])
     commitmentVerifier = await deployContract(wallet, CommitmentVerifier, [
       commitment.address

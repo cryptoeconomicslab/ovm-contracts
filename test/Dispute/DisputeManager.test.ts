@@ -9,7 +9,6 @@ import * as Utils from '../../build/contracts/Utils.json'
 import * as DisputeManager from '../../build/contracts/DisputeManager.json'
 import * as MockDisputeContract from '../../build/contracts/MockDisputeContract.json'
 import * as ethers from 'ethers'
-const abi = new ethers.utils.AbiCoder()
 import { increaseBlocks } from '../helpers/increaseBlocks'
 import { getGameIdFromProperty } from '../helpers/utils'
 

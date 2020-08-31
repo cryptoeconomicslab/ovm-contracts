@@ -3,11 +3,9 @@ import {
   createMockProvider,
   deployContract,
   getWallets,
-  solidity,
-  link
+  solidity
 } from 'ethereum-waffle'
 import * as Utils from '../../build/contracts/Utils.json'
-import * as Deserializer from '../../build/contracts/Deserializer.json'
 import * as Commitment from '../../build/contracts/Commitment.json'
 import * as CommitmentVerifier from '../../build/contracts/CommitmentVerifier.json'
 import * as MockCompiledPredicate from '../../build/contracts/MockCompiledPredicate.json'
@@ -30,6 +28,7 @@ import {
 import { StateUpdate, Transaction } from '@cryptoeconomicslab/plasma'
 import { increaseBlocks } from '../helpers/increaseBlocks'
 import { getTransactionEvents } from '../helpers/getTransactionEvent'
+import { linkDeserializer } from '../helpers/link'
 setupContext({ coder: EthCoder })
 
 chai.use(solidity)
@@ -47,18 +46,16 @@ describe('BatchExitDispute', () => {
   const ALICE_ADDRESS = wallets[1].address
   const BOB_ADDRESS = wallets[2].address
   const support = new DisputeTestSupport(wallet)
-  let deserializer: ethers.Contract
   let utils: ethers.Contract
   let disputeManager: ethers.Contract
   let batchExitDispute: ethers.Contract
   let commitment: ethers.Contract
   let commitmentVerifier: ethers.Contract
   let mockCompiledPredicate: ethers.Contract
-  let spentChallengeValidator: ethers.Contract
 
   before(async () => {
     utils = await deployContract(wallet, Utils, [])
-    deserializer = await deployContract(wallet, Deserializer, [])
+    await linkDeserializer(wallet)
     await support.setup()
     mockCompiledPredicate = await deployContract(
       wallet,
@@ -68,15 +65,6 @@ describe('BatchExitDispute', () => {
   })
 
   beforeEach(async () => {
-    try {
-      link(
-        BatchExitDispute,
-        'contracts/Library/Deserializer.sol:Deserializer',
-        deserializer.address
-      )
-    } catch (e) {
-      // link fail in second time.
-    }
     commitment = await deployContract(wallet, Commitment, [wallet.address])
     commitmentVerifier = await deployContract(wallet, CommitmentVerifier, [
       commitment.address
@@ -84,7 +72,6 @@ describe('BatchExitDispute', () => {
     disputeManager = await deployContract(wallet, DisputeManager, [
       utils.address
     ])
-    //spentChallengeValidator = await deployContract(wallet, SpentChallengeValidator, [])
     batchExitDispute = await deployContract(
       wallet,
       BatchExitDispute,
@@ -95,7 +82,7 @@ describe('BatchExitDispute', () => {
     )
   })
 
-  describe('Exit Checkpoint', () => {
+  describe('BatchExit Checkpoint', () => {
     let depositContract: ethers.Contract
     beforeEach(async () => {
       const token = await deployContract(wallet, MockToken, [])
@@ -104,7 +91,7 @@ describe('BatchExitDispute', () => {
       ])
     })
     describe('claim', () => {
-      it('succeed to claim a exit checkpoint', async () => {
+      it('succeed to claim batch exits contains a exit checkpoint', async () => {
         const currentBlockNumber = await commitment.currentBlock()
         const nextBlockNumber = currentBlockNumber + 1
 
