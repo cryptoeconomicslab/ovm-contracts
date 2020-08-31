@@ -121,7 +121,7 @@ contract BatchExitDispute is
     /**
      * challenge prove the exiting coin has been spent.
      * First element of challengeInputs must be either of
-     * bytes("EXIT_SPENT_CHALLENGE") or bytes("EXIT_CHECKPOINT_CHALLENGE")
+     * bytes("BATCH_EXIT_SPENT_CHALLENGE") or bytes("BATCH_EXIT_CHECKPOINT_CHALLENGE")
      * SPENT_CHALLENGE
      * input: [SU]
      * challengeInput: [label, transaction]
@@ -157,7 +157,10 @@ contract BatchExitDispute is
         types.Property memory challengeProperty;
         uint256 index = abi.decode(_challengeInputs[1], (uint256));
         types.StateUpdate memory stateUpdate = exitStateUpdates[index];
-        if (keccak256(_challengeInputs[0]) == keccak256(EXIT_SPENT_CHALLENGE)) {
+        if (
+            keccak256(_challengeInputs[0]) ==
+            keccak256(BATCH_EXIT_SPENT_CHALLENGE)
+        ) {
             types.Transaction memory transaction = abi.decode(
                 _challengeInputs[2],
                 (types.Transaction)
@@ -165,12 +168,12 @@ contract BatchExitDispute is
             validateSpentChallenge(stateUpdate, transaction, _witness);
             challengeProperty = createProperty(
                 _challengeInputs[0],
-                EXIT_SPENT_CHALLENGE
+                BATCH_EXIT_SPENT_CHALLENGE
             );
             emit ExitSpentChallenged(stateUpdate);
         } else if (
             keccak256(_challengeInputs[0]) ==
-            keccak256(EXIT_CHECKPOINT_CHALLENGE)
+            keccak256(BATCH_EXIT_CHECKPOINT_CHALLENGE)
         ) {
             types.StateUpdate memory challengeStateUpdate = abi.decode(
                 _challengeInputs[2],
@@ -187,7 +190,7 @@ contract BatchExitDispute is
             );
             challengeProperty = createProperty(
                 _challengeInputs[2],
-                EXIT_CHECKPOINT_CHALLENGE
+                BATCH_EXIT_CHECKPOINT_CHALLENGE
             );
             emit ExitCheckpointChallenged(stateUpdate, challengeStateUpdate);
         } else {

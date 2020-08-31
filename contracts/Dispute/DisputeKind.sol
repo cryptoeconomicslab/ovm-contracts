@@ -10,4 +10,10 @@ contract DisputeKind {
     );
 
     bytes internal BATCH_EXIT_CLAIM = bytes("BATCH_EXIT_CLAIM");
+    bytes internal BATCH_EXIT_SPENT_CHALLENGE = bytes(
+        "BATCH_EXIT_SPENT_CHALLENGE"
+    );
+    bytes internal BATCH_EXIT_CHECKPOINT_CHALLENGE = bytes(
+        "BATCH_EXIT_CHECKPOINT_CHALLENGE"
+    );
 }

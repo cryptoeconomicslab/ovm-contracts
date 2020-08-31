@@ -208,7 +208,7 @@ describe('BatchExitDispute', () => {
 
     describe('challenge', () => {
       const init = async (
-        challengeType = 'EXIT_SPENT_CHALLENGE',
+        challengeType = 'BATCH_EXIT_SPENT_CHALLENGE',
         options: {
           transaction?: Transaction
         } = {}
@@ -259,7 +259,7 @@ describe('BatchExitDispute', () => {
           EthCoder.encode(Integer.from(0))
         ]
         const challengeWitness = []
-        if (challengeType === 'EXIT_SPENT_CHALLENGE') {
+        if (challengeType === 'BATCH_EXIT_SPENT_CHALLENGE') {
           if (!options.transaction) {
             options.transaction = support.ownershipTransaction(
               Address.from(BOB_ADDRESS),
@@ -274,7 +274,7 @@ describe('BatchExitDispute', () => {
             EthCoder.encode(toTransactionStruct(options.transaction))
           )
           challengeWitness.push(Bytes.fromHexString(signature))
-        } else if (challengeType === 'EXIT_CHECKPOINT_CHALLENGE') {
+        } else if (challengeType === 'BATCH_EXIT_CHECKPOINT_CHALLENGE') {
           challengeInputs.push(
             EthCoder.encode(toStateUpdateStruct(firstBlockInfo.stateUpdate))
           )
@@ -297,7 +297,7 @@ describe('BatchExitDispute', () => {
             inputs,
             challengeInputs,
             challengeWitness
-          ] = await init('EXIT_SPENT_CHALLENGE', { transaction })
+          ] = await init('BATCH_EXIT_SPENT_CHALLENGE', { transaction })
           await expect(
             batchExitDispute.challenge(
               inputs,
@@ -322,7 +322,7 @@ describe('BatchExitDispute', () => {
             inputs,
             challengeInputs,
             challengeWitness
-          ] = await init('EXIT_SPENT_CHALLENGE', { transaction })
+          ] = await init('BATCH_EXIT_SPENT_CHALLENGE', { transaction })
           await expect(
             batchExitDispute.challenge(
               inputs,
@@ -337,7 +337,7 @@ describe('BatchExitDispute', () => {
 
         it('create a new exit challenge(checkpoint)', async () => {
           const [inputs, challengeInputs, challengeWitness] = await init(
-            'EXIT_CHECKPOINT_CHALLENGE'
+            'BATCH_EXIT_CHECKPOINT_CHALLENGE'
           )
           await expect(
             batchExitDispute.challenge(
