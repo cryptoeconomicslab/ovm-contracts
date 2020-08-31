@@ -191,10 +191,7 @@ contract ExitDispute is SpentChallengeValidator, CheckpointChallengeValidator {
             "Claim does not exist"
         );
 
-        disputeManager.challenge(
-            createProperty(_inputs[0], EXIT_CLAIM),
-            challengeProperty
-        );
+        disputeManager.challenge(claimedProperty, challengeProperty);
     }
 
     function removeChallenge(
