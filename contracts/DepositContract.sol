@@ -10,6 +10,7 @@ import {DataTypes as types} from "./DataTypes.sol";
 import {Commitment} from "./Commitment.sol";
 import {DisputeKind} from "./Dispute/DisputeKind.sol";
 import {ExitDispute} from "./Dispute/ExitDispute.sol";
+import {BatchExitDispute} from "./Dispute/BatchExitDispute.sol";
 import "./Predicate/CompiledPredicate.sol";
 
 /**
@@ -54,6 +55,7 @@ contract DepositContract {
     Commitment public commitment;
     address public checkpointDisputeAddress;
     address public exitDisputeAddress;
+    address public batchExitDisputeAddress;
 
     // totalDeposited is the most right coin id which has been deposited
     uint256 public totalDeposited;
@@ -65,12 +67,14 @@ contract DepositContract {
         address _erc20,
         address _commitment,
         address _checkpointDispute,
-        address _exitDispute
+        address _exitDispute,
+        address _batchExitDisputeAddress
     ) public {
         erc20 = ERC20(_erc20);
         commitment = Commitment(_commitment);
         checkpointDisputeAddress = _checkpointDispute;
         exitDisputeAddress = _exitDispute;
+        batchExitDisputeAddress = _batchExitDisputeAddress;
     }
 
     /**
@@ -250,6 +254,39 @@ contract DepositContract {
         uint256 amount = _exit.range.end - _exit.range.start;
         erc20.transfer(payout, amount);
         emit ExitFinalized(exitId, _exit);
+    }
+
+    function finalizeBatchExit(
+        types.StateUpdate[] memory _exits,
+        uint256 _depositedRangeId
+    ) public {
+        BatchExitDispute batchExitDispute = BatchExitDispute(
+            batchExitDisputeAddress
+        );
+        types.Decision decision = batchExitDispute.getClaimDecision(_exits);
+        require(
+            decision == types.Decision.True,
+            "exit claim must be settled to true"
+        );
+        for (uint256 i = 0; i < _exits.length; i++) {
+            types.StateUpdate memory _exit = _exits[i];
+            bytes32 exitId = getId(_exit);
+            address payout = CompiledPredicate(
+                _exit
+                    .stateObject
+                    .predicateAddress
+            )
+                .payoutContractAddress();
+
+            require(
+                _exit.depositContractAddress == address(this),
+                "depositContractAddress must be this contract address"
+            );
+            removeDepositedRange(_exit.range, _depositedRangeId);
+            uint256 amount = _exit.range.end - _exit.range.start;
+            erc20.transfer(payout, amount);
+            emit ExitFinalized(exitId, _exit);
+        }
     }
 
     /* Helpers */

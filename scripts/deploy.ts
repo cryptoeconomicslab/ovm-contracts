@@ -29,6 +29,7 @@ import * as OwnershipPayout from '../build/contracts/OwnershipPayout.json'
 import * as DisputeManager from '../build/contracts/DisputeManager.json'
 import * as CheckpointDispute from '../build/contracts/CheckpointDispute.json'
 import * as ExitDispute from '../build/contracts/ExitDispute.json'
+import * as BatchExitDispute from '../build/contracts/BatchExitDispute.json'
 
 import {
   randomAddress,
@@ -387,6 +388,16 @@ const deployContracts = async (
   )
   console.log('ExitDispute Deployed')
 
+  console.log('Deploying BatchExitDispute')
+  const batchExitDispute = await deployContract(
+    BatchExitDispute,
+    wallet,
+    disputeManager.address,
+    commitmentVerifier.address,
+    utils.address
+  )
+  console.log('BatchExitDispute Deployed')
+
   console.log('Deploying DepositContract')
   const depositContract = await deployContract(
     DepositContract,
@@ -394,7 +405,8 @@ const deployContracts = async (
     plasmaETH.address,
     commitment.address,
     checkpointDispute.address,
-    exitDispute.address
+    exitDispute.address,
+    batchExitDispute.address
   )
   console.log('DepositContract Deployed')
 
@@ -412,6 +424,7 @@ const deployContracts = async (
     disputeManager: disputeManager.address,
     checkpointDispute: checkpointDispute.address,
     exitDispute: exitDispute.address,
+    batchExitDispute: batchExitDispute.address,
     payoutContracts: {
       DepositContract: depositContract.address,
       ...payoutContracts

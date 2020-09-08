@@ -33,4 +33,23 @@ contract OwnershipPayout {
         require(msg.sender == owner, "msg.sender must be owner");
         depositContract.erc20().transfer(_owner, amount);
     }
+
+    function finalizeBatchExit(
+        address depositContractAddress,
+        types.StateUpdate[] memory _exits,
+        uint256 _depositedRangeId,
+        address _owner
+    ) public {
+        DepositContract depositContract = DepositContract(
+            depositContractAddress
+        );
+        depositContract.finalizeBatchExit(_exits, _depositedRangeId);
+        for (uint256 i = 0; i < _exits.length; i++) {
+            types.StateUpdate memory _exit = _exits[i];
+            address owner = utils.bytesToAddress(_exit.stateObject.inputs[0]);
+            uint256 amount = _exit.range.end - _exit.range.start;
+            require(msg.sender == owner, "msg.sender must be owner");
+            depositContract.erc20().transfer(_owner, amount);
+        }
+    }
 }

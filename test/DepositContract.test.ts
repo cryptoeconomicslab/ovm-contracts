@@ -16,6 +16,7 @@ import * as MockAdjudicationContract from '../build/contracts/MockAdjudicationCo
 import * as Deserializer from '../build/contracts/Deserializer.json'
 import * as MockCheckpointDispute from '../build/contracts/MockCheckpointDispute.json'
 import * as MockExitDispute from '../build/contracts/MockExitDispute.json'
+import * as MockBatchExitDispute from '../build/contracts/MockBatchExitDispute.json'
 import * as ethers from 'ethers'
 import { OvmProperty, encodeStateUpdate } from './helpers/utils'
 import { getTransactionEvents } from './helpers/getTransactionEvent'
@@ -46,7 +47,8 @@ describe('DepositContract', () => {
     mockCommitmentContract: ethers.Contract,
     depositContract: ethers.Contract,
     mockCheckpointDispute: ethers.Contract,
-    mockExitDispute: ethers.Contract
+    mockExitDispute: ethers.Contract,
+    mockBatchExitDispute: ethers.Contract
 
   before(async () => {
     deserializer = await deployContract(wallet, Deserializer, [])
@@ -80,13 +82,15 @@ describe('DepositContract', () => {
 
     mockTokenContract = await deployContract(wallet, MockToken, [])
     mockExitDispute = await deployContract(wallet, MockExitDispute)
+    mockBatchExitDispute = await deployContract(wallet, MockBatchExitDispute)
     mockCheckpointDispute = await deployContract(wallet, MockCheckpointDispute)
 
     depositContract = await deployContract(wallet, DepositContract, [
       mockTokenContract.address,
       mockCommitmentContract.address,
       mockCheckpointDispute.address,
-      mockExitDispute.address
+      mockExitDispute.address,
+      mockBatchExitDispute.address
     ])
 
     mockOwnershipPredicate = await deployContract(
@@ -337,6 +341,61 @@ describe('DepositContract', () => {
           gasLimit: 1000000
         })
       ).to.be.reverted
+    })
+  })
+
+  describe('finalizeBatchExit', () => {
+    // mock StateObject to deposit
+    let stateObject: OvmProperty
+
+    function su(range: number[], depositContractAddress?: string) {
+      return [
+        depositContractAddress || depositContract.address,
+        range,
+        100,
+        [stateObject.predicateAddress, stateObject.inputs],
+        '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ]
+    }
+
+    beforeEach(async () => {
+      stateObject = {
+        predicateAddress: mockOwnershipPredicate.address,
+        inputs: [abi.encode(['address'], [wallet.address])]
+      }
+      await mockTokenContract.approve(depositContract.address, 10)
+      await depositContract.deposit(10, stateObject)
+    })
+
+    it('finalize BatchExit and ExitFinalized event should be fired', async () => {
+      const tx = mockOwnershipPredicate.finalizeBatchExit(
+        [su([0, 5]), su([7, 8])],
+        10,
+        {
+          gasLimit: 1000000
+        }
+      )
+      await expect(tx).to.emit(depositContract, 'ExitFinalized')
+
+      const events = await getTransactionEvents(
+        provider,
+        await tx,
+        depositContract
+      )
+      const depositedRangeRemoved = events[0]
+      assert.deepEqual(depositedRangeRemoved.values.removedRange, [
+        ethers.utils.bigNumberify(0),
+        ethers.utils.bigNumberify(5)
+      ])
+    })
+
+    it('finalize BatchExit property throw exit claim must be settled exception', async () => {
+      await mockBatchExitDispute.setClaimDecision(false, { gasLimit: 100000 })
+      await expect(
+        mockOwnershipPredicate.finalizeBatchExit([su([0, 7])], 10, {
+          gasLimit: 1000000
+        })
+      ).to.be.revertedWith('exit claim must be settled to true')
     })
   })
 

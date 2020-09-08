@@ -51,6 +51,16 @@ contract MockOwnershipPredicate is CompiledPredicate {
         );
     }
 
+    function finalizeBatchExit(
+        types.StateUpdate[] memory _exits,
+        uint256 _depositedRangeId
+    ) public {
+        DepositContract(depositContractAddress).finalizeBatchExit(
+            _exits,
+            _depositedRangeId
+        );
+    }
+
     function decideWithWitness(bytes[] memory _inputs, bytes[] memory _witness)
         public
         returns (bool)

@@ -13,6 +13,7 @@ export interface InitilizationConfig {
   disputeManager: string
   checkpointDispute: string
   exitDispute: string
+  batchExitDispute: string
   payoutContracts: { [key: string]: string }
   PlasmaETH: string
   utils: {
