@@ -52,6 +52,6 @@
   },
   "dependencies": {
     "@types/node": "^14.0.13",
-    "eth-sig-util": "^2.5.3"
+    "eth-sig-util": "^3.0.0"
   }
 }
