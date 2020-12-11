@@ -47,7 +47,7 @@
     "prettier-plugin-solidity": "1.0.0-alpha.54",
     "solc": "0.5.17",
     "solidity-docgen": "0.5.3",
-    "ts-node": "8.10.2",
+    "ts-node": "9.1.1",
     "typescript": "3.9.6"
   },
   "dependencies": {
