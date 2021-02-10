@@ -34,7 +34,7 @@
     "@cryptoeconomicslab/ovm-transpiler": "^0.6.0",
     "@cryptoeconomicslab/plasma": "^0.6.0",
     "@cryptoeconomicslab/primitives": "^0.6.0",
-    "@openzeppelin/contracts": "2.5.1",
+    "@openzeppelin/contracts": "3.4.0",
     "@types/chai": "4.2.11",
     "@types/mocha": "7.0.2",
     "chai": "4.2.0",
