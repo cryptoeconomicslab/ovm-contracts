@@ -24,7 +24,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@cryptoeconomicslab/context": "^0.6.0",
+    "@cryptoeconomicslab/context": "0.7.0",
     "@cryptoeconomicslab/eth-coder": "^0.6.0",
     "@cryptoeconomicslab/hash": "^0.6.0",
     "@cryptoeconomicslab/merkle-tree": "^0.6.0",
