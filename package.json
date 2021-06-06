@@ -43,7 +43,7 @@
     "ethereum-waffle": "2.1.0",
     "ethers": "4.0.47",
     "mocha": "8.0.1",
-    "prettier": "2.0.5",
+    "prettier": "2.3.1",
     "prettier-plugin-solidity": "1.0.0-alpha.54",
     "solc": "0.5.17",
     "solidity-docgen": "0.5.3",
