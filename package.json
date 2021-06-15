@@ -44,7 +44,7 @@
     "ethers": "4.0.47",
     "mocha": "8.0.1",
     "prettier": "2.0.5",
-    "prettier-plugin-solidity": "1.0.0-alpha.54",
+    "prettier-plugin-solidity": "1.0.0-beta.13",
     "solc": "0.5.17",
     "solidity-docgen": "0.5.3",
     "ts-node": "8.10.2",
